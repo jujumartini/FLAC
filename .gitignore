@@ -1,0 +1,17 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+/ActiGraph Software/*
+/activPAL Software/*
+/Colorado/*
+/FFmpeg/*
+/FLAC Protocol Meetings/*
+/FLAC_AIM1_DATA/*
+/FLAC_AIM2_DATA/*
+/FLAC_AIM3_DATA/*
+/LAFLAC_AIM_DATA/*
+/Noldus Observer XT 14/*
+/Noldus Observer XT 15 (TEST)/*
+/OxfordImageBrowser-win32-x64/*
+/z_ARCHIVE/*
