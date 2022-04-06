@@ -4455,25 +4455,12 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
       new = c("axis_1", "axis_2", "axis_3")
     )
     
-    # Datetime column.
-    # df_shp %>% 
-    #   mutate(datetime = 
-    #            stri_c(date, time, sep = " ") %>% 
-    #            lubridate::mdy_hms(tz = df_info$time_zone),
-    #          dte = date(datetime),
-             # time = format(datetime,
-             #               "%H:%M:%S"),
-    #          .before = 1
-    #          )
+    # On & off
     df_shp[, `:=`(
       datetime = 
         stri_c(date, time, sep = " ") %>% 
         lubridate::mdy_hms(tz = ..df_info$time_zone)
-      # date = NULL,
-      # time = NULL
     )]
-    
-    # On & off
     df_on <- 
       df_start_stop[study == df_info$study &
                       subject == df_info$subject &
