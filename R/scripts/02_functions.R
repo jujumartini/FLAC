@@ -3381,12 +3381,12 @@ shape_actigraph_raw_flac <- function(fdr_read,
                  regexp = folder),
           fnm_write
         )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
+      # data.table::fwrite(
+      #   df_shp,
+      #   file = fpa_project,
+      #   sep = ",",
+      #   showProgress = FALSE
+      # )
       arrow::write_feather(
         df_shp,
         sink = fs::path_ext_set(path = fpa_project,
@@ -3404,12 +3404,12 @@ shape_actigraph_raw_flac <- function(fdr_read,
                regexp = folder),
         fnm_write
       )
-    data.table::fwrite(
-      df_shp,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
-    )
+    # data.table::fwrite(
+    #   df_shp,
+    #   file = fpa_write,
+    #   sep = ",",
+    #   showProgress = FALSE
+    # )
     arrow::write_feather(
       df_shp,
       sink = fs::path_ext_set(path = fpa_write,
@@ -3424,12 +3424,12 @@ shape_actigraph_raw_flac <- function(fdr_read,
                  regexp = folder),
           fnm_write
         )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
+      # data.table::fwrite(
+      #   df_shp,
+      #   file = fpa_project,
+      #   sep = ",",
+      #   showProgress = FALSE
+      # )
       arrow::write_feather(
         df_shp,
         sink = fs::path_ext_set(path = fpa_project,
