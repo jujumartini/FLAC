@@ -4317,7 +4317,60 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
   project_only <- 
     FALSE
   
+  ag_model_loc <-
+    folder %>% 
+    str_split(pattern = "_") %>% 
+    vec_unchop() %>% 
+    vec_slice(c(1, 2)) %>% 
+    paste(collapse = "_")
+  initiate_wrangle(fdr_read     = fdr_read,
+                   fdr_project  = fdr_project,
+                   filter_sub   = filter_sub,
+                   filter_loc   = filter_loc,
+                   project_only = project_only,
+                   type         = "Shap",
+                   file_source  = ag_model_loc)
+  epoch <- 
+    as.integer(epoch)
+  vct_fpa_read <- 
+    get_fpa_read(
+      fdr_read      = fdr_read,
+      fdr_write     = fdr_write,
+      name_source_1 = folder,
+      filter_sub    = filter_sub
+    )
+  if (!is_empty(filter_loc)) {
+    vct_fpa_read <- 
+      vec_slice(vct_fpa_read,
+                filter_loc)
+  }
+  df_start_stop <- 
+    fdr_write %>% 
+    dir_ls(
+      type = "file",
+      regexp = "df_start_stop\\.feather$"
+    ) %>% 
+    arrow::read_feather() %>% 
+    add_row(study = "CO",
+            subject = 3045L,
+            visit = 1L,
+            start = mdy_hms("10-02-2019 08:02:00",
+                            tz = "America/Denver"),
+            stop = mdy_hms("10-02-2019 20:07:00",
+                           tz = "America/Denver"))
+  
+  for (i in cli_progress_along(vct_fpa_read,
+                               format = progress_format,
+                               clear = FALSE)) {
     
+    cnt <- 
+      cnt + 1
+    
+  }
+  
+  cli_progress_done()
+  cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
+  
 }
 
 shape_chamber_v1 <- function(fdr_read,
