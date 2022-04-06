@@ -106,6 +106,26 @@ shape_ag_raw_flac(
   filter_loc   = 40:61,
   project_only = FALSE
 )
+shape_ag_raw_flac(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = NULL,
+  folder       = "GT3X_RH_CSV_RAW",
+  freq         = 100,
+  filter_sub   = NULL,
+  filter_loc   = 40:61,
+  project_only = FALSE
+)
+shape_ag_raw_flac(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = NULL,
+  folder       = "GT3X_RW_CSV_RAW",
+  freq         = 100,
+  filter_sub   = NULL,
+  filter_loc   = 40:61,
+  project_only = FALSE
+)
 
 docomp_beh_buck_key <-
   c(
