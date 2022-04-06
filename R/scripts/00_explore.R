@@ -4265,6 +4265,61 @@ shape_ag_raw_flac_v4 <- function(fdr_read,
   
 }
 
+shape_ag_sec_flac_v1 <- function(fdr_read,
+                                 fdr_write,
+                                 fdr_project = NULL,
+                                 folder = "GT3X_RH_CSV_1SEC",
+                                 epoch = 1,
+                                 filter_sub = NULL,
+                                 filter_loc = NULL,
+                                 project_only = FALSE) {
+
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -   First version
+  # -   Should match ag_raw pretty well, just need to change df_info.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # -   initiate_wrangle
+  # -   get_fpa_read
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: fdr_read
+  #      File directory of cleaned ag_second files.
+  # ARG: fdr_write
+  #      File directory of shaped ag_second files.
+  # ARG: folder
+  #      Folder name of cleaned ag_second files. Shaped ag_second files will be
+  #      written to a folder with same folder name under fdr_write.
+  # ARG: fdr_project
+  #      File directory to where all the shaped data resides in a project. If
+  #      this is supplied then files are written to both fdr_write and fdr_project.
+  # ARG: filter_sub
+  #      Vector of subjects to filter the vct_fpa_read base.
+  # ARG: filter_loc
+  #      Integer vector to subset from vct_fpa_read.
+  # ARG: project_only
+  #      Should merged files only be written to fdr_project?
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  fdr_read <-
+    fs::path("FLAC_AIM1_DATA",
+             "2_AIM1_CLEANED_DATA")
+  fdr_write <-
+    fs::path("FLAC_AIM1_DATA",
+             "3_AIM1_SHAPED_DATA")
+  fdr_project <- 
+    NULL
+  folder <- 
+    "GT3X_RH_CSV_1SEC"
+  epoch <- 
+    1
+  filter_sub <- 
+    NULL
+  filter_loc <- 
+    NULL
+  project_only <- 
+    FALSE
+  
+    
+}
+
 shape_chamber_v1 <- function(fdr_read,
                              fdr_write,
                              fdr_project = NULL,
