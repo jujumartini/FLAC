@@ -4510,6 +4510,81 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
       df_shp,
       c("study", "subject", "visit","datetime")
     )
+    
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                            WRITE                          ----
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    fnm_write <- 
+      df_info %>% 
+      unite(col = "file_name",
+            study, subject, visit, file_source, epoch_fnm) %>% 
+      pull(file_name) %>% 
+      fs::path_ext_set(ext = "csv")
+    
+    if (project_only) {
+      fpa_project <- 
+        fs::path(
+          dir_ls(fdr_project,
+                 type = "directory",
+                 regexp = folder),
+          fnm_write
+        )
+      data.table::fwrite(
+        df_shp,
+        file = fpa_project,
+        sep = ",",
+        showProgress = FALSE
+      )
+      arrow::write_feather(
+        df_shp,
+        sink = fs::path_ext_set(path = fpa_project,
+                                ext = "feather")
+      )
+      cnt <-
+        cnt + 1
+      next()
+    }
+    
+    fpa_write <- 
+      fs::path(
+        dir_ls(fdr_write,
+               type = "directory",
+               regexp = folder),
+        fnm_write
+      )
+    data.table::fwrite(
+      df_shp,
+      file = fpa_write,
+      sep = ",",
+      showProgress = FALSE
+    )
+    arrow::write_feather(
+      df_shp,
+      sink = fs::path_ext_set(path = fpa_write,
+                              ext = "feather")
+    )
+    
+    if(!is_empty(fdr_project)) {
+      fpa_project <- 
+        fs::path(
+          dir_ls(fdr_project,
+                 type = "directory",
+                 regexp = folder),
+          fnm_write
+        )
+      data.table::fwrite(
+        df_shp,
+        file = fpa_project,
+        sep = ",",
+        showProgress = FALSE
+      )
+      arrow::write_feather(
+        df_shp,
+        sink = fs::path_ext_set(path = fpa_project,
+                                ext = "feather")
+      )
+    }
+    
     cnt <- 
       cnt + 1
     
