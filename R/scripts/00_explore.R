@@ -4444,6 +4444,72 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
         str_replace(" ",
                     "_")
     )
+
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                            SHAPE                          ----
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # Axis names.
+    setnames(
+      df_shp,
+      old = c("axis1", "axis2", "axis3"),
+      new = c("axis_1", "axis_2", "axis_3")
+    )
+    
+    # Datetime column.
+    # df_shp %>% 
+    #   mutate(datetime = 
+    #            stri_c(date, time, sep = " ") %>% 
+    #            lubridate::mdy_hms(tz = df_info$time_zone),
+    #          dte = date(datetime),
+             # time = format(datetime,
+             #               "%H:%M:%S"),
+    #          .before = 1
+    #          )
+    df_shp[, `:=`(
+      datetime = 
+        stri_c(date, time, sep = " ") %>% 
+        lubridate::mdy_hms(tz = ..df_info$time_zone)
+      # date = NULL,
+      # time = NULL
+    )]
+    
+    # On & off
+    df_on <- 
+      df_start_stop[study == df_info$study &
+                      subject == df_info$subject &
+                      visit == df_info$visit][1]
+    if (anyNA.data.frame(df_on)) {
+      cli_warn(c(
+        "{paste(df_info[, .(study, subject, visit)], 
+                collapse = '_')}",
+        "!" = "No entry in df_start_stop",
+        "i" = "No on/off filtering done."
+      ))
+    } else {
+      df_shp <- 
+        df_shp[between(datetime,
+                       lower = df_on$start,
+                       upper = df_on$stop), ]
+    }
+    
+    # Add/remove variables
+    df_shp[, `:=`(
+      study    = ..df_info$study,
+      subject  = ..df_info$subject,
+      visit    = ..df_info$visit,
+      date     = lubridate::date(datetime),
+      time     = format(datetime, "%H:%M:%S"),
+      datetime = lubridate::with_tz(datetime,
+                                    tzone = "UTC")
+      )]
+    df_shp[, c(
+      "steps", "inclinometer_off", "inclinometer_standing", 
+      "inclinometer_sitting", "inclinometer_lying"
+    ) := NULL]
+    setcolorder(
+      df_shp,
+      c("study", "subject", "visit","datetime")
+    )
     cnt <- 
       cnt + 1
     
