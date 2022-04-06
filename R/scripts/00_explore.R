@@ -4362,6 +4362,68 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
   for (i in cli_progress_along(vct_fpa_read,
                                format = progress_format,
                                clear = FALSE)) {
+  
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                             INFO                           ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    fpa_read <- 
+      vct_fpa_read[1]
+    fnm_read <- 
+      fs::path_file(fpa_read)
+    
+    df_info <- 
+      fnm_read %>% 
+      fs::path_ext_remove() %>% 
+      str_split(pattern = "_") %>% 
+      vec_unchop() %>% 
+      vec_chop()
+    setDT(df_info)
+    setnames(df_info,
+             c("study",
+               "model_fnm",
+               "location",
+               "sbj_epoch"))
+    df_info[, `:=`(
+      subject = 
+        sbj_epoch %>% 
+        str_extract(pattern = "\\d{4}") %>%
+        as.integer(),
+      epoch_fnm = 
+        sbj_epoch %>% 
+        str_remove(pattern = "\\d{4}"),
+      visit = 
+        fifelse(info_flac_aim == "AIM1",
+                yes = 1L,
+                no  = 
+                  sbj_epoch %>% 
+                  str_extract(pattern = "\\d*") %>% 
+                  as.integer(),
+                na  = NA_integer_),
+      flac_aim = info_flac_aim,
+      file_source = info_source,
+      time_zone = fcase(info_flac_aim == "AIM1", "America/Denver",
+                        info_flac_aim == "AIM2", "America/Chicago")
+    )]
+    df_info[, c(
+      "model_df",
+      "actilife_version",
+      "model_firmware",
+      "date_format",
+      "filter",
+      "dte_start",
+      "tim_start",
+      "epoch_df") := 
+        readLines(fpa_read,
+                  n = 10) %>%
+        str_split(pattern = " |,") %>%
+        vec_unchop() %>%
+        vec_chop(indices = list(8, 10, 12, 15, 17, 57, 44, 71))]
+    df_info[, `:=`(dtm_start =
+                     paste(dte_start, tim_start, sep = " ") %>%
+                     lubridate::mdy_hms(tz = df_info$time_zone),
+                   dte_start = NULL,
+                   tim_start = NULL)]
+    setcolorder(df_info, c("study", "subject", "visit"))
     
     cnt <- 
       cnt + 1
