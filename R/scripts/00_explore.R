@@ -4367,7 +4367,7 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
     ##                             INFO                           ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fpa_read <- 
-      vct_fpa_read[1]
+      vct_fpa_read[i]
     fnm_read <- 
       fs::path_file(fpa_read)
     
