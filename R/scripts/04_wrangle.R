@@ -96,7 +96,7 @@ merge_noldus_chamber_rmr(
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ##                        ACTIGRAPH RAW                        ::
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-shape_actigraph_raw_flac_v3(
+shape_ag_raw_flac(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
   fdr_project  = NULL,
