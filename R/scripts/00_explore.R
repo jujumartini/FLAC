@@ -4425,6 +4425,25 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
                    tim_start = NULL)]
     setcolorder(df_info, c("study", "subject", "visit"))
     
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                             READ                           ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    df_shp <- 
+      data.table::fread(
+        fpa_read,
+        skip = 10,
+        sep = ",",
+        header = TRUE,
+        showProgress = FALSE,
+      )
+    # Consistency: lowercase and separate with underscore.
+    setnames(
+      df_shp, 
+      function(.x) 
+        stri_trans_tolower(.x) %>% 
+        str_replace(" ",
+                    "_")
+    )
     cnt <- 
       cnt + 1
     
