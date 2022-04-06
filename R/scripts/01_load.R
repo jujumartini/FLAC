@@ -57,6 +57,7 @@ pacman::p_load(
   purrr,                  # Mapping functions.
   readxl,                 # Read Excel sheets.
   stringi,                # Character string wrangling.
+  stringr,                # Character string wrangling but simpler.
   tibble,                 # Data & list wrangling,
   tidyr,                  # Data tidying.
   # Other
