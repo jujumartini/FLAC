@@ -4265,6 +4265,326 @@ shape_ag_raw_flac_v4 <- function(fdr_read,
   
 }
 
+shape_ag_sec_flac_v1 <- function(fdr_read,
+                                 fdr_write,
+                                 fdr_project = NULL,
+                                 folder = "GT3X_RH_CSV_1SEC",
+                                 epoch = 1,
+                                 filter_sub = NULL,
+                                 filter_loc = NULL,
+                                 project_only = FALSE) {
+
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -   First version
+  # -   Should match ag_raw pretty well, just need to change df_info.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # -   initiate_wrangle
+  # -   get_fpa_read
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: fdr_read
+  #      File directory of cleaned ag_second files.
+  # ARG: fdr_write
+  #      File directory of shaped ag_second files.
+  # ARG: folder
+  #      Folder name of cleaned ag_second files. Shaped ag_second files will be
+  #      written to a folder with same folder name under fdr_write.
+  # ARG: fdr_project
+  #      File directory to where all the shaped data resides in a project. If
+  #      this is supplied then files are written to both fdr_write and fdr_project.
+  # ARG: filter_sub
+  #      Vector of subjects to filter the vct_fpa_read base.
+  # ARG: filter_loc
+  #      Integer vector to subset from vct_fpa_read.
+  # ARG: project_only
+  #      Should merged files only be written to fdr_project?
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  fdr_read <-
+    fs::path("FLAC_AIM1_DATA",
+             "2_AIM1_CLEANED_DATA")
+  fdr_write <-
+    fs::path("FLAC_AIM1_DATA",
+             "3_AIM1_SHAPED_DATA")
+  fdr_project <- 
+    NULL
+  folder <- 
+    "GT3X_RH_CSV_1SEC"
+  epoch <- 
+    1
+  filter_sub <- 
+    NULL
+  filter_loc <- 
+    NULL
+  project_only <- 
+    FALSE
+  
+  ag_model_loc <-
+    folder %>% 
+    str_split(pattern = "_") %>% 
+    vec_unchop() %>% 
+    vec_slice(c(1, 2)) %>% 
+    paste(collapse = "_")
+  initiate_wrangle(fdr_read     = fdr_read,
+                   fdr_project  = fdr_project,
+                   filter_sub   = filter_sub,
+                   filter_loc   = filter_loc,
+                   project_only = project_only,
+                   type         = "Shap",
+                   file_source  = ag_model_loc)
+  epoch <- 
+    as.integer(epoch)
+  vct_fpa_read <- 
+    get_fpa_read(
+      fdr_read      = fdr_read,
+      fdr_write     = fdr_write,
+      name_source_1 = folder,
+      filter_sub    = filter_sub
+    )
+  if (!is_empty(filter_loc)) {
+    vct_fpa_read <- 
+      vec_slice(vct_fpa_read,
+                filter_loc)
+  }
+  df_start_stop <- 
+    fdr_write %>% 
+    dir_ls(
+      type = "file",
+      regexp = "df_start_stop\\.feather$"
+    ) %>% 
+    arrow::read_feather() %>% 
+    add_row(study = "CO",
+            subject = 3045L,
+            visit = 1L,
+            start = mdy_hms("10-02-2019 08:02:00",
+                            tz = "America/Denver"),
+            stop = mdy_hms("10-02-2019 20:07:00",
+                           tz = "America/Denver"))
+  
+  for (i in cli_progress_along(vct_fpa_read,
+                               format = progress_format,
+                               clear = FALSE)) {
+  
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                             INFO                           ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    fpa_read <- 
+      vct_fpa_read[i]
+    fnm_read <- 
+      fs::path_file(fpa_read)
+    
+    df_info <- 
+      fnm_read %>% 
+      fs::path_ext_remove() %>% 
+      str_split(pattern = "_") %>% 
+      vec_unchop() %>% 
+      vec_chop()
+    setDT(df_info)
+    setnames(df_info,
+             c("study",
+               "model_fnm",
+               "location",
+               "sbj_epoch"))
+    df_info[, `:=`(
+      subject = 
+        sbj_epoch %>% 
+        str_extract(pattern = "\\d{4}") %>%
+        as.integer(),
+      epoch_fnm = 
+        sbj_epoch %>% 
+        str_remove(pattern = "\\d{4}"),
+      visit = 
+        fifelse(info_flac_aim == "AIM1",
+                yes = 1L,
+                no  = 
+                  sbj_epoch %>% 
+                  str_extract(pattern = "\\d*") %>% 
+                  as.integer(),
+                na  = NA_integer_),
+      flac_aim = info_flac_aim,
+      file_source = info_source,
+      time_zone = fcase(info_flac_aim == "AIM1", "America/Denver",
+                        info_flac_aim == "AIM2", "America/Chicago")
+    )]
+    df_info[, c(
+      "model_df",
+      "actilife_version",
+      "model_firmware",
+      "date_format",
+      "filter",
+      "dte_start",
+      "tim_start",
+      "epoch_df") := 
+        readLines(fpa_read,
+                  n = 10) %>%
+        str_split(pattern = " ") %>%
+        vec_unchop() %>%
+        # For weird CO_1001_RH file that has extra commas.
+        stringi::stri_replace_all(regex = ",",
+                                  replacement = "") %>% 
+        vec_chop(indices = list(8, 10, 12, 15, 17, 27, 24, 30))]
+    df_info[, `:=`(dtm_start =
+                     paste(dte_start, tim_start, sep = " ") %>%
+                     lubridate::mdy_hms(tz = df_info$time_zone),
+                   dte_start = NULL,
+                   tim_start = NULL)]
+    setcolorder(df_info, c("study", "subject", "visit"))
+    
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                             READ                           ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    df_shp <- 
+      data.table::fread(
+        fpa_read,
+        skip = 10,
+        sep = ",",
+        header = TRUE,
+        showProgress = FALSE,
+      )
+    # Consistency: lowercase and separate with underscore.
+    setnames(
+      df_shp, 
+      function(.x) 
+        stri_trans_tolower(.x) %>% 
+        str_replace(" ",
+                    "_")
+    )
+
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                            SHAPE                          ----
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # Axis names.
+    setnames(
+      df_shp,
+      old = c("axis1", "axis2", "axis3"),
+      new = c("axis_1", "axis_2", "axis_3")
+    )
+    
+    # On & off
+    df_shp[, `:=`(
+      datetime = 
+        stri_c(date, time, sep = " ") %>% 
+        lubridate::mdy_hms(tz = ..df_info$time_zone)
+    )]
+    df_on <- 
+      df_start_stop[study == df_info$study &
+                      subject == df_info$subject &
+                      visit == df_info$visit][1]
+    if (anyNA.data.frame(df_on)) {
+      cli_warn(c(
+        "{paste(df_info[, .(study, subject, visit)], 
+                collapse = '_')}",
+        "!" = "No entry in df_start_stop",
+        "i" = "No on/off filtering done."
+      ))
+    } else {
+      df_shp <- 
+        df_shp[between(datetime,
+                       lower = df_on$start,
+                       upper = df_on$stop), ]
+    }
+    
+    # Add/remove variables
+    df_shp[, `:=`(
+      study    = ..df_info$study,
+      subject  = ..df_info$subject,
+      visit    = ..df_info$visit,
+      date     = lubridate::date(datetime),
+      time     = format(datetime, "%H:%M:%S"),
+      datetime = lubridate::with_tz(datetime,
+                                    tzone = "UTC")
+      )]
+    df_shp[, c(
+      "steps", "inclinometer_off", "inclinometer_standing", 
+      "inclinometer_sitting", "inclinometer_lying"
+    ) := NULL]
+    setcolorder(
+      df_shp,
+      c("study", "subject", "visit","datetime")
+    )
+    
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                            WRITE                          ----
+    ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    fnm_write <- 
+      df_info %>% 
+      unite(col = "file_name",
+            study, subject, visit, file_source, epoch_fnm) %>% 
+      pull(file_name) %>% 
+      fs::path_ext_set(ext = "csv")
+    
+    if (project_only) {
+      fpa_project <- 
+        fs::path(
+          dir_ls(fdr_project,
+                 type = "directory",
+                 regexp = folder),
+          fnm_write
+        )
+      data.table::fwrite(
+        df_shp,
+        file = fpa_project,
+        sep = ",",
+        showProgress = FALSE
+      )
+      arrow::write_feather(
+        df_shp,
+        sink = fs::path_ext_set(path = fpa_project,
+                                ext = "feather")
+      )
+      cnt <-
+        cnt + 1
+      next()
+    }
+    
+    fpa_write <- 
+      fs::path(
+        dir_ls(fdr_write,
+               type = "directory",
+               regexp = folder),
+        fnm_write
+      )
+    data.table::fwrite(
+      df_shp,
+      file = fpa_write,
+      sep = ",",
+      showProgress = FALSE
+    )
+    arrow::write_feather(
+      df_shp,
+      sink = fs::path_ext_set(path = fpa_write,
+                              ext = "feather")
+    )
+    
+    if(!is_empty(fdr_project)) {
+      fpa_project <- 
+        fs::path(
+          dir_ls(fdr_project,
+                 type = "directory",
+                 regexp = folder),
+          fnm_write
+        )
+      data.table::fwrite(
+        df_shp,
+        file = fpa_project,
+        sep = ",",
+        showProgress = FALSE
+      )
+      arrow::write_feather(
+        df_shp,
+        sink = fs::path_ext_set(path = fpa_project,
+                                ext = "feather")
+      )
+    }
+    
+    cnt <- 
+      cnt + 1
+    
+  }
+  
+  cli_progress_done()
+  cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
+  
+}
+
 shape_chamber_v1 <- function(fdr_read,
                              fdr_write,
                              fdr_project = NULL,
