@@ -20,7 +20,7 @@ fdr_merge <-
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ##                             RMR                             ::
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-shape_rmr_v2(
+shape_rmr(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
   fdr_project  = NULL,
@@ -31,7 +31,7 @@ shape_rmr_v2(
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ##                           CHAMBER                           ::
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-shape_chamber_v1(
+shape_chamber(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
   fdr_project  = NULL,
@@ -39,7 +39,7 @@ shape_chamber_v1(
   filter_sub   = NULL,
   project_only = FALSE
 )
-merge_chamber_rmr_v6(
+merge_chamber_rmr(
   fdr_read     = fdr_shape,
   fdr_write    = fdr_merge,
   fdr_project  = NULL,
@@ -54,7 +54,7 @@ merge_chamber_rmr_v6(
 ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ##                            NOLDUS                            ::
 ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-clean_noldus_v3(
+clean_noldus(
   fdr_read     = fdr_raw,
   fdr_write    = fdr_clean,
   fdr_project  = NULL,
@@ -63,7 +63,7 @@ clean_noldus_v3(
   filter_sub   = NULL,
   project_only = FALSE
 )
-shape_noldus_v12(
+shape_noldus(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
   fdr_project  = NULL,
@@ -72,7 +72,7 @@ shape_noldus_v12(
   filter_sub   = NULL,
   project_only = FALSE
 )
-merge_noldus_v8(
+merge_noldus(
   fdr_read     = fdr_shape,
   fdr_write    = fdr_merge,
   fdr_project  = NULL,
