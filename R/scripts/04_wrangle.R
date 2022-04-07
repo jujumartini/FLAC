@@ -127,6 +127,40 @@ shape_ag_raw_flac(
   project_only = FALSE
 )
 
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                       ACTIGRAPH EPOCH                       ::
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+shape_ag_sec_flac(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = NULL,
+  folder       = "GT3X_LW_CSV_1SEC",
+  epoch        = 1,
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+shape_ag_sec_flac(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = NULL,
+  folder       = "GT3X_RH_CSV_1SEC",
+  epoch        = 1,
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+shape_ag_sec_flac(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = NULL,
+  folder       = "GT3X_RW_CSV_1SEC",
+  epoch        = 1,
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+
 docomp_beh_buck_key <-
   c(
     "Sports/Exercise"              = 1L,
