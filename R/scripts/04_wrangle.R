@@ -103,7 +103,7 @@ shape_ag_raw_flac(
   folder       = "GT3X_LW_CSV_RAW",
   freq         = 100,
   filter_sub   = NULL,
-  filter_loc   = 40:61,
+  filter_loc   = NULL,
   project_only = FALSE
 )
 shape_ag_raw_flac(
@@ -113,7 +113,7 @@ shape_ag_raw_flac(
   folder       = "GT3X_RH_CSV_RAW",
   freq         = 100,
   filter_sub   = NULL,
-  filter_loc   = 40:61,
+  filter_loc   = NULL,
   project_only = FALSE
 )
 shape_ag_raw_flac(
@@ -123,7 +123,7 @@ shape_ag_raw_flac(
   folder       = "GT3X_RW_CSV_RAW",
   freq         = 100,
   filter_sub   = NULL,
-  filter_loc   = 40:61,
+  filter_loc   = NULL,
   project_only = FALSE
 )
 
