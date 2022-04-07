@@ -4415,9 +4415,12 @@ shape_ag_sec_flac_v1 <- function(fdr_read,
       "epoch_df") := 
         readLines(fpa_read,
                   n = 10) %>%
-        str_split(pattern = " |,") %>%
+        str_split(pattern = " ") %>%
         vec_unchop() %>%
-        vec_chop(indices = list(8, 10, 12, 15, 17, 57, 44, 71))]
+        # For weird CO_1001_RH file that has extra commas.
+        stringi::stri_replace_all(regex = ",",
+                                  replacement = "") %>% 
+        vec_chop(indices = list(8, 10, 12, 15, 17, 27, 24, 30))]
     df_info[, `:=`(dtm_start =
                      paste(dte_start, tim_start, sep = " ") %>%
                      lubridate::mdy_hms(tz = df_info$time_zone),
