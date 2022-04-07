@@ -3850,14 +3850,14 @@ clean_rmr <- function() {
 ####                                                                         %%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-shape_actigraph_raw_flac_v3 <- function(fdr_read,
-                                        fdr_write,
-                                        fdr_project = NULL,
-                                        folder = "NOLDUS_ACTIVITY",
-                                        freq = 100,
-                                        filter_sub = NULL,
-                                        filter_loc = NULL,
-                                        project_only = FALSE) {
+shape_ag_raw_flac_v3 <- function(fdr_read,
+                                 fdr_write,
+                                 fdr_project = NULL,
+                                 folder = "NOLDUS_ACTIVITY",
+                                 freq = 100,
+                                 filter_sub = NULL,
+                                 filter_loc = NULL,
+                                 project_only = FALSE) {
   
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # -   Incorporate get_fpa_read as it is the same for non Noldus/Oxford.
