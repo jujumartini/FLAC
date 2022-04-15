@@ -68,6 +68,8 @@ rowlands <- function(acc_data_raw,
                na.rm = TRUE),
       sum.VMcorrG = 
         tapply(acc_data_raw$VMcorrG,
+               INDEX = acc_data_raw$min,
+               FUN   = sum,
                na.rm = TRUE)
     )
   acc_data_raw.sum$v.ang <- 
@@ -115,19 +117,32 @@ rowlands <- function(acc_data_raw,
 
 
 
-freedson <- function(ag_data_vaxis_hip_1sec)
-{
-  n <- length(ag_data_vaxis_hip_1sec)
+freedson <- function(ag_data_vaxis_hip_1sec) {
   
-  mins <- ceiling(n/(60)) # this is the number of 60 sec windows in the file? Ans: yes
-  min <- rep(1:mins,each=60)[1:n]
-  cpm <- rep(tapply(ag_data_vaxis_hip_1sec,min,sum),each=60)[1:n]
+  n <- 
+    length(ag_data_vaxis_hip_1sec)
   
-  ee.lev <- rep("sed",n)
-  ee.lev[cpm>100] <- "light"
-  ee.lev[cpm>1951] <- "mvpa"
+  mins <- 
+    ceiling(n / 60)
+  min <- 
+    rep(1:mins,
+        each = 60)[1:n]
+  cpm <- 
+    rep(tapply(ag_data_vaxis_hip_1sec,
+               INDEX = min,
+               FUN   = sum),
+        each = 60)[1:n]
+  
+  ee.lev <- 
+    rep("sed",
+        times = n)
+  ee.lev[cpm > 100] <- 
+    "light"
+  ee.lev[cpm > 1951] <- 
+    "mvpa"
   
   return(ee.lev)
+  
 }
 
 
