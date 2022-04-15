@@ -146,33 +146,58 @@ freedson <- function(ag_data_vaxis_hip_1sec) {
 }
 
 
-hildebrand <- function(ag_data_raw_wrist,freq=100)
-{    
-  win.width <- 60
+hildebrand <- function(ag_data_raw_wrist,
+                       freq = 100) {
   
-  hild_mvpa_cutpoint=100.6
+  win.width <- 
+    60
+  hild_mvpa_cutpoint <- 
+    100.6
+  n <- 
+    dim(ag_data_raw_wrist)[1]
+  mins <- 
+    ceiling(n / (freq * win.width)) 
   
-  n <- dim(ag_data_raw_wrist)[1]
+  ag_data_raw_wrist$min <- 
+    rep(1:mins,
+        each = win.width * freq)[1:n]
   
-  mins <- ceiling(n/(freq*win.width)) 
+  ag_data_raw_wrist_Hild <- 
+    data.frame(
+      mean.VMcorrG = 
+        tapply(ag_data_raw_wrist$VMcorrG,
+               INDEX = ag_data_raw_wrist$min,
+               FUN   = mean,
+               na.rm = TRUE)
+    )
   
-  ag_data_raw_wrist$min <- rep(1:mins,each=win.width*freq)[1:n]
-  
-  ag_data_raw_wrist_Hild <- data.frame(mean.VMcorrG=tapply(ag_data_raw_wrist$VMcorrG,ag_data_raw_wrist$min,mean,na.rm=T))
   # Express ENMO in units of mg
-  ag_data_raw_wrist_Hild <- ag_data_raw_wrist_Hild %>% mutate(mean.VMcorrG=(mean.VMcorrG*1000))
+  ag_data_raw_wrist_Hild <- 
+    ag_data_raw_wrist_Hild %>% 
+    mutate(mean.VMcorrG = mean.VMcorrG * 1000)
+  
   # 0 = Sedentary or light, 1 = moderate, 2 = vigorious
-  ag_data_raw_wrist_Hild$hild2 <- ifelse(ag_data_raw_wrist_Hild$mean.VMcorrG>=hild_mvpa_cutpoint,1,0)
+  ag_data_raw_wrist_Hild$hild2 <- 
+    ifelse(
+      test = ag_data_raw_wrist_Hild$mean.VMcorrG >= hild_mvpa_cutpoint,
+      yes  = 1,
+      no   = 0
+    )
   
+  METs <- 
+    (.0320 * ag_data_raw_wrist_Hild$mean.VMcorrG + 7.28) / 3.5
   
-  METs <- (.0320*ag_data_raw_wrist_Hild$mean.VMcorrG + 7.28)/3.5
+  MET.lev <- 
+    rep("sed",
+        times = length(ag_data_raw_wrist_Hild$mean.VMcorrG))
+  MET.lev[METs > 1.5] <- 
+    "light" 	
+  MET.lev[METs >= 3] <- 
+    "mvpa" 	
   
-  MET.lev <- rep("sed",length(ag_data_raw_wrist_Hild$mean.VMcorrG))
-  MET.lev[METs>1.5] <- "light" 	
-  MET.lev[METs>=3] <- "mvpa" 	
+  return(rep(MET.lev,
+             each = 60)[1:floor(n  / 100)])
   
-  
-  return(rep(MET.lev,each=60)[1:floor(n/100)])
 }    
 
 umass.wrist <- function(ag_data_raw_wrist,freq=100)
