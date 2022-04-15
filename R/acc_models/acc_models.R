@@ -1,13 +1,32 @@
-montoye <- function(vm)
-{
-  n <- length(vm)
-  mins <- ceiling(n/60)
-  min <- rep(1:mins,each=60)[1:n]
-  vm.per.min <- rep(tapply(vm,min,sum),table(min))
-  PA.lev <- rep("light",length(min))
-  PA.lev[vm.per.min<2860] <- "sed"	
-  PA.lev[vm.per.min>3941] <- "mvpa"
-  return(rep(PA.lev))			
+montoye <- function(vm) {
+  
+  # Vector magnitude is calculated and not from AG file as AG vector_magnitude
+  # has less significant digits. Shouldn't matter but making it consistent.
+  # vm <- 
+  #   df$vm
+  
+  n <-
+    length(vm)
+  mins <-
+    ceiling(n / 60)
+  min <- 
+    rep(1:mins, 
+        each = 60)[1:n]
+  vm.per.min <- 
+    rep(tapply(vm,
+               INDEX = min,
+               FUN = sum), 
+        times = table(min))
+  PA.lev <- 
+    rep("light", 
+        times = length(min))
+  PA.lev[vm.per.min < 2860] <- 
+    "sed"
+  PA.lev[vm.per.min > 3941] <- 
+    "mvpa"
+  
+  return(rep(PA.lev))
+  
 }
 
 rowlands <- function(acc_data_raw, VMcorrG_mod_15s = 489, samp_freq = 100, 
