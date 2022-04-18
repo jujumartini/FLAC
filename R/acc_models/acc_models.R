@@ -1,5 +1,8 @@
 montoye <- function(vm) {
   
+  # DOI: 10.1080/02640414.2020.1794244
+  # PMID: 32677510
+  
   # Vector magnitude is calculated and not from AG file as AG vector_magnitude
   # has less significant digits. Shouldn't matter but making it consistent.
   # vm <- 
@@ -34,6 +37,9 @@ rowlands <- function(acc_data_raw,
                      samp_freq = 100, 
                      epoch = 15,
                      expand_1sec = TRUE) {
+  
+  # DOI: 10.1249/MSS.0000000000000224
+  # PMID: 24263980
   
   acc_data_raw$VMcorrG <- 
     abs(
@@ -119,6 +125,9 @@ rowlands <- function(acc_data_raw,
 
 freedson <- function(ag_data_vaxis_hip_1sec) {
   
+  # DOI: 10.1097/00005768-199805000-00021
+  # PMID: 9588623
+  
   n <- 
     length(ag_data_vaxis_hip_1sec)
   
@@ -148,6 +157,9 @@ freedson <- function(ag_data_vaxis_hip_1sec) {
 
 hildebrand <- function(ag_data_raw_wrist,
                        freq = 100) {
+  
+  # DOI: 10.1249/MSS.0000000000000289
+  # PMID: 24887173
   
   win.width <- 
     60
@@ -202,6 +214,9 @@ hildebrand <- function(ag_data_raw_wrist,
 
 umass.wrist <- function(ag_data_raw_wrist,
                         freq = 100) {
+  
+  # DOI: 10.1152/japplphysiol.00026.2015
+  # PMID: 26112238
   
   win.width <- 
     15
