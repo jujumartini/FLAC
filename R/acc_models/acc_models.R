@@ -348,3 +348,92 @@ staudenmayer_2015 <- function(ag_data_raw_wrist,
              each = 15)[1:floor(n / 100)])
 }
 
+# Staudenmayer_2015 helper functions. ----
+pow.625 <- function(vm) {
+  
+  mods <- 
+    Mod(fft(vm))
+  mods <- 
+    mods[-1]	
+  n <- 
+    length(mods)
+  n <- 
+    floor(n / 2)
+  freq <- 
+    80 * (1:n) / (2 * n) # DIFFERENT FROM MOCAFUNCTIONS::pow.625
+  mods <- 
+    mods[1:n]
+  inds <- 
+    (1:n)[(freq > 0.6) & (freq < 2.5)]
+  pow625 <- 
+    sum(mods[inds]) / sum(mods)
+  mods[is.na(mods)] <- 
+    0
+  
+  if (sd(vm) == 0) {
+    
+    pow625 <- 0
+    
+  }
+  
+  return(pow625)
+  
+}
+
+dom.freq <- function(vm) {
+  
+  if(length(vm) == 1) {
+    
+    return(NA)
+    
+  }
+  
+  mods <- 
+    Mod(fft(vm))
+  mods <- 
+    mods[-1]	
+  n <- 
+    length(mods)
+  n <- 
+    floor(n / 2)
+  freq <- 
+    80 * (1:n) / (2 * n) # DIFFERENT FROM MOCAFUNCTIONS::pow.625
+  mods <- 
+    mods[1:n]
+  dom.ind <- 
+    which.max(mods)
+  d.f <- 
+    as.vector(freq[which.max(mods)])
+  
+  return(d.f)
+  
+}
+
+frac.pow.dom.freq <- function(vm) {
+  
+  mods <- 
+    Mod(fft(vm))
+  mods <- 
+    mods[-1]	
+  n <- 
+    length(mods)
+  n <- 
+    floor(n / 2)
+  freq <- 
+    80 * (1:n) / (2 * n) # DIFFERENT FROM MOCAFUNCTIONS::frac.pow.dom.freq
+  mods <- 
+    mods[1:n]
+  rat <- 
+    max(mods) / sum(mods)
+  mods[is.na(mods)] <- 
+    0
+  
+  if (sd(vm) == 0) {
+    
+    rat <- 0
+    
+  }
+  
+  return(rat)
+  
+}
