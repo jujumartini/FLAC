@@ -1,4 +1,4 @@
-montoye <- function(vm) {
+montoye_2020 <- function(vm) {
   
   # DOI: 10.1080/02640414.2020.1794244
   # PMID: 32677510
@@ -32,11 +32,11 @@ montoye <- function(vm) {
   
 }
 
-rowlands <- function(acc_data_raw,
-                     VMcorrG_mod_15s = 489,
-                     samp_freq = 100, 
-                     epoch = 15,
-                     expand_1sec = TRUE) {
+rowlands_2014 <- function(acc_data_raw,
+                          VMcorrG_mod_15s = 489,
+                          samp_freq = 100, 
+                          epoch = 15,
+                          expand_1sec = TRUE) {
   
   # DOI: 10.1249/MSS.0000000000000224
   # PMID: 24263980
@@ -123,7 +123,7 @@ rowlands <- function(acc_data_raw,
 
 
 
-freedson <- function(ag_data_vaxis_hip_1sec) {
+freedson_1998 <- function(ag_data_vaxis_hip_1sec) {
   
   # DOI: 10.1097/00005768-199805000-00021
   # PMID: 9588623
@@ -155,8 +155,8 @@ freedson <- function(ag_data_vaxis_hip_1sec) {
 }
 
 
-hildebrand <- function(ag_data_raw_wrist,
-                       freq = 100) {
+hildebrand_2014 <- function(ag_data_raw_wrist,
+                            freq = 100) {
   
   # DOI: 10.1249/MSS.0000000000000289
   # PMID: 24887173
@@ -212,8 +212,8 @@ hildebrand <- function(ag_data_raw_wrist,
   
 }    
 
-umass.wrist <- function(ag_data_raw_wrist,
-                        freq = 100) {
+staudenmayer_2015 <- function(ag_data_raw_wrist,
+                              freq = 100) {
   
   # DOI: 10.1152/japplphysiol.00026.2015
   # PMID: 26112238
