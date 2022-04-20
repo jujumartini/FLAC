@@ -774,8 +774,8 @@ lyden_2014_soj3x <- function(counts,
           inact.durations)
   inputs <- 
     scale(inputs,
-          center = cent.1,
-          scale  = scal.1)
+          center = lyden_2014_cent_1,
+          scale  = lyden_2014_scal_1)
   inputs <- 
     as.data.frame(inputs)
 
@@ -788,7 +788,7 @@ lyden_2014_soj3x <- function(counts,
   inputs.1 <- 
     inputs.1[, -(1:2)]
   cool.all <- 
-    predict(class.nnn.6,
+    predict(lyden_2014_net_soj3x_activity,
             newdata = inputs.1)
 
   # Add soj.type to trans table.
@@ -859,12 +859,12 @@ lyden_2014_soj3x <- function(counts,
     c("X10.", "X25.", "X50.", "X75.", "X90.", "acf")
   nnetinputs.acts.all <- 
     scale(nn.trans.table.all,
-          center = cent,
-          scale  = scal)
+          center = lyden_2014_cent,
+          scale  = lyden_2014_scal)
 
   # Predict METs.
   act.mets.all <- 
-    predict(reg.nn,
+    predict(lyden_2014_net_soj3x_met,
             newdata = nnetinputs.acts.all)
   act.mets.all <- 
     rep(act.mets.all,
@@ -992,42 +992,42 @@ staudenmayer_2015 <- function(ag_data_raw_wrist,
   
   # MET estimates by random forest
   ag_data_raw_wrist_Staud$METs.rf <- 
-    predict(rf.met.model,
+    predict(staud_2015_rnf_met,
             newdata = ag_data_raw_wrist_Staud)
   ag_data_raw_wrist_Staud$METs.rf[ag_data_raw_wrist_Staud$sd.vm < .01] <- 
     1
   
   # MET estimates by linear regression
   ag_data_raw_wrist_Staud$METs.lm <- 
-    predict(lm.met.model,
+    predict(staud_2015_lnr_met,
             newdata = ag_data_raw_wrist_Staud)
   ag_data_raw_wrist_Staud$METs.lm[ag_data_raw_wrist_Staud$sd.vm < .01] <- 
     1
   
   # MET level estimates (rf and tree)
   ag_data_raw_wrist_Staud$MET.lev.rf <- 
-    predict(rf.met.level.model,
+    predict(staud_2015_rnf_metlevel,
             newdata = ag_data_raw_wrist_Staud)
   ag_data_raw_wrist_Staud$MET.lev.tr <- 
-    predict(tr.met.level.model,
+    predict(staud_2015_tre_metlevel,
             newdata = ag_data_raw_wrist_Staud,
             type = "class")
   
   # sedentary or not estimates (rf and tree)
   ag_data_raw_wrist_Staud$sed.rf <- 
-    predict(rf.sed.model,
+    predict(staud_2015_rnf_sedentary,
             newdata = ag_data_raw_wrist_Staud)
   ag_data_raw_wrist_Staud$sed.tr <- 
-    predict(tr.sed.model,
+    predict(staud_2015_tre_sedentary,
             newdata = ag_data_raw_wrist_Staud,
             type = "class")
   
   # locomotion or not estimates (rf and tree)
   ag_data_raw_wrist_Staud$loc.rf <- 
-    predict(rf.loc.model,
+    predict(staud_2015_rnf_locomotion,
             newdata = ag_data_raw_wrist_Staud)
   ag_data_raw_wrist_Staud$loc.tr <- 
-    predict(tr.loc.model,
+    predict(staud_2015_tre_locomotion,
             newdata = ag_data_raw_wrist_Staud,
             type = "class")
   
