@@ -902,16 +902,36 @@ lyden_2014_soj3x <- function(counts,
     trans.table[, -c(8, 10)]
   
 }
+
+# Lyden_2014_soj3x helpers ----
+acf.lag1 <- function(x) {
   
-  trans.table$soj.breaks.all <- soj.trans
-  #	sum(trans.table$soj.breaks.all)
+  n <- 
+    length(x)
+  a <- 
+    mean(
+      (x[-1] - mean(x[-1])) * (x[-n] - mean(x[-n]))
+    )
+  v <- 
+    var(x)
   
+  if ((v==0)|(is.na(v))) {
+    
+    val <- 
+      0
+    
+  }
   
-  names(trans.table)[8:10] <- c("type","METs","break")
+  if ((v!=0)&(is.na(v)==F)) {
+    
+    val <- 
+      a / v
+    
+  }
   
-  trans.table <- trans.table[,-c(8,10)]
+  return(val)
   
-}	#	end sojourn
+}
 
 staudenmayer_2015 <- function(ag_data_raw_wrist,
                               freq = 100) {
