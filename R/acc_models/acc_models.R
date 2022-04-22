@@ -1447,7 +1447,7 @@ marcotte_2021_soj_g <- function(data                      = NA,
   } else {
     
     data_summary$step3_sojourn_state <- 
-      step2_estimate
+      data_summary$step2_estimate #################################### BUG FIX 
     
   }
 
