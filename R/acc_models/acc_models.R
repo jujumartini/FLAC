@@ -1594,3 +1594,225 @@ marcotte_2021_soj_g <- function(data                      = NA,
   }
   
 }
+
+# Marcotte_2021 helper functions (also uses Staudenmaer_2015 helper functions) ----
+ag_feature_calc <- function(ag_data_raw_wrist,
+                            participant,
+                            samp_freq          = 80,
+                            window             = 15,
+                            long_axis          = 'y',
+                            angle_comp         ='Default_Staudenmayer',
+                            soj_colname        = NA,
+                            seconds_colname    = NA,
+                            inactive_threshold = .00375) {
+  
+  # Only uncomment the below if trying to reference column indices with a non-numeric character element (e.g. .[[long_axis_index]])
+  # if("data.table" %in% (.packages())){
+  #   detach(package:data.table, unload = TRUE, force = T) # causes issues with referencing column indices with a non-numeric character element
+  # }
+
+  n <-
+    dim(ag_data_raw_wrist)[1]
+
+  # Assumes that the Timestamp column is first
+  # long_axis_index = switch(long_axis,
+  #                          'x' = str_which(colnames(ag_data_raw_wrist), 'AxisX'),
+  #                          'y' = str_which(colnames(ag_data_raw_wrist), 'AxisY'),
+  #                          'z' = str_which(colnames(ag_data_raw_wrist), 'AxisZ'))
+
+  switch(
+    angle_comp,
+    "Rowlands" = {
+      
+      ag_data_raw_wrist$v.ang <- 
+        (90 * asin(ag_data_raw_wrist[, long_axis_index] / ag_data_raw_wrist$VM)) / (pi / 2)
+      ag_data_raw_wrist$SedSphere_v.ang <- 
+        ifelse(
+          test = ag_data_raw_wrist[, long_axis_index] > 1,
+          yes  = asin(1) * 180 / pi,
+          no   = 
+            ifelse(
+              test = ag_data_raw_wrist[, long_axis_index] < -1,
+              yes  = asin(-1) * 180 / pi,
+              no   = asin(pmin(pmax(ag_data_raw_wrist[, long_axis_index],
+                                    -1.0),
+                               1.0)) * 180 / pi
+            )
+        )
+      
+    },
+    "Default_Staudenmayer" = {
+      
+      if (long_axis == "y") {
+        
+        ag_data_raw_wrist <- 
+          ag_data_raw_wrist %>%
+          dplyr::rowwise() %>%
+          dplyr::mutate(v.ang = 90 * asin(AxisY / VM) / (pi / 2))
+        
+      } else if (long_axis == "x") {
+        
+        ag_data_raw_wrist <- 
+          ag_data_raw_wrist %>%
+          dplyr::rowwise() %>%
+          dplyr::mutate(v.ang = 90 * asin(AxisX / VM) / (pi / 2))
+        
+      } else {
+        
+        # Assume long axis is z
+        ag_data_raw_wrist <- 
+          ag_data_raw_wrist %>%
+          dplyr::rowwise() %>%
+          dplyr::mutate(v.ang = 90 * asin(AxisZ / VM) / (pi / 2))
+        
+      }
+    }
+  )
+
+
+  if (window == "sojourns") {
+    
+    # Redacted, but used to call flexible naming of sojourn and seconds column name
+    #   soj_colindex = which(colnames(ag_data_raw_wrist) == soj_colname)
+    #   seconds_colindex = which(colnames(ag_data_raw_wrist) == seconds_colname)
+
+    # Compute features within sojourns using dplyr
+    ag_data_raw_wrist.sum <- 
+      ag_data_raw_wrist %>%
+      dplyr::group_by(sojourn) %>%
+      dplyr::summarize(
+        Timestamp         = dplyr::first(Timestamp),
+        sojourn           = dplyr::first(sojourn),
+        seconds           = dplyr::first(seconds),
+        perc.soj.inactive = mean(VM_sd_1sec <= inactive_threshold),
+        mean.vm           = mean(VM,
+                                 na.rm = TRUE),
+        sd.vm             = sd(VM,
+                               na.rm = TRUE),
+        mean.ang          = mean(v.ang,
+                                 na.rm = TRUE),
+        sd.ang            = sd(v.ang,
+                               na.rm = TRUE),
+        p625              = pow.625(VM),
+        p1020             = pow1020(VM),
+        dfreq             = dom.freq(VM),
+        ratio.df          = frac.pow.dom.freq(VM)
+      )
+    
+  } else {
+    
+    epoch <- 
+      ceiling(n / (samp_freq * window))
+    ag_data_raw_wrist$epoch <- 
+      rep(1:epoch,
+          each = window * samp_freq)[1:n]
+
+    # Compute features within epochs
+    ag_data_raw_wrist.sum <- 
+      ag_data_raw_wrist %>%
+      dplyr::group_by(epoch) %>%
+      dplyr::summarize(
+        Timestamp = dplyr::first(Timestamp),
+        mean.vm   = mean(VM,
+                         na.rm = TRUE),
+        sd.vm     = sd(VM,
+                       na.rm = TRUE),
+        mean.ang  = mean(v.ang,
+                         na.rm = TRUE),
+        sd.ang    = sd(v.ang,
+                       na.rm = TRUE),
+        p625      = pow.625(VM),
+        p1020     = pow1020(VM),
+        dfreq     = dom.freq(VM),
+        ratio.df  = frac.pow.dom.freq(VM)
+      )
+
+    if (angle_comp == "Rowlands") {
+      
+      temp <- 
+        ag_data_raw_wrist %>%
+        dplyr::group_by(epoch) %>%
+        dplyr::summarize(
+          Timestamp          = dplyr::first(Timestamp),
+          SedSphere_mean.ang = mean(SedSphere_v.ang,
+                                    na.rm = TRUE),
+          SedSphere_sd.ang   = sd(SedSphere_v.ang,
+                                  na.rm = TRUE)
+        )
+
+      ag_data_raw_wrist.sum <- 
+        dplyr::left_join(ag_data_raw_wrist.sum,
+                         temp)
+    }
+  }
+
+  return(ag_data_raw_wrist.sum)
+  
+}
+nest_sojourn <- function(sojourn,
+                         orig_soj_length_min = 180,
+                         nest_length         = 60,
+                         step_by             = .00001) {
+  
+  if (length(sojourn) > orig_soj_length_min) {
+    
+    n <- 
+      ceiling(length(sojourn) / nest_length) - 1
+
+    additives <- 
+      seq(from = 0,
+          to = n / 10,
+          by = step_by)
+    additives <- 
+      rep(additives,
+          each = nest_length,
+          length.out = length(sojourn))
+
+    if (length(sojourn) %% nest_length > 0) {
+      
+      short_window <- 
+        length(sojourn) %% nest_length
+      additives[(length(additives) - short_window):length(additives)] <- 
+        additives[(length(additives) - short_window)]
+      
+    }
+    
+    sojourn <- 
+      sojourn + additives
+    
+  }
+
+  return(sojourn)
+  
+}
+pow1020 <- function(signal,
+                    samp_freq = 80) {
+  
+  mods <- 
+    Mod(fft(signal))
+  mods <- 
+    mods[-1]
+  n <- 
+    length(mods)
+  n <- 
+    floor(n / 2)
+  freq <- 
+    samp_freq * (1:n) / (2 * n)
+  mods <- 
+    mods[1:n]
+  # Refer to 2016 Straczkiewicz Physiol Meas paper on Driving Detection 
+  # DADA algorithm.
+  inds <- 
+    (1:n)[(freq > 10) & (freq < 20)]
+  pow1020 <- 
+    sum(mods[inds]) / sum(mods)
+  mods[is.na(mods)] <- 
+    0
+  
+  if (sd(signal) == 0) {
+    pow1020 <- 0
+  }
+
+  return(pow1020)
+  
+}
