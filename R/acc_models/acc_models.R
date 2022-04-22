@@ -1159,14 +1159,14 @@ frac.pow.dom.freq <- function(vm) {
   
 }
 
-soj_g = function(data                      = NA,
-                 export_format             = 'session',
-                 freq                      = 80,
-                 step1_sd_threshold        = .00375,
-                 step2_min_window_length   = 0,
-                 step2_nest_length         = 5,
-                 step3_nest_length         = 60,
-                 step3_orig_soj_length_min = 180) {
+marcotte_2021_soj_g <- function(data                      = NA,
+                                export_format             = 'session',
+                                freq                      = 80,
+                                step1_sd_threshold        = .00375,
+                                step2_min_window_length   = 0,
+                                step2_nest_length         = 5,
+                                step3_nest_length         = 60,
+                                step3_orig_soj_length_min = 180) {
   
   # data <-
   #   df_rw_raw %>%
