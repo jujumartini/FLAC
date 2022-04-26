@@ -32,8 +32,10 @@ montoye_2020 <- function(vm) {
   
 }
 
-rowlands_2014 <- function(acc_data_raw,
-                          VMcorrG_mod_15s = 489,
+rowlands_2014 <- function(raw_x,
+                          raw_y,
+                          raw_z,
+                          vmcorrg_mod_15s = 489,
                           samp_freq = 100, 
                           epoch = 15,
                           expand_1sec = TRUE) {
@@ -41,40 +43,40 @@ rowlands_2014 <- function(acc_data_raw,
   # DOI: 10.1249/MSS.0000000000000224
   # PMID: 24263980
   
-  acc_data_raw$VMcorrG <- 
+  vmcorrg <- 
     abs(
-      sqrt(acc_data_raw$AxisX ^ 2 + 
-             acc_data_raw$AxisY ^ 2 + 
-             acc_data_raw$AxisZ ^ 2) - 1
+      sqrt(raw_x ^ 2 + 
+             raw_y ^ 2 + 
+             raw_z ^ 2) - 1
     )
   n <- 
-    dim(acc_data_raw)[1]
-  mins <- 
+    length(raw_x)
+  minutes <- 
     ceiling(n / (samp_freq * epoch))
-  acc_data_raw$min <- 
-    rep(1:mins, 
+  min <- 
+    rep(1:minutes, 
         each = epoch * samp_freq)[1:n]
   
   acc_data_raw.sum <-
     data.frame(
       mean.x = 
-        tapply(acc_data_raw$AxisX,
-               INDEX = acc_data_raw$min,
+        tapply(raw_x,
+               INDEX = min,
                FUN   = mean,
                na.rm = TRUE),
       mean.y = 
-        tapply(acc_data_raw$AxisY,
-               INDEX = acc_data_raw$min,
+        tapply(raw_y,
+               INDEX = min,
                FUN   = mean,
                na.rm = TRUE),
       mean.z = 
-        tapply(acc_data_raw$AxisZ,
-               INDEX = acc_data_raw$min,
+        tapply(raw_z,
+               INDEX = min,
                FUN   = mean,
                na.rm = TRUE),
-      sum.VMcorrG = 
-        tapply(acc_data_raw$VMcorrG,
-               INDEX = acc_data_raw$min,
+      sum.vmcorrg = 
+        tapply(vmcorrg,
+               INDEX = min,
                FUN   = sum,
                na.rm = TRUE)
     )
@@ -88,7 +90,7 @@ rowlands_2014 <- function(acc_data_raw,
     )
   acc_data_raw.sum$SedSphere <- 
     ifelse(
-      test = acc_data_raw.sum$sum.VMcorrG > VMcorrG_mod_15s,
+      test = acc_data_raw.sum$sum.vmcorrg > vmcorrg_mod_15s,
       yes  = 2,
       no   = ifelse(test = acc_data_raw.sum$v.ang < -15,
                     yes  = 1,
@@ -155,49 +157,57 @@ freedson_1998 <- function(ag_data_vaxis_hip_1sec) {
 }
 
 
-hildebrand_2014 <- function(ag_data_raw_wrist,
-                            freq = 100) {
+hildebrand_2014 <- function(raw_x,
+                            raw_y,
+                            raw_z,
+                            freq = 100,
+                            win.width = 60) {
   
   # DOI: 10.1249/MSS.0000000000000289
   # PMID: 24887173
   
-  win.width <- 
-    60
   hild_mvpa_cutpoint <- 
     100.6
+  vmcorrg <- 
+    sqrt(raw_x ^ 2 + raw_y ^ 2 + raw_z ^ 2) - 1
+  vmcorrg <- 
+    fifelse(test = vmcorrg < 0,
+            yes  = 0,
+            no   = vmcorrg,
+            na   = NA)
   n <- 
-    dim(ag_data_raw_wrist)[1]
+    length(raw_x)
   mins <- 
     ceiling(n / (freq * win.width)) 
-  
-  ag_data_raw_wrist$min <- 
+  min <- 
     rep(1:mins,
         each = win.width * freq)[1:n]
-  
   ag_data_raw_wrist_Hild <- 
     data.frame(
-      mean.VMcorrG = 
-        tapply(ag_data_raw_wrist$VMcorrG,
-               INDEX = ag_data_raw_wrist$min,
-               FUN   = mean,
-               na.rm = TRUE)
+      mean.vmcorrg = 
+        tapply(
+          vmcorrg,
+          INDEX = min,
+          FUN   = mean,
+          na.rm = TRUE
+        )
     )
   
   # Express ENMO in units of mg
   ag_data_raw_wrist_Hild <- 
     ag_data_raw_wrist_Hild %>% 
-    mutate(mean.VMcorrG = mean.VMcorrG * 1000)
+    mutate(mean.vmcorrg = mean.vmcorrg * 1000)
   
   # 0 = Sedentary or light, 1 = moderate, 2 = vigorious
   ag_data_raw_wrist_Hild$hild2 <- 
     ifelse(
-      test = ag_data_raw_wrist_Hild$mean.VMcorrG >= hild_mvpa_cutpoint,
+      test = ag_data_raw_wrist_Hild$mean.vmcorrg >= hild_mvpa_cutpoint,
       yes  = 1,
       no   = 0
     )
   
   METs <- 
-    (.0320 * ag_data_raw_wrist_Hild$mean.VMcorrG + 7.28) / 3.5
+    (.0320 * ag_data_raw_wrist_Hild$mean.vmcorrg + 7.28) / 3.5
   
   MET.lev <- 
     rep("sed",
@@ -933,7 +943,10 @@ acf.lag1 <- function(x) {
   
 }
 
-staudenmayer_2015 <- function(ag_data_raw_wrist,
+staudenmayer_2015 <- function(raw_x,
+                              raw_y,
+                              raw_z,
+                              vm,
                               freq = 100) {
   
   # DOI: 10.1152/japplphysiol.00026.2015
@@ -942,50 +955,53 @@ staudenmayer_2015 <- function(ag_data_raw_wrist,
   win.width <- 
     15
   n <- 
-    dim(ag_data_raw_wrist)[1]
+    length(raw_x)
   
   mins <- 
     ceiling(n / (freq * win.width))  # this is really the number of 15-sec windows in the file 
   
-  ag_data_raw_wrist$min <- 
+  min <- 
     rep(1:mins,
-        each = win.width * 100)[1:n]
-  ag_data_raw_wrist$v.ang <- 
-    90 * (asin(ag_data_raw_wrist$AxisX / ag_data_raw_wrist$VM) / (pi / 2))
+        each = win.width * freq)[1:n]
+  v.ang <- 
+    90 * (asin(raw_x / vm) / (pi / 2))
   ag_data_raw_wrist_Staud <- 
     data.frame(
       mean.vm = 
-        tapply(ag_data_raw_wrist$VM,
-               INDEX = ag_data_raw_wrist$min,
+        tapply(vm,
+               INDEX = min,
                FUN   = mean,
                na.rm = TRUE),
       sd.vm = 
-        tapply(ag_data_raw_wrist$VM,
-               INDEX = ag_data_raw_wrist$min,
+        tapply(vm,
+               INDEX = min,
                FUN   = sd,
                na.rm = TRUE),
       mean.ang = 
-        tapply(ag_data_raw_wrist$v.ang,
-               INDEX = ag_data_raw_wrist$min,
+        tapply(v.ang,
+               INDEX = min,
                FUN   = mean,
                na.rm = TRUE),
       sd.ang = 
-        tapply(ag_data_raw_wrist$v.ang,
-               INDEX = ag_data_raw_wrist$min,
+        tapply(v.ang,
+               INDEX = min,
                FUN   = sd,
                na.rm = TRUE),
       p625 = 
-        tapply(ag_data_raw_wrist$VM,
-               INDEX = ag_data_raw_wrist$min,
-               FUN   = pow.625),
+        tapply(vm,
+               INDEX = min,
+               FUN   = pow.625,
+               samp_freq = freq),
       dfreq = 
-        tapply(ag_data_raw_wrist$VM,
-               INDEX = ag_data_raw_wrist$min,
-               FUN   = dom.freq),
+        tapply(vm,
+               INDEX = min,
+               FUN   = dom.freq,
+               samp_freq = freq),
       ratio.df = 
-        tapply(ag_data_raw_wrist$VM,
-               INDEX = ag_data_raw_wrist$min,
-               FUN   = frac.pow.dom.freq)
+        tapply(vm,
+               INDEX = min,
+               FUN   = frac.pow.dom.freq,
+               samp_freq = freq)
     )
   
   # apply the models (estimates are for each 15 second epoch)
