@@ -21,14 +21,19 @@ montoye_2020 <- function(vm) {
                FUN = sum), 
         times = table(min))
   PA.lev <- 
-    rep("light", 
+    rep(1, 
         times = length(min))
   PA.lev[vm.per.min < 2860] <- 
-    "sed"
+    0
   PA.lev[vm.per.min > 3941] <- 
-    "mvpa"
+    2
   
-  return(rep(PA.lev))
+  PA.lev <- 
+    factor(PA.lev,
+           levels = c(0, 1, 2),
+           labels = c("sedentary", "light", "mvpa"))
+  
+  return(PA.lev)
   
 }
 
@@ -88,7 +93,7 @@ rowlands_2014 <- function(raw_x,
                     yes  = asin(-1) * 180 / pi, 
                     no   = asin(pmin(pmax(acc_data_raw.sum$mean.y, -1), 1)) * 180 / pi)
     )
-  acc_data_raw.sum$SedSphere <- 
+  sedsphere <- 
     ifelse(
       test = acc_data_raw.sum$sum.vmcorrg > vmcorrg_mod_15s,
       yes  = 2,
@@ -96,30 +101,21 @@ rowlands_2014 <- function(raw_x,
                     yes  = 1,
                     no   = 0)
     )
-  acc_data_raw.sum$SedSphere <- 
-    factor(
-      acc_data_raw.sum$SedSphere,
-      levels = c(0, 1, 2),
-      labels = c("sed", "light", "mvpa")
-    )
   
   if (expand_1sec == TRUE) {
     
-    SedSphere <-
-      factor(
-        rep(acc_data_raw.sum$SedSphere,
-            each = epoch),
-        levels = c("sed", "light", "mvpa"),
-        labels = c("sed", "light", "mvpa")
-      )[1:floor(n / samp_freq)]
-    
-    return(SedSphere)
-    
-  } else {
-    
-    return(acc_data_raw.sum)
+    sedsphere <-
+      rep(sedsphere,
+          each = epoch)[1:floor(n / samp_freq)]
     
   }
+  
+  sedsphere <- 
+    factor(sedsphere,
+           levels = c(0, 1, 2),
+           labels = c("sedentary", "light", "mvpa"))
+  
+  return(sedsphere)
   
 }
 
@@ -145,12 +141,16 @@ freedson_1998 <- function(ag_data_vaxis_hip_1sec) {
         each = 60)[1:n]
   
   ee.lev <- 
-    rep("sed",
+    rep(0,
         times = n)
   ee.lev[cpm > 100] <- 
-    "light"
+    1
   ee.lev[cpm > 1951] <- 
-    "mvpa"
+    2
+  ee.lev <- 
+    factor(ee.lev,
+           levels = c(0, 1, 2),
+           labels = c("sedentary", "light", "mvpa"))
   
   return(ee.lev)
   
@@ -210,15 +210,21 @@ hildebrand_2014 <- function(raw_x,
     (.0320 * ag_data_raw_wrist_Hild$mean.vmcorrg + 7.28) / 3.5
   
   MET.lev <- 
-    rep("sed",
-        times = length(ag_data_raw_wrist_Hild$mean.VMcorrG))
+    rep(0,
+        times = length(ag_data_raw_wrist_Hild$mean.vmcorrg))
   MET.lev[METs > 1.5] <- 
-    "light" 	
+    1 	
   MET.lev[METs >= 3] <- 
-    "mvpa" 	
+    2 
+  MET.lev <- 
+    rep(MET.lev,
+        each = win.width)[1:floor(n  / freq)]
+  MET.lev <- 
+    factor(MET.lev,
+           levels = c(0, 1, 2),
+           labels = c("sedentary", "light", "mvpa"))
   
-  return(rep(MET.lev,
-             each = 60)[1:floor(n  / 100)])
+  return(MET.lev)
   
 }    
 
@@ -1074,15 +1080,22 @@ staudenmayer_2015 <- function(raw_x,
         each = win.width)
   
   junk <- 
-    rep("sed",
+    rep(0,
         times = length(ag_data_raw_wrist_Staud$METs.rf))
   junk[ag_data_raw_wrist_Staud$METs.rf > 1.5] <- 
-    "light"
+    1
   junk[ag_data_raw_wrist_Staud$METs.rf >= 3] <- 
-    "mvpa"
+    2
+  junk <- 
+    rep(junk,
+        each = win.width)[1:floor(n / freq)]
+  junk <- 
+    factor(junk,
+           levels = c(0, 1, 2),
+           labels = c("sedentary", "light", "mvpa"))
   
-  return(rep(junk,
-             each = 15)[1:floor(n / 100)])
+  return(junk)
+  
 }
 
 # Staudenmayer_2015 helper functions. ----
