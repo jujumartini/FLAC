@@ -3041,19 +3041,15 @@ clean_rmr <- function() {
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 shape_ag_raw_flac <- function(fdr_read,
                               fdr_write,
-                              fdr_project = NULL,
-                              folder = "NOLDUS_ACTIVITY",
-                              freq = 100,
-                              filter_sub = NULL,
-                              filter_loc = NULL,
+                              fdr_project  = NULL,
+                              folder       = "NOLDUS_ACTIVITY",
+                              freq         = 100,
+                              filter_sub   = NULL,
+                              filter_loc   = NULL,
                               project_only = FALSE) {
   
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Incorporate get_fpa_read as it is the same for non Noldus/Oxford.
-  # -   Incorporate filter_sub code.
-  # -   Incorporate project code.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
-  # -   Have code be data.table centric as it saves a lot of memory.
+  # -   Add df_start_stop_raw.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # -   initiate_wrangle
   # -   get_fpa_read
@@ -3122,23 +3118,51 @@ shape_ag_raw_flac <- function(fdr_read,
       name_source_1 = folder,
       filter_sub    = filter_sub
     )
+  
   if (!is_empty(filter_loc)) {
+    
     vct_fpa_read <- 
       vec_slice(vct_fpa_read,
                 filter_loc)
+    
   }
+  
   df_start_stop <- 
     fdr_write %>% 
     dir_ls(
       type = "file",
       regexp = "df_start_stop\\.feather$"
     ) %>% 
-    arrow::read_feather()
+    arrow::read_feather() %>% 
+    add_row(study = "CO",
+            subject = 3045L,
+            visit = 1L,
+            start = mdy_hms("10-02-2019 08:02:00",
+                            tz = "America/Denver"),
+            stop = mdy_hms("10-02-2019 20:07:00",
+                           tz = "America/Denver"))
+  df_start_stop_raw <- 
+    path("FLAC_AIM1_DATA",
+         "1_AIM1_RAW_DATA",
+         "df_start_stop.csv") %>% 
+    fread(sep = ",")
+  df_start_stop_raw[, `:=`(
+    start = lubridate::force_tz(
+      start,
+      tzone = fcase(info_flac_aim == "AIM1", "America/Denver",
+                    info_flac_aim == "AIM2", "America/Chicago")
+    ),
+    stop = lubridate::force_tz(
+      stop,
+      tzone = fcase(info_flac_aim == "AIM1", "America/Denver",
+                    info_flac_aim == "AIM2", "America/Chicago")
+    )
+  )]
   
   for (i in seq_along(vct_fpa_read)) {
-  # for (i in cli_progress_along(vct_fpa_read,
-  #                              format = progress_format,
-  #                              clear = FALSE)) {
+    # for (i in cli_progress_along(vct_fpa_read,
+    #                              format = progress_format,
+    #                              clear = FALSE)) {
     
     fpa_read <- 
       vct_fpa_read[i]
@@ -3335,21 +3359,40 @@ shape_ag_raw_flac <- function(fdr_read,
     
     # On & off
     df_on <- 
-      df_start_stop[study == df_info$study &
-                      subject == df_info$subject &
-                      visit == df_info$visit][1]
+      df_start_stop[
+        study == df_info$study &
+          subject == df_info$subject &
+          visit == df_info$visit
+      ][1]
+    
     if (anyNA.data.frame(df_on)) {
+      
+      df_on <- 
+        df_start_stop_raw[
+          study == df_info$study &
+            subject == df_info$subject &
+            visit == df_info$visit
+        ]
+      
+    }
+    
+    if (nrow(df_on) == 0L) {
+      
       cli_warn(c(
         "{paste(df_info[, .(study, subject, visit)], 
                 collapse = '_')}",
-        "!" = "No entry in df_start_stop",
+        "!" = "No entry in df_start_stop from {fdr_write}.",
+        "!" = "No entry in df_start_stop from {path('FLAC_AIM1_DATA/1_AIM1_RAW_DATA')}.",
         "i" = "No on/off filtering done."
       ))
+      
     } else {
+      
       df_shp <- 
         df_shp[between(datetime,
                        lower = df_on$start,
                        upper = df_on$stop), ]
+      
     }
     
     # Shape #2
@@ -3456,8 +3499,7 @@ shape_ag_sec_flac <- function(fdr_read,
                               project_only = FALSE) {
   
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   First version
-  # -   Should match ag_raw pretty well, just need to change df_info.
+  # -   Add df_start_stop_raw.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # -   initiate_wrangle
   # -   get_fpa_read
@@ -3520,11 +3562,15 @@ shape_ag_sec_flac <- function(fdr_read,
       name_source_1 = folder,
       filter_sub    = filter_sub
     )
+  
   if (!is_empty(filter_loc)) {
+    
     vct_fpa_read <- 
       vec_slice(vct_fpa_read,
                 filter_loc)
+    
   }
+  
   df_start_stop <- 
     fdr_write %>% 
     dir_ls(
@@ -3539,6 +3585,23 @@ shape_ag_sec_flac <- function(fdr_read,
                             tz = "America/Denver"),
             stop = mdy_hms("10-02-2019 20:07:00",
                            tz = "America/Denver"))
+  df_start_stop_raw <- 
+    path("FLAC_AIM1_DATA",
+         "1_AIM1_RAW_DATA",
+         "df_start_stop.csv") %>% 
+    fread(sep = ",")
+  df_start_stop_raw[, `:=`(
+    start = lubridate::force_tz(
+      start,
+      tzone = fcase(info_flac_aim == "AIM1", "America/Denver",
+                    info_flac_aim == "AIM2", "America/Chicago")
+    ),
+    stop = lubridate::force_tz(
+      stop,
+      tzone = fcase(info_flac_aim == "AIM1", "America/Denver",
+                    info_flac_aim == "AIM2", "America/Chicago")
+    )
+  )]
   
   for (i in cli_progress_along(vct_fpa_read,
                                format = progress_format,
@@ -3649,18 +3712,35 @@ shape_ag_sec_flac <- function(fdr_read,
       df_start_stop[study == df_info$study &
                       subject == df_info$subject &
                       visit == df_info$visit][1]
+    
     if (anyNA.data.frame(df_on)) {
+      
+      df_on <- 
+        df_start_stop_raw[
+          study == df_info$study &
+            subject == df_info$subject &
+            visit == df_info$visit
+        ]
+      
+    }
+    
+    if (nrow(df_on) == 0L) {
+      
       cli_warn(c(
         "{paste(df_info[, .(study, subject, visit)], 
                 collapse = '_')}",
-        "!" = "No entry in df_start_stop",
+        "!" = "No entry in df_start_stop from {fdr_write}.",
+        "!" = "No entry in df_start_stop from {path('FLAC_AIM1_DATA/1_AIM1_RAW_DATA')}.",
         "i" = "No on/off filtering done."
       ))
+      
     } else {
+      
       df_shp <- 
         df_shp[between(datetime,
                        lower = df_on$start,
                        upper = df_on$stop), ]
+      
     }
     
     # Add/remove variables
