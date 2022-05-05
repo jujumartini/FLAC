@@ -1099,7 +1099,8 @@ staudenmayer_2015 <- function(raw_x,
 }
 
 # Staudenmayer_2015 helper functions. ----
-pow.625 <- function(vm) {
+pow.625 <- function(vm,
+                    samp_freq = 80) {
   
   mods <- 
     Mod(fft(vm))
@@ -1110,7 +1111,7 @@ pow.625 <- function(vm) {
   n <- 
     floor(n / 2)
   freq <- 
-    80 * (1:n) / (2 * n) # DIFFERENT FROM MOCAFUNCTIONS::pow.625
+    samp_freq * (1:n) / (2 * n)
   mods <- 
     mods[1:n]
   inds <- 
@@ -1130,7 +1131,8 @@ pow.625 <- function(vm) {
   
 }
 
-dom.freq <- function(vm) {
+dom.freq <- function(vm,
+                     samp_freq = 80) {
   
   if(length(vm) == 1) {
     
@@ -1147,7 +1149,7 @@ dom.freq <- function(vm) {
   n <- 
     floor(n / 2)
   freq <- 
-    80 * (1:n) / (2 * n) # DIFFERENT FROM MOCAFUNCTIONS::pow.625
+    samp_freq * (1:n) / (2 * n)
   mods <- 
     mods[1:n]
   dom.ind <- 
@@ -1159,7 +1161,8 @@ dom.freq <- function(vm) {
   
 }
 
-frac.pow.dom.freq <- function(vm) {
+frac.pow.dom.freq <- function(vm,
+                              samp_freq = 80) {
   
   mods <- 
     Mod(fft(vm))
@@ -1170,7 +1173,7 @@ frac.pow.dom.freq <- function(vm) {
   n <- 
     floor(n / 2)
   freq <- 
-    80 * (1:n) / (2 * n) # DIFFERENT FROM MOCAFUNCTIONS::frac.pow.dom.freq
+    samp_freq * (1:n) / (2 * n)
   mods <- 
     mods[1:n]
   rat <- 
