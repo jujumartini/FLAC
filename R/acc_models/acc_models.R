@@ -957,58 +957,56 @@ staudenmayer_2015 <- function(raw_x,
   
   # DOI: 10.1152/japplphysiol.00026.2015
   # PMID: 26112238
+
+  # raw_x <- df_rw_raw$axis_x
+  # raw_y <- df_rw_raw$axis_y
+  # raw_z <- df_rw_raw$axis_z
+  # vm    <-
+  #   sqrt(df_rw_raw$axis_x ^ 2 +
+  #          df_rw_raw$axis_y ^ 2 +
+  #          df_rw_raw$axis_z ^ 2)
+  # freq  <- 100
   
   win.width <- 
     15
   n <- 
     length(raw_x)
   
-  mins <- 
+  n_window <- 
     ceiling(n / (freq * win.width))  # this is really the number of 15-sec windows in the file 
   
-  min <- 
-    rep(1:mins,
-        each = win.width * freq)[1:n]
+  id_window <- 
+    rep(seq_len(n_window),
+        length.out = n,
+        each       = win.width * freq)
+    # rep(1:n_window,
+    #     each = win.width * freq)[1:n]
   v.ang <- 
     90 * (asin(raw_x / vm) / (pi / 2))
   ag_data_raw_wrist_Staud <- 
-    data.frame(
-      mean.vm = 
-        tapply(vm,
-               INDEX = min,
-               FUN   = mean,
-               na.rm = TRUE),
-      sd.vm = 
-        tapply(vm,
-               INDEX = min,
-               FUN   = sd,
-               na.rm = TRUE),
-      mean.ang = 
-        tapply(v.ang,
-               INDEX = min,
-               FUN   = mean,
-               na.rm = TRUE),
-      sd.ang = 
-        tapply(v.ang,
-               INDEX = min,
-               FUN   = sd,
-               na.rm = TRUE),
-      p625 = 
-        tapply(vm,
-               INDEX = min,
-               FUN   = pow.625,
-               samp_freq = freq),
-      dfreq = 
-        tapply(vm,
-               INDEX = min,
-               FUN   = dom.freq,
-               samp_freq = freq),
-      ratio.df = 
-        tapply(vm,
-               INDEX = min,
-               FUN   = frac.pow.dom.freq,
-               samp_freq = freq)
-    )
+    data.table(
+      vm      = vm,
+      v_angle = v.ang,
+      window  = id_window
+    ) |> 
+    group_by(window) |> 
+    summarize(
+      mean.vm  = mean(vm,
+                      na.rm = TRUE),
+      sd.vm    = sd(vm,
+                    na.rm = TRUE),
+      mean.ang = mean(v_angle,
+                      na.rm = TRUE),
+      sd.ang   = sd(v_angle,
+                    na.rm = TRUE),
+      p625     = pow.625(vm,
+                         samp_freq = freq),
+      dfreq    = dom.freq(vm,
+                          samp_freq = freq),
+      ratio.df = frac.pow.dom.freq(vm,
+                                   samp_freq = freq)
+    ) |> 
+    as.data.table()
   
   # apply the models (estimates are for each 15 second epoch)
   
