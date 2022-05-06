@@ -1097,93 +1097,123 @@ staudenmayer_2015 <- function(raw_x,
 }
 
 # Staudenmayer_2015 helper functions. ----
-pow.625 <- function(vm,
-                    samp_freq = 80) {
+compute_modulus <- function(signal) {
   
-  mods <- 
-    Mod(fft(vm))
-  mods <- 
-    mods[-1]	
-  n <- 
-    length(mods)
-  n <- 
-    floor(n / 2)
-  freq <- 
-    samp_freq * (1:n) / (2 * n)
-  mods <- 
-    mods[1:n]
-  inds <- 
-    (1:n)[(freq > 0.6) & (freq < 2.5)]
-  pow625 <- 
-    sum(mods[inds]) / sum(mods)
-  mods[is.na(mods)] <- 
-    0
+  # Applies a Fast Fourier Transform to a time-series signal and computes the
+  # modulus of the series to estimate the signal power spectrum.
   
-  if (sd(vm) == 0) {
+  if (length(signal) == 1L) {
     
-    pow625 <- 0
+    # pow625 would just be zero...I think?
+    message("window of length 1.")
+    return(0)
     
   }
+  
+  if (sd(signal) == 0) {
+    
+    return(0)
+    
+  }
+  
+  modulus <- 
+    Mod(fft(signal))
+  
+  return(modulus)
+  
+}
+
+pow.625 <- function(modulus,
+                    samp_freq = 80) {
+  
+  # Computes the proportion of the power spectrum captured between the 
+  # bandwidths of 0.6 to 2.5 Hz.
+  if (all(modulus == 0)) {
+    
+    return(0)
+    
+  }
+ 
+  modulus <- 
+    modulus[-1]	
+  len_modulus <- 
+    floor(length(modulus) / 2)
+  seq_len_mod <- 
+    seq_len(len_modulus)
+  modulus <- 
+    modulus[seq_len_mod]
+  
+  freq <- 
+    samp_freq * seq_len_mod / (2 * len_modulus)
+  inds <- 
+    seq_len_mod[(freq > 0.6) & (freq < 2.5)]
+  pow625 <- 
+    sum(modulus[inds]) / sum(modulus)
+  modulus[is.na(modulus)] <- 
+    0
   
   return(pow625)
   
 }
 
-dom.freq <- function(vm,
+dom.freq <- function(modulus,
                      samp_freq = 80) {
   
-  if(length(vm) == 1) {
+  # Identifies frequency with thie largest modulus.
+  
+  if (all(modulus == 0)) {
     
-    return(NA)
+    return(0)
     
   }
   
-  mods <- 
-    Mod(fft(vm))
-  mods <- 
-    mods[-1]	
-  n <- 
-    length(mods)
-  n <- 
-    floor(n / 2)
+  modulus <- 
+    modulus[-1]	
+  len_modulus <- 
+    floor(length(modulus) / 2)
+  seq_len_mod <- 
+    seq_len(len_modulus)
+  modulus <- 
+    modulus[seq_len_mod]
+  
   freq <- 
-    samp_freq * (1:n) / (2 * n)
-  mods <- 
-    mods[1:n]
+    samp_freq * seq_len_mod / (2 * len_modulus)
   dom.ind <- 
-    which.max(mods)
+    which.max(modulus)
   d.f <- 
-    as.vector(freq[which.max(mods)])
+    as.vector(freq[dom.ind])
   
   return(d.f)
   
 }
 
-frac.pow.dom.freq <- function(vm,
+frac.pow.dom.freq <- function(modulus,
                               samp_freq = 80) {
   
-  mods <- 
-    Mod(fft(vm))
-  mods <- 
-    mods[-1]	
-  n <- 
-    length(mods)
-  n <- 
-    floor(n / 2)
-  freq <- 
-    samp_freq * (1:n) / (2 * n)
-  mods <- 
-    mods[1:n]
-  rat <- 
-    max(mods) / sum(mods)
-  mods[is.na(mods)] <- 
-    0
+  # Identifies proportion of the power spectrum represented by the dominant
+  # frequency (i.e. frequency with the largest modulus)
   
-  if (sd(vm) == 0) {
+  if (all(modulus == 0)) {
     
-    rat <- 0
+    return(0)
     
   }
+  
+  modulus <- 
+    modulus[-1]	
+  len_modulus <- 
+    floor(length(modulus) / 2)
+  seq_len_mod <- 
+    seq_len(len_modulus)
+  modulus <- 
+    modulus[seq_len_mod]
+  
+  freq <- 
+    samp_freq * seq_len_mod / (2 * len_modulus)
+  rat <- 
+    max(modulus) / sum(modulus)
+  modulus[is.na(modulus)] <- 
+    0
   
   return(rat)
   
@@ -1815,34 +1845,38 @@ nest_sojourn <- function(sojourn,
   return(sojourn)
   
 }
-pow1020 <- function(signal,
+pow1020 <- function(modulus,
                     samp_freq = 80) {
   
-  mods <- 
-    Mod(fft(signal))
-  mods <- 
-    mods[-1]
-  n <- 
-    length(mods)
-  n <- 
-    floor(n / 2)
+  # Computes the proportion of the power spectrum captured between the 
+  # bandwidths of 10 to 20 Hz.
+  
+  if (all(modulus == 0)) {
+    
+    return(0)
+    
+  }
+  
+  modulus <- 
+    modulus[-1]	
+  len_modulus <- 
+    floor(length(modulus) / 2)
+  seq_len_mod <- 
+    seq_len(len_modulus)
+  modulus <- 
+    modulus[seq_len_mod]
+  
   freq <- 
-    samp_freq * (1:n) / (2 * n)
-  mods <- 
-    mods[1:n]
+    samp_freq * seq_len_mod / (2 * len_modulus)
   # Refer to 2016 Straczkiewicz Physiol Meas paper on Driving Detection 
   # DADA algorithm.
   inds <- 
-    (1:n)[(freq > 10) & (freq < 20)]
+    seq_len_mod[(freq > 10) & (freq < 20)]
   pow1020 <- 
-    sum(mods[inds]) / sum(mods)
-  mods[is.na(mods)] <- 
+    sum(modulus[inds]) / sum(modulus)
+  modulus[is.na(modulus)] <- 
     0
   
-  if (sd(signal) == 0) {
-    pow1020 <- 0
-  }
-
   return(pow1020)
   
 }
