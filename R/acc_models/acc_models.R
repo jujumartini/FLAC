@@ -952,20 +952,17 @@ acf.lag1 <- function(x) {
 staudenmayer_2015 <- function(raw_x,
                               raw_y,
                               raw_z,
-                              vm,
+                              vector_magnitude,
                               freq = 100) {
   
   # DOI: 10.1152/japplphysiol.00026.2015
   # PMID: 26112238
 
-  # raw_x <- df_rw_raw$axis_x
-  # raw_y <- df_rw_raw$axis_y
-  # raw_z <- df_rw_raw$axis_z
-  # vm    <-
-  #   sqrt(df_rw_raw$axis_x ^ 2 +
-  #          df_rw_raw$axis_y ^ 2 +
-  #          df_rw_raw$axis_z ^ 2)
-  # freq  <- 100
+  # raw_x               <- df_rw_raw$axis_x
+  # raw_y               <- df_rw_raw$axis_y
+  # raw_z               <- df_rw_raw$axis_z
+  # vector_magnitude    <- df_rw_raw$vector_magnitude
+  # freq                <- 100
   
   win.width <- 
     15
@@ -982,14 +979,15 @@ staudenmayer_2015 <- function(raw_x,
     # rep(1:n_window,
     #     each = win.width * freq)[1:n]
   v.ang <- 
-    90 * (asin(raw_x / vm) / (pi / 2))
+    90 * (asin(raw_x / vector_magnitude) / (pi / 2))
   ag_data_raw_wrist_Staud <- 
     data.table(
-      vm      = vm,
+      vm      = vector_magnitude,
       v_angle = v.ang,
       window  = id_window
     ) |> 
     group_by(window) |> 
+    mutate(mod = compute_modulus(signal = vm)) |> 
     summarize(
       mean.vm  = mean(vm,
                       na.rm = TRUE),
@@ -999,14 +997,20 @@ staudenmayer_2015 <- function(raw_x,
                       na.rm = TRUE),
       sd.ang   = sd(v_angle,
                     na.rm = TRUE),
-      p625     = pow.625(vm,
+      p625     = pow.625(modulus = mod,
                          samp_freq = freq),
-      dfreq    = dom.freq(vm,
+      dfreq    = dom.freq(modulus = mod,
                           samp_freq = freq),
-      ratio.df = frac.pow.dom.freq(vm,
+      ratio.df = frac.pow.dom.freq(modulus = mod,
                                    samp_freq = freq)
     ) |> 
     as.data.table()
+  
+  if (data.table::haskey(ag_data_raw_wrist_Staud)) {
+    
+    setkey(ag_data_raw_wrist_Staud, NULL)
+    
+  }
   
   # apply the models (estimates are for each 15 second epoch)
   
@@ -1228,22 +1232,20 @@ marcotte_2021_soj_g <- function(data                      = NA,
                                 step3_nest_length         = 60,
                                 step3_orig_soj_length_min = 180) {
   
-  # data <-
-  #   df_rw_raw %>%
-  #   mutate(VM = sqrt(axis_x^2 + axis_y^2 + axis_z^2)) %>%
-  #   select(
-  #     Timestamp = datetime,
-  #     AxisX = axis_x,
-  #     AxisY = axis_y,
-  #     AxisZ = axis_z,
-  #     VM
-  #   ) %>%
-  #   as.data.table()
-  # export_format <- "seconds"
-  # freq <- 100
-  # step1_sd_threshold <- 0.00375
-  # step2_nest_length <- 5
-  # step3_nest_length <- 60
+  # data                      <-
+  #   df_rw_raw |>
+  #   select(Timestamp = datetime,
+  #          AxisX     = axis_x,
+  #          AxisY     = axis_y,
+  #          AxisZ     = axis_z,
+  #          VM        = vector_magnitude) %>%
+  #   as.data.frame()
+  # export_format             <- "seconds"
+  # freq                      <- 100
+  # step1_sd_threshold        <- 0.00375
+  # step2_min_window_length   <- 0
+  # step2_nest_length         <- 5
+  # step3_nest_length         <- 60
   # step3_orig_soj_length_min <- 180
   
   # Remove last partial fraction of a second if number of observations is not a clean multiple of the sampling frequency
@@ -1265,50 +1267,66 @@ marcotte_2021_soj_g <- function(data                      = NA,
   )
   data$index <- 
     rep(1:ceiling(nrow(data) / freq),
-        each = freq)[1:nrow(data)]
+        length.out = nrow(data),
+        each = freq)
   data_summary <- 
-    data %>%
-    group_by(index) %>%
+    data |> 
+    group_by(index) |> 
     dplyr::summarize(sd_vm = sd(VM,
-                                na.rm = TRUE))
-  data_summary$step1_estimate <- 
-    ifelse(test = data_summary$sd_vm <= step1_sd_threshold,
-           yes  = 1,
-           no   = 0) # 1 = inactive, 0 = unclassified
+                                na.rm = TRUE)) |> 
+    mutate(step1_estimate = 
+             ifelse(test = sd_vm <= step1_sd_threshold,
+                    yes  = 1,
+                    no   = 0)) |>  # 1 = inactive, 0 = unclassified
+    as.data.table()
+  setkey(data_summary, NULL)
 
-  seconds_index <- 
-    seq(from = 1,
-        to   = nrow(data),
-        by   = freq)
-  diffs <- 
-    which((dplyr::lag(data_summary$step1_estimate) != data_summary$step1_estimate) == TRUE)
-  diffs <- 
-    c(1, diffs)
+  # diffs <- 
+  #   which(
+  #     dplyr::lag(data_summary$step1_estimate) != data_summary$step1_estimate
+  #   )
+  # diffs <- 
+  #   c(1, diffs) |> 
+  #   as.integer()
   data_summary$step2_sojourn_index <- 
     NA
   data_summary$step2_sojourn_duration <- 
-    NA
+    NA_integer_
 
   #
   # Step 2 - Segment remaining unlabeled periods into smaller windows, identify whether inactive or active----
   #
   message("...Segmenting remaining unlabeled periods into smaller windows")
-  data_summary$step2_sojourn_index <- 
-    data.table::rleid(data_summary$step1_estimate)
-  data_summary$step2_sojourn_duration[diffs] <- 
-    rle(data_summary$step2_sojourn_index)[[1]]
-  data_summary$step2_sojourn_duration <- 
-    zoo::na.locf(data_summary$step2_sojourn_duration)
+  data_summary[, `:=`(
+    step2_sojourn_index    = data.table::rleid(step1_estimate),
+    step2_sojourn_duration = 
+      vec_unrep(step1_estimate)$times %>% 
+      vec_rep_each(., times = .)
+  )]
+  # data_summary$step2_sojourn_index <- 
+  #   data.table::rleid(data_summary$step1_estimate)
+  # data_summary$step2_sojourn_duration[diffs] <- 
+  #   rle(data_summary$step2_sojourn_index)[[1]]
+  # data_summary$step2_sojourn_duration <- 
+  #   zoo::na.locf(data_summary$step2_sojourn_duration)
   data_summary <- 
-    data_summary %>%
-    group_by(step2_sojourn_index) %>%
+    data_summary |>
+    # Because nest_sojourn returns a double and if kept as a
+    # a data.table, it forces step2_sojourn_index back to integer.
+    as_tibble() |> 
+    group_by(step2_sojourn_index) |>
     mutate(
       step2_sojourn_index = 
         nest_sojourn(sojourn             = step2_sojourn_index,
                      orig_soj_length_min = step2_nest_length,
                      nest_length         = step2_nest_length)
     )
-  # data_summary$step2_sojourn_index = sort(unlist(tapply(data_summary$step2_sojourn_index, data_summary$step2_sojourn_index, nest_sojourn, nest_length = step2_nest_length)))
+  
+  # TODO: Keep it as tibble from now on to not mess anything with data.table
+  # stuff while dtplyr package is loaded.
+  data <- 
+    data |> 
+    as.data.frame()
 
   # Repopulate original data with step1 and 2 sojourn ID
   data$VM_sd_1sec <- 
@@ -1329,14 +1347,14 @@ marcotte_2021_soj_g <- function(data                      = NA,
   ag_step2_summary <- 
     ag_feature_calc(
       ag_data_raw_wrist = 
-        data %>% 
+        data |> 
         dplyr::rename(sojourn = step2_sojourn_index,
                       seconds = step2_sojourn_duration),
       samp_freq = freq,
       window    = "sojourns"
     ) # , soj_colname = 'step2_sojourn_index', seconds_colname = 'step2_sojourn_duration')
   ag_step2_summary <- 
-    ag_step2_summary %>% 
+    ag_step2_summary |> 
     dplyr::rename(step2_sojourn_index    = sojourn,
                   step2_sojourn_duration = seconds)
   ag_step2_summary$step2_durations <- 
@@ -1348,7 +1366,7 @@ marcotte_2021_soj_g <- function(data                      = NA,
             newdata = ag_step2_summary,
             type    = "class")
   ag_step2_summary <- 
-    ag_step2_summary %>% 
+    ag_step2_summary |> 
     dplyr::select(-seconds)
 
   # Append the step2 activity state estimate to the 1-sec summary dataframe
@@ -1365,6 +1383,7 @@ marcotte_2021_soj_g <- function(data                      = NA,
     c(1, diffs)
 
   # Verify that labels under step2_estimate are character dummy variables
+  suppressWarnings(
   if (all(!is.na(as.numeric(levels(data_summary$step2_estimate))))) {
     
     data_summary$step2_estimate <- 
@@ -1373,6 +1392,7 @@ marcotte_2021_soj_g <- function(data                      = NA,
              labels = c("Stationary", "Active"))
     
   }
+  )
   
   data_summary$step3_sojourn_index <- 
     data.table::rleid(data_summary$step2_estimate)
@@ -1385,11 +1405,11 @@ marcotte_2021_soj_g <- function(data                      = NA,
   if (any(data_summary$step3_sojourn_duration < step2_min_window_length)) {
     
     too_short <- 
-      data_summary %>%
+      data_summary |>
       group_by(step2_estimate,
                step3_sojourn_index,
-               step3_sojourn_duration) %>%
-      dplyr::summarize(n = n()) %>%
+               step3_sojourn_duration) |>
+      dplyr::summarize(n = n()) |>
       dplyr::arrange(step3_sojourn_index)
 
     # First, combine string of short sojourns together
@@ -1400,10 +1420,10 @@ marcotte_2021_soj_g <- function(data                      = NA,
 
     # This section may introduce time jumbling. Verify this works fine with other min_window lengths
     temp <- 
-      too_short %>%
+      too_short |>
       dplyr::group_by(too_short_index,
-                      too_short) %>%
-      dplyr::filter(too_short == TRUE) %>%
+                      too_short) |>
+      dplyr::filter(too_short == TRUE) |>
       dplyr::summarize(
         step3_sojourn_index    = dplyr::first(step3_sojourn_index),
         step3_sojourn_duration = sum(step3_sojourn_duration),
@@ -1416,13 +1436,13 @@ marcotte_2021_soj_g <- function(data                      = NA,
 
     too_short_updated <- 
       bind_rows(
-        too_short %>% 
+        too_short |> 
           dplyr::filter(too_short == FALSE),
         temp
-      ) %>% 
+      ) |> 
       dplyr::arrange(step3_sojourn_index)
 
-    # too_short_updated = too_short %>% dplyr::group_by(too_short_index, too_short) %>% dplyr::summarize(step3_sojourn_duration = sum(step3_sojourn_duration),
+    # too_short_updated = too_short |> dplyr::group_by(too_short_index, too_short) |> dplyr::summarize(step3_sojourn_duration = sum(step3_sojourn_duration),
     #                                                                                                    step2_estimate = factor(max(as.numeric(step2_estimate), na.rm = T), levels = c(1,2), labels = c('Stationary','Active')))
 
     # Second, check to see if there are any remaining sojourns that are still too short
@@ -1477,8 +1497,8 @@ marcotte_2021_soj_g <- function(data                      = NA,
                levels = c(1, 2),
                labels = c("Stationary", "Active"))
       too_short_updated <- 
-        too_short_updated %>%
-        dplyr::select(-step3_sojourn_duration) %>%
+        too_short_updated |>
+        dplyr::select(-step3_sojourn_duration) |>
         rename(step3_sojourn_duration = updated_duration)
       too_short_updated <- 
         too_short_updated[-too_short_indices, ]
@@ -1489,9 +1509,9 @@ marcotte_2021_soj_g <- function(data                      = NA,
       data.table::rleid(too_short_updated$step2_estimate)
 
     too_short_updated <- 
-      too_short_updated %>%
+      too_short_updated |>
       group_by(step3_sojourn_index,
-               step2_estimate) %>%
+               step2_estimate) |>
       dplyr::summarize(step3_sojourn_duration = sum(step3_sojourn_duration))
 
     data_summary$step3_sojourn_index <- 
@@ -1512,8 +1532,8 @@ marcotte_2021_soj_g <- function(data                      = NA,
   }
 
   data_summary <- 
-    data_summary %>%
-    group_by(step3_sojourn_index) %>%
+    data_summary |>
+    group_by(step3_sojourn_index) |>
     mutate(
       step3_sojourn_index = 
         nest_sojourn(step3_sojourn_index,
@@ -1536,7 +1556,7 @@ marcotte_2021_soj_g <- function(data                      = NA,
   ag_step3_summary <- 
     ag_feature_calc(
       ag_data_raw_wrist = 
-        data %>% 
+        data |> 
         dplyr::rename(sojourn = step3_sojourn_index,
                       seconds = step3_sojourn_duration),
       samp_freq = freq,
@@ -1544,17 +1564,17 @@ marcotte_2021_soj_g <- function(data                      = NA,
     ) # , soj_colname = 'step3_sojourn_index', seconds_colname = 'step3_sojourn_duration')
 
   ag_step3_summary <- 
-    ag_step3_summary %>% 
+    ag_step3_summary |> 
     dplyr::rename(step3_sojourn_index    = sojourn,
                   step3_sojourn_duration = seconds)
   ag_step3_summary$step3_durations <- 
     rle(data_summary$step3_sojourn_index)[[1]]
   final_step2_estimate <- 
-    data_summary %>%
-    group_by(step3_sojourn_index) %>%
-    summarize(step2_estimate = dplyr::first(step2_estimate)) %>%
-    select(step2_estimate) %>%
-    ungroup() %>%
+    data_summary |>
+    group_by(step3_sojourn_index) |>
+    summarize(step2_estimate = dplyr::first(step2_estimate)) |>
+    select(step2_estimate) |>
+    ungroup() |>
     as.vector()
   ag_step3_summary$step2_estimate <- 
     final_step2_estimate$step2_estimate
@@ -1580,28 +1600,28 @@ marcotte_2021_soj_g <- function(data                      = NA,
         Vigorous      = NA
       )
     temp <- 
-      ag_step3_summary %>%
-      dplyr::ungroup() %>%
-      dplyr::mutate(Date = lubridate::date(Timestamp)) %>%
+      ag_step3_summary |>
+      dplyr::ungroup() |>
+      dplyr::mutate(Date = lubridate::date(Timestamp)) |>
       group_by(Date,
-               step3_estimate_intensity) %>%
+               step3_estimate_intensity) |>
       dplyr::summarize(minutes = round(sum(step3_durations) / 60,
-                                       digits = 2)) %>%
+                                       digits = 2)) |>
       tidyr::spread(step3_estimate_intensity,
                     minutes)
 
     session_summary <- 
       bind_rows(session_summary,
-                temp) %>% 
+                temp) |> 
       dplyr::filter(!is.na(Date))
     session_summary <- 
-      session_summary %>%
-      dplyr::ungroup() %>%
+      session_summary |>
+      dplyr::ungroup() |>
       tidyr::replace_na(replace = list(Sedentary = 0,
                                        Light     = 0,
                                        Moderate  = 0,
-                                       Vigorous  = 0)) %>%
-      dplyr::rowwise() %>%
+                                       Vigorous  = 0)) |>
+      dplyr::rowwise() |>
       dplyr::mutate(
         Total_minutes = rowSums(across(Sedentary:Vigorous)),
         MVPA          = Moderate + Vigorous
@@ -1629,7 +1649,7 @@ marcotte_2021_soj_g <- function(data                      = NA,
                          to = nrow(data),
                          by = freq)[1:nrow(data_summary)]]
     data_summary <- 
-      data_summary %>% 
+      data_summary |> 
       dplyr::relocate(Timestamp)
 
     return(data_summary)
@@ -1703,29 +1723,34 @@ ag_feature_calc <- function(ag_data_raw_wrist,
     },
     "Default_Staudenmayer" = {
       
-      if (long_axis == "y") {
-        
-        ag_data_raw_wrist <- 
-          ag_data_raw_wrist %>%
-          dplyr::rowwise() %>%
-          dplyr::mutate(v.ang = 90 * asin(AxisY / VM) / (pi / 2))
-        
-      } else if (long_axis == "x") {
-        
-        ag_data_raw_wrist <- 
-          ag_data_raw_wrist %>%
-          dplyr::rowwise() %>%
-          dplyr::mutate(v.ang = 90 * asin(AxisX / VM) / (pi / 2))
-        
-      } else {
-        
-        # Assume long axis is z
-        ag_data_raw_wrist <- 
-          ag_data_raw_wrist %>%
-          dplyr::rowwise() %>%
-          dplyr::mutate(v.ang = 90 * asin(AxisZ / VM) / (pi / 2))
-        
-      }
+      long_axis_index <- 
+        str_which(names(data), pattern = regex(long_axis, ignore_case = TRUE))
+      ag_data_raw_wrist$v.ang <- 
+        (90*asin(ag_data_raw_wrist[,long_axis_index]/ag_data_raw_wrist$VM))/(pi/2)
+      
+      # if (long_axis == "y") {
+      #   
+      #   ag_data_raw_wrist <- 
+      #     ag_data_raw_wrist %>%
+      #     dplyr::rowwise() %>%
+      #     dplyr::mutate(v.ang = 90 * asin(AxisY / VM) / (pi / 2))
+      #   
+      # } else if (long_axis == "x") {
+      #   
+      #   ag_data_raw_wrist <- 
+      #     ag_data_raw_wrist %>%
+      #     dplyr::rowwise() %>%
+      #     dplyr::mutate(v.ang = 90 * asin(AxisX / VM) / (pi / 2))
+      #   
+      # } else {
+      #   
+      #   # Assume long axis is z
+      #   ag_data_raw_wrist <- 
+      #     ag_data_raw_wrist %>%
+      #     dplyr::rowwise() %>%
+      #     dplyr::mutate(v.ang = 90 * asin(AxisZ / VM) / (pi / 2))
+      #   
+      # }
     }
   )
 
@@ -1740,6 +1765,7 @@ ag_feature_calc <- function(ag_data_raw_wrist,
     ag_data_raw_wrist.sum <- 
       ag_data_raw_wrist %>%
       dplyr::group_by(sojourn) %>%
+      mutate(mod = compute_modulus(signal = VM)) |> 
       dplyr::summarize(
         Timestamp         = dplyr::first(Timestamp),
         sojourn           = dplyr::first(sojourn),
@@ -1753,10 +1779,14 @@ ag_feature_calc <- function(ag_data_raw_wrist,
                                  na.rm = TRUE),
         sd.ang            = sd(v.ang,
                                na.rm = TRUE),
-        p625              = pow.625(VM),
-        p1020             = pow1020(VM),
-        dfreq             = dom.freq(VM),
-        ratio.df          = frac.pow.dom.freq(VM)
+        p625              = pow.625(modulus = mod,
+                                    samp_freq = samp_freq),
+        p1020             = pow1020(modulus = mod,
+                                    samp_freq = samp_freq),
+        dfreq             = dom.freq(modulus = mod,
+                                     samp_freq = samp_freq),
+        ratio.df          = frac.pow.dom.freq(modulus = mod,
+                                              samp_freq = samp_freq)
       )
     
   } else {
@@ -1771,6 +1801,7 @@ ag_feature_calc <- function(ag_data_raw_wrist,
     ag_data_raw_wrist.sum <- 
       ag_data_raw_wrist %>%
       dplyr::group_by(epoch) %>%
+      mutate(mod = compute_modulus(signal = vm)) |> 
       dplyr::summarize(
         Timestamp = dplyr::first(Timestamp),
         mean.vm   = mean(VM,
@@ -1781,10 +1812,14 @@ ag_feature_calc <- function(ag_data_raw_wrist,
                          na.rm = TRUE),
         sd.ang    = sd(v.ang,
                        na.rm = TRUE),
-        p625      = pow.625(VM),
-        p1020     = pow1020(VM),
-        dfreq     = dom.freq(VM),
-        ratio.df  = frac.pow.dom.freq(VM)
+        p625              = pow.625(modulus = mod,
+                                    samp_freq = samp_freq),
+        p1020             = pow1020(modulus = mod,
+                                    samp_freq = samp_freq),
+        dfreq             = dom.freq(modulus = mod,
+                                     samp_freq = samp_freq),
+        ratio.df          = frac.pow.dom.freq(modulus = mod,
+                                              samp_freq = samp_freq)
       )
 
     if (angle_comp == "Rowlands") {
