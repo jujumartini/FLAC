@@ -1915,3 +1915,268 @@ pow1020 <- function(modulus,
   return(pow1020)
   
 }
+
+# Fudge this janky soj_g code. ----
+# Taken straight from https://github.com/robmarcotte/MOCAfunctions/tree/3578dd44177d1cdae34e27ce23fa02174eb82114
+# before changes on March 6th on Github. Small changes only include defining
+# function argument names & 
+soj_g = function(data = NA,
+                 export_format = 'session',
+                 freq = 80,
+                 step1_sd_threshold = .00375,
+                 step2_nest_length = 5,
+                 step3_nest_length = 60,
+                 step3_orig_soj_length_min = 180){
+  
+  # Remove last partial fraction of a second if number of observations is not a clean multiple of the sampling frequency
+  if(nrow(data)%%freq!= 0){
+    data = data[1:(nrow(data)-(nrow(data)%%freq)),]
+  }
+  
+  # Step 1 - Identify likely inactive periods
+  data$index = rep(1:ceiling(nrow(data)/freq), each = freq)[1:nrow(data)]
+  data_summary = data %>% group_by(index) %>% dplyr::summarize(sd_vm = sd(VM, na.rm = T))
+  data_summary$step1_estimate = ifelse(data_summary$sd_vm <=step1_sd_threshold, 1, 0) # 1 = inactive, 0 = unclassified
+  
+  seconds_index = seq(1, nrow(data), by = freq)
+  diffs = which((dplyr::lag(data_summary$step1_estimate) != data_summary$step1_estimate) == T)
+  diffs = c(1, diffs)
+  data_summary$step2_sojourn_index = NA
+  data_summary$step2_sojourn_duration = NA
+  
+  # Step 2 - Segment remaining unlabeled periods into smaller windows, identify whether inactive or active
+  data_summary$step2_sojourn_index = data.table::rleid(data_summary$step1_estimate)
+  data_summary$step2_sojourn_duration[diffs] = rle(data_summary$step2_sojourn_index)[[1]]
+  data_summary$step2_sojourn_duration = zoo::na.locf(data_summary$step2_sojourn_duration)
+  data_summary = data_summary %>% 
+    group_by(step2_sojourn_index) %>% 
+    mutate(step2_sojourn_index = nest_sojourn_fudge(step2_sojourn_index,
+                                                    orig_soj_length_min = step2_nest_length,
+                                                    nest_length         = step2_nest_length))
+  # data_summary$step2_sojourn_index = sort(unlist(tapply(data_summary$step2_sojourn_index, data_summary$step2_sojourn_index, nest_sojourn, nest_length = step2_nest_length)))
+  
+  # Repopulate original data with step1 and 2 sojourn ID
+  data$VM_sd_1sec = rep(data_summary$sd_vm, each = freq)[1:nrow(data)]
+  data$step1_estimate = rep(data_summary$step1_estimate, each = freq)[1:nrow(data)]
+  data$step2_sojourn_index = rep(data_summary$step2_sojourn_index, each = freq)[1:nrow(data)]
+  data$step2_sojourn_duration = rep(data_summary$step2_sojourn_duration, each = freq)[1:nrow(data)]
+  
+  # Compute features within nested sojourns
+  ag_step2_summary = 
+    ag_feature_calc_fudge(ag_data_raw_wrist = data,
+                          samp_freq = freq,
+                          window = 'sojourns',
+                          soj_colname = 'step2_sojourn_index',
+                          seconds_colname = 'step2_sojourn_duration')
+  ag_step2_summary$step2_durations = rle(data_summary$step2_sojourn_index)[[1]]
+  ag_step2_summary$step2_estimate = predict(MOCAModelData::sojg_stage2_unclassified_rf, newdata = ag_step2_summary, type = 'class')
+  
+  # Append the step2 activity state estimate to the 1-sec summary dataframe
+  data_summary$step2_estimate = rep(ag_step2_summary$step2_estimate, times = ag_step2_summary$step2_durations)
+  # data_summary$step2_estimate = ifelse(data_summary$step1_estimate == 1, 1, data_summary$step2_estimate) # Repopulate inactive periods from step 1 in case the step2 classified it differently
+  data_summary$step3_sojourn_index = NA
+  data_summary$step3_sojourn_duration = NA
+  diffs = which((dplyr::lag(data_summary$step2_estimate) != data_summary$step2_estimate) == T)
+  diffs = c(1, diffs)
+  
+  # Verify that labels under step2_estimate are character dummy variables
+  if(all(!is.na(as.numeric(levels(data_summary$step2_estimate)))))
+    data_summary$step2_estimate = factor(data_summary$step2_estimate, levels = c(1,2), labels =c('Stationary','Active'))
+  data_summary$step3_sojourn_index = data.table::rleid(data_summary$step2_estimate)
+  data_summary$step3_sojourn_duration[diffs] = rle(data_summary$step3_sojourn_index)[[1]]
+  data_summary$step3_sojourn_duration =zoo::na.locf(data_summary$step3_sojourn_duration)
+  data_summary = data_summary %>% 
+    group_by(step3_sojourn_index) %>% 
+    mutate(step3_sojourn_index = nest_sojourn_fudge(step3_sojourn_index,
+                                                    orig_soj_length_min = step3_orig_soj_length_min,
+                                                    nest_length = step3_nest_length))
+  # data_summary$step3_sojourn_index = sort(unlist(tapply(data_summary$step3_sojourn_index, data_summary$step3_sojourn_index, nest_sojourn2, orig_soj_length_min = step3_orig_soj_length_min, nest_length = step3_nest_length)))
+  
+  data$step2_estimate = rep(data_summary$step2_estimate, each = freq)[1:nrow(data)]
+  data$step3_sojourn_index = rep(data_summary$step3_sojourn_index, each = freq)[1:nrow(data)]
+  data$step3_sojourn_duration = rep(data_summary$step3_sojourn_duration, each = freq)[1:nrow(data)]
+  
+  # Compute features in final sojourns
+  ag_step3_summary = ag_feature_calc_fudge(data,
+                                           samp_freq = freq, 
+                                           window = 'sojourns',
+                                           soj_colname = 'step3_sojourn_index',
+                                           seconds_colname = 'step3_sojourn_duration')
+  ag_step3_summary$step3_durations = rle(data_summary$step3_sojourn_index)[[1]]
+  final_step2_estimate = data_summary %>% 
+    group_by(step3_sojourn_index) %>%
+    summarize(step2_estimate = dplyr::first(step2_estimate)) %>% 
+    select(step2_estimate) %>% 
+    ungroup() %>% 
+    as.vector()
+  ag_step3_summary$step2_estimate = final_step2_estimate$step2_estimate
+  
+  ag_step3_summary$step3_estimate_intensity = predict(MOCAModelData::sojg_stage3_intensity_rf, newdata = ag_step3_summary, type = 'class')
+  ag_step3_summary$step3_estimate_type = predict(MOCAModelData::sojg_stage3_activity_rf, newdata = ag_step3_summary, type = 'class')
+  ag_step3_summary$step3_estimate_locomotion = predict(MOCAModelData::sojg_stage3_locomotion_rf, newdata = ag_step3_summary, type = 'class')
+  
+  if(export_format == 'session'){
+    session_summary = data.frame(Sedentary_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_intensity == 'Sedentary')]),
+                                 Light_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_intensity == 'Light')]),
+                                 Moderate_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_intensity == 'Moderate')]),
+                                 Vigorous_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_intensity == 'Vigorous')]),
+                                 MVPA_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_intensity == 'Moderate' | ag_step3_summary$step3_estimate_intensity == 'Vigorous')]),
+                                 Sitting_Lying_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_type == 'Sitting_Lying')]),
+                                 Stationary_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_type == 'Stationary+')]),
+                                 Walking_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_type == 'Walking')]),
+                                 Running_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_type == 'Running')]),
+                                 Locomotion_minutes = sum(ag_step3_summary$step3_durations[which(ag_step3_summary$step3_estimate_locomotion == 'Locomotion')]),
+                                 Total_minutes = sum(ag_step3_summary$step3_durations),
+                                 stringsAsFactors = F)
+    session_summary[,1:ncol(session_summary)] = session_summary[,1:ncol(session_summary)]/60
+    
+    return(session_summary)
+  }
+  
+  if(export_format == 'sojourn'){
+    return(ag_step3_summary)
+  }
+  
+  if(export_format == 'seconds'){
+    data_summary$step3_estimate_intensity = rep(ag_step3_summary$step3_estimate_intensity, times = ag_step3_summary$step3_durations)
+    data_summary$step3_estimate_type = rep(ag_step3_summary$step3_estimate_type, times = ag_step3_summary$step3_durations)
+    data_summary$step3_estimate_locomotion = rep(ag_step3_summary$step3_estimate_locomotion, times = ag_step3_summary$step3_durations)
+    
+    data_summary$Timestamp = data$Timestamp[seq(1, nrow(data), by = freq)[1:nrow(data_summary)]]
+    data_summary = data_summary %>% dplyr::relocate(Timestamp)
+    
+    return(data_summary)
+  }
+  
+  if(export_format == 'raw'){
+    data_summary$step3_estimate_intensity = rep(ag_step3_summary$step3_estimate_intensity, times = ag_step3_summary$step3_durations)
+    data_summary$step3_estimate_type = rep(ag_step3_summary$step3_estimate_type, times = ag_step3_summary$step3_durations)
+    data_summary$step3_estimate_locomotion = rep(ag_step3_summary$step3_estimate_locomotion, times = ag_step3_summary$step3_durations)
+    
+    data$step3_estimate_intensity = rep(data_summary$step3_estimate_intensity, each = freq)[1:nrow(data)]
+    data$step3_estimate_type = rep(data_summary$step3_estimate_type, each = freq)[1:nrow(data)]
+    data$step3_estimate_locomotion = rep(data_summary$step3_estimate_locomotion, each = freq)[1:nrow(data)]
+    
+    return(data)
+  }
+  
+}
+nest_sojourn_fudge = function(sojourn, orig_soj_length_min = 180, nest_length = 60, step_by = .00001){
+  if(length(sojourn) > orig_soj_length_min){
+    n = ceiling(length(sojourn)/nest_length)-1
+    
+    additives = seq(0, n/10, by = step_by)
+    additives = rep(additives, each = nest_length, length.out = length(sojourn))
+    
+    if(length(sojourn) %% nest_length > 0){
+      short_window = length(sojourn) %% nest_length
+      additives[(length(additives)-short_window):length(additives)] = additives[(length(additives)-short_window)]
+    }
+    sojourn = sojourn + additives
+    
+  }
+  
+  return(sojourn)
+}
+ag_feature_calc_fudge = function(ag_data_raw_wrist,
+                                 participant,
+                                 samp_freq = 80,
+                                 window = 15,
+                                 long_axis = 'y',
+                                 angle_comp ='Default_Staudenmayer',
+                                 soj_colname = NA,
+                                 seconds_colname = NA,
+                                 inactive_threshold = .00375){
+  
+  # if("data.table" %in% (.packages())){
+  #   detach(package:data.table, unload = TRUE, force = T) # causes issues with referencing column indices with a non-numeric character element
+  # }
+  
+  n <- dim(ag_data_raw_wrist)[1]
+  
+  # Assumes that the Timestamp column is first
+  long_axis_index = switch(long_axis,
+                           'x' = str_which(colnames(ag_data_raw_wrist), 'AxisX'),
+                           'y' = str_which(colnames(ag_data_raw_wrist), 'AxisY'),
+                           'z' = str_which(colnames(ag_data_raw_wrist), 'AxisZ'))
+  
+  
+  switch(angle_comp,
+         'Rowlands' = {
+           ag_data_raw_wrist$v.ang <- (90*asin(ag_data_raw_wrist[,long_axis_index]/ag_data_raw_wrist$VM))/(pi/2)
+           ag_data_raw_wrist$SedSphere_v.ang <- ifelse(ag_data_raw_wrist[,long_axis_index] > 1, asin(1)*180/pi,
+                                                       ifelse(ag_data_raw_wrist[,long_axis_index] < -1, asin(-1)*180/pi,
+                                                              asin(pmin(pmax(ag_data_raw_wrist[,long_axis_index],-1.0),1.0))*180/pi))
+         },
+         'Default_Staudenmayer' = {
+           ag_data_raw_wrist$v.ang <- 
+             (90*asin(ag_data_raw_wrist[,..long_axis_index]/ag_data_raw_wrist$VM))/(pi/2)
+         })
+  
+  
+  if(window == 'sojourns'){
+    soj_colindex = which(colnames(ag_data_raw_wrist) == soj_colname)
+    seconds_colindex = which(colnames(ag_data_raw_wrist) == seconds_colname)
+    
+    # Compute features within sojourns using dplyr
+    ag_data_raw_wrist.sum = 
+      ag_data_raw_wrist %>% 
+      dplyr::group_by(across(all_of(soj_colindex))) %>% 
+      dplyr::summarize(Timestamp = dplyr::first(Timestamp),
+                       sojourn = dplyr::first(.[[soj_colindex]]),
+                       seconds = dplyr::first(.[[seconds_colindex]]),
+                       perc.soj.inactive = mean(VM_sd_1sec<=inactive_threshold),
+                       perc.soj.inactive = sum(VM_sd_1sec<=inactive_threshold) / n(),
+                       mean.vm = mean(VM, na.rm = T),
+                       sd.vm = sd(VM, na.rm = T),
+                       mean.ang = mean(v.ang, na.rm = T),
+                       sd.ang = sd(v.ang, na.rm = T),
+                       p625 = MOCAfunctions::pow.625(VM),
+                       dfreq = MOCAfunctions::dom.freq(VM),
+                       ratio.df = MOCAfunctions::frac.pow.dom.freq(VM))
+    
+    
+    # Compute features within sojourns using tapply
+    # ag_data_raw_wrist.sum <- data.frame(sojourn = tapply(ag_data_raw_wrist[,..soj_colindex], ag_data_raw_wrist[,..soj_colindex], data.table::first),
+    #                                     seconds = tapply(ag_data_raw_wrist[,..seconds_colindex], ag_data_raw_wrist[,..soj_colindex], data.table::first),
+    #                                     mean.vm=tapply(ag_data_raw_wrist$VM,ag_data_raw_wrist[,..soj_colindex],mean,na.rm=T),
+    #                                     sd.vm=tapply(ag_data_raw_wrist$VM,ag_data_raw_wrist[,..soj_colindex],sd,na.rm=T),
+    #                                     mean.ang=tapply(ag_data_raw_wrist$v.ang,ag_data_raw_wrist[,..soj_colindex],mean,na.rm=T),
+    #                                     sd.ang=tapply(ag_data_raw_wrist$v.ang,ag_data_raw_wrist[,..soj_colindex],sd,na.rm=T),
+    #                                     p625=tapply(ag_data_raw_wrist$VM,ag_data_raw_wrist[,..soj_colindex],pow.625),
+    #                                     dfreq=tapply(ag_data_raw_wrist$VM,ag_data_raw_wrist[,..soj_colindex],dom.freq),
+    #                                     ratio.df=tapply(ag_data_raw_wrist$VM,ag_data_raw_wrist[,..soj_colindex],frac.pow.dom.freq),
+    #                                     stringsAsFactors = F)
+    
+  } else {
+    
+    epoch <- ceiling(n/(samp_freq*window))
+    ag_data_raw_wrist$epoch <- rep(1:epoch,each=window*samp_freq)[1:n]
+    
+    # Compute features within epochs
+    ag_data_raw_wrist.sum <- 
+      ag_data_raw_wrist %>% 
+      dplyr::group_by(epoch) %>% 
+      dplyr::summarize(Timestamp = dplyr::first(Timestamp),
+                       mean.vm = mean(VM, na.rm = T),
+                       sd.vm = sd(VM, na.rm = T),
+                       mean.ang = mean(v.ang, na.rm = T),
+                       sd.ang = sd(v.ang, na.rm = T),
+                       p625 = MOCAfunctions::pow.625(VM),
+                       p1020 = MOCAfunctions::pow1020(VM),
+                       dfreq = MOCAfunctions::dom.freq(VM),
+                       ratio.df = MOCAfunctions::frac.pow.dom.freq(VM))
+    
+    if(angle_comp == 'Rowlands'){
+      temp <- ag_data_raw_wrist %>% dplyr::group_by(epoch) %>% dplyr::summarize(Timestamp = dplyr::first(Timestamp),
+                                                                                SedSphere_mean.ang = mean(SedSphere_v.ang, na.rm = T),
+                                                                                SedSphere_sd.ang = sd(SedSphere_v.ang, na.rm = T))
+      
+      ag_data_raw_wrist.sum = dplyr::left_join(ag_data_raw_wrist.sum, temp)
+    }
+    
+  }
+  
+  return(ag_data_raw_wrist.sum)
+  
+}
