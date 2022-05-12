@@ -31,7 +31,10 @@ pacman::p_load(
   irr,                    # Various coefficients of reliability and agreement.
   lme4,                   # Mixed-effects models.
   modelr,                 # Elegant pipelines during modeling.
+  nnet,                   # Feed-forward neural networks.
+  randomForest,           # Breiman & Cutler Random Forests for Class/Regress.
   skimr,                  # Frictionless, pipeable summary statistics.
+  tree,                   # Classification and Regression Trees.
   ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                            DATA VISUALIZATION                            ::
   ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

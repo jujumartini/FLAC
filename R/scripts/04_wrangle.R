@@ -161,6 +161,24 @@ shape_ag_sec_flac(
   project_only = FALSE
 )
 
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                           COMPUTE                           ::
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+compute_acc_model_estimates(
+  fdr_read     =  fs::path("FLAC_AIM1_DATA",
+                           "3_AIM1_SHAPED_DATA"),
+  fdr_write    = fs::path("FLAC_AIM1_DATA",
+                          "5_AIM1_PROJECTS",
+                          "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY"),
+  fdr_project  = NULL,
+  folder       = c("GT3X_RH_CSV_1SEC",
+                   "GT3X_RW_CSV_1SEC",
+                   "GT3X_RW_CSV_RAW"),
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+
 docomp_beh_buck_key <-
   c(
     "Sports/Exercise"              = 1L,
