@@ -47,7 +47,7 @@ pacman::p_load(
   ##                             WRANGLE - IMAGES                             ::
   ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   magick,                 # Image wrangling.
-  tesseract,              # Get timestamps from images.
+  # tesseract,              # Get timestamps from images.
   ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                              WRANGLE - DATA                              ::
   ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -79,9 +79,6 @@ options(warnPartialMatchDollar = TRUE)
 options(warnPartialMatchArgs = TRUE)
 options(datatable.print.class = TRUE)
 options(datatable.print.keys = TRUE)
-# When condition in if (condition) has length > 1, throws error.
-Sys.setenv("_R_CHECK_LENGTH_1_CONDITION_" = "true")
 
 tidyverse::tidyverse_conflicts()
-sessioninfo::session_info(info = "all",
-                          include_base = TRUE)
+sessioninfo::platform_info()
