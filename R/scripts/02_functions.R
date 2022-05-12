@@ -7231,6 +7231,482 @@ summarize_value_distribution <- function() {
 ####                                                                         %%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+compute_acc_model_estimates <- function(fdr_read,
+                                        fdr_write,
+                                        fdr_project = NULL,
+                                        folder = NULL,
+                                        filter_sub = NULL,
+                                        filter_loc = NULL,
+                                        project_only = FALSE) {
+  
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -   First version
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # -   initiate_wrangle
+  # -   get_fpa_read
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: fdr_read
+  #      File directory of cleaned ag_second files.
+  # ARG: fdr_write
+  #      File directory of shaped ag_second files.
+  # ARG: folder
+  #      Folder name of cleaned ag_second files. Shaped ag_second files will be
+  #      written to a folder with same folder name under fdr_write.
+  # ARG: fdr_project
+  #      File directory to where all the shaped data resides in a project. If
+  #      this is supplied then files are written to both fdr_write and fdr_project.
+  # ARG: filter_sub
+  #      Vector of subjects to filter the vct_fpa_read base.
+  # ARG: filter_loc
+  #      Integer vector to subset from vct_fpa_read.
+  # ARG: project_only
+  #      Should merged files only be written to fdr_project?
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "3_AIM1_SHAPED_DATA")
+  # fdr_write <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "5_AIM1_PROJECTS",
+  #            "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY")
+  # fdr_project <-
+  #   NULL
+  # folder <-
+  #   c("GT3X_RH_CSV_1SEC",
+  #     "GT3X_RW_CSV_1SEC",
+  #     "GT3X_RW_CSV_RAW")
+  # filter_sub <-
+  #   NULL
+  # filter_loc <-
+  #   NULL
+  # project_only <-
+  #   FALSE
+  
+  source(file = "./R/acc_models/acc_models.R")
+  load(file = "./R/acc_models/lyden_2014.RData")
+  load(file = "./R/acc_models/staudenmayer_2015.RData")
+  library(MOCAModelData)
+  library(zoo)
+  
+  initiate_wrangle(fdr_read     = fdr_read,
+                   fdr_project  = fdr_project,
+                   filter_sub   = filter_sub,
+                   filter_loc   = filter_loc,
+                   project_only = project_only,
+                   type         = "Comput",
+                   file_source  = "GT3X")
+  vct_fpa_read <- 
+    fs::dir_ls(
+      path        = fdr_read,
+      recurse     = FALSE,
+      all         = TRUE,
+      type        = "directory",
+      regexp      = paste(folder,
+                          # name_source_1,
+                          sep = "|",
+                          collapse = "|"),
+      invert      = FALSE,
+      fail        = TRUE,
+      ignore.case = TRUE
+    ) %>% 
+    fs::dir_ls(
+      type = "file",
+      regexp = "\\.feather$"
+    ) %>% 
+    keep(.p = ~str_detect(path_file(.x),
+                          pattern = filter_sub))
+  # }
+  
+  if (!is_empty(filter_loc)) {
+    
+    vct_fpa_read <- 
+      vec_slice(vct_fpa_read,
+                filter_loc)
+    
+  }
+  
+  # Get vector of subjects.
+  vct_subject <- 
+    vct_fpa_read |> 
+    path_file() |> 
+    stri_extract(regex = "\\d{4}") |> 
+    unique()
+  lst_estimate <- 
+    list()
+  devtools::unload("dtplyr")
+  
+  if (file_exists(path(fdr_write,
+                       "CO_ALL_model_estimates_IN_PROGRESS.rds"))) {
+    
+    # See which subjects are left to run function on.
+    lst_estimate_wip <- 
+      readRDS(file = path(fdr_write,
+                          "CO_ALL_model_estimates_IN_PROGRESS.rds"))
+    filter_sub <- 
+      map_chr(1:length(lst_estimate_wip),
+              .f = \(.x) pluck(lst_estimate_wip, .x, 2, 1))
+    vct_subject <- 
+      vct_subject[!vct_subject %in% filter_sub]
+    
+  }
+  
+  for (i in seq_along(vct_subject)) {
+    
+    subject <- 
+      vct_subject[i]
+    visit <- 
+      vct_fpa_read[i] |> 
+      path_file() |> 
+      stri_extract(regex = "\\d{1}")
+    
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                             READ                           ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    message("\n",
+            subject, " ", visit,
+            "\n",
+            appendLF = TRUE)
+    
+    vct_fpa_read_sub <- 
+      vct_fpa_read |> 
+      path_filter(regexp = subject) |> 
+      path_filter(regexp = visit)
+    
+    df_rh_1sec <- 
+      arrow::read_feather(
+        file = 
+          vct_fpa_read_sub |> 
+          stri_subset_regex(pattern = "gt3x_rh_csv_1sec",
+                            case_insensitive = TRUE)
+      ) |> 
+      slice(-1) |> 
+      as.data.table()
+    df_rw_1sec <- 
+      arrow::read_feather(
+        file = 
+          vct_fpa_read_sub |> 
+          stri_subset_regex(pattern = "gt3x_rw_csv_1sec",
+                            case_insensitive = TRUE)
+      ) |> 
+      slice(-1) |> 
+      as.data.table()
+    df_rw_raw <- 
+      arrow::read_feather(
+        file = 
+          vct_fpa_read_sub |> 
+          stri_subset_regex(pattern = "gt3x_rw_csv_raw",
+                            case_insensitive = TRUE)
+      ) |> 
+      slice(-1) |> 
+      as.data.table()
+    df_rw_raw[, vector_magnitude := sqrt(axis_x ^ 2 + axis_y ^ 2 + axis_z ^ 2)]
+    
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                         APPLY MODELS                       ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    message("Sojourn_3x...",
+            appendLF = FALSE)
+    est_soj3x <- 
+      lyden_2014_soj3x(
+        counts   = df_rh_1sec$axis_1,
+        counts.2 = df_rh_1sec$axis_2,
+        counts.3 = df_rh_1sec$axis_3,
+        vect.mag = df_rh_1sec$vector_magnitude,
+        short    = 30
+      )$METs
+    est_soj3x <- 
+      case_when(
+        est_soj3x <= 1.5                    ~ 0,
+        (est_soj3x > 1.5) & (est_soj3x < 3) ~ 1,
+        est_soj3x >= 3                      ~ 2
+      )
+    est_soj3x <- 
+      factor(est_soj3x,
+             levels = c(0, 1, 2),
+             labels = c("sedentary", "light", "mvpa"))
+    message("DONE\n",
+            "Montoye 2020...",
+            appendLF = FALSE)
+    est_montoye <- 
+      montoye_2020(vm = df_rw_1sec$vector_magnitude)
+    message("DONE\n",
+            "Rowland 2014...",
+            appendLF = FALSE)
+    est_rowland <- 
+      rowlands_2014(
+        raw_x           = df_rw_raw$axis_x,
+        raw_y           = df_rw_raw$axis_y,
+        raw_z           = df_rw_raw$axis_z,
+        vmcorrg_mod_15s = 489,
+        samp_freq       = 100, 
+        epoch           = 15,
+        expand_1sec     = TRUE
+      )
+    message("DONE\n",
+            "Hildebrand 2014...",
+            appendLF = FALSE)
+    est_hildebrand <- 
+      hildebrand_2014(
+        raw_x     = df_rw_raw$axis_x,
+        raw_y     = df_rw_raw$axis_y,
+        raw_z     = df_rw_raw$axis_z,
+        freq      = 100,
+        win.width = 60
+      )
+    message("DONE\n",
+            "Freedson 1998...",
+            appendLF = FALSE)
+    est_freedson <- 
+      freedson_1998(ag_data_vaxis_hip_1sec = df_rh_1sec$axis_1)
+    message("DONE\n",
+            "Staudenmayer 2015...",
+            appendLF = FALSE)
+    est_staudenmayer <- 
+      staudenmayer_2015(
+        raw_x               = df_rw_raw$axis_x,
+        raw_y               = df_rw_raw$axis_y,
+        raw_z               = df_rw_raw$axis_z,
+        vector_magnitude    = df_rw_raw$vector_magnitude,
+        freq                = 100
+      )
+    message("DONE\n",
+            "Marcotte 2021...",
+            appendLF = FALSE)
+    # est_marcotte <- 
+    #   marcotte_2021_soj_g(
+    #     data                      = 
+    #       df_rw_raw |> 
+    #       select(Timestamp = datetime,
+    #              AxisX     = axis_x,
+    #              AxisY     = axis_y,
+    #              AxisZ     = axis_z,
+    #              VM        = vector_magnitude) %>% 
+    #       as.data.frame(),
+    #     export_format             = "seconds",
+    #     freq                      = 100,
+    #     step1_sd_threshold        = 0.00375,
+    #     step2_min_window_length   = 0,
+    #     step2_nest_length         = 5,
+    #     step3_nest_length         = 60,
+    #     step3_orig_soj_length_min = 180
+    #   )$step3_estimate_intensity
+    # est_marcotte <- 
+    #   case_when(
+    #     est_marcotte == "Sedentary"                                 ~ 0,
+    #     est_marcotte == "Light"                                     ~ 1,
+    #     (est_marcotte == "Moderate") | (est_marcotte == "Vigorous") ~ 2
+    #   )
+    # est_marcotte <- 
+    #   factor(est_marcotte,
+    #          levels = c(0, 1, 2),
+    #          labels = c("sedentary", "light", "mvpa"))
+    est_marcotte_fudge = soj_g(data = 
+                                 df_rw_raw |> 
+                                 select(Timestamp = datetime,
+                                        AxisX     = axis_x,
+                                        AxisY     = axis_y,
+                                        AxisZ     = axis_z,
+                                        VM        = vector_magnitude),
+                               export_format = "seconds",
+                               freq = 100,
+                               step1_sd_threshold = .00375,
+                               step2_nest_length = 5,
+                               step3_nest_length = 60,
+                               step3_orig_soj_length_min = 180)$step3_estimate_intensity
+    est_marcotte_fudge <-
+      case_when(
+        est_marcotte_fudge == "Sedentary"                                 ~ 0,
+        est_marcotte_fudge == "Light"                                     ~ 1,
+        (est_marcotte_fudge == "Moderate") | (est_marcotte_fudge == "Vigorous") ~ 2
+      ) |> 
+      factor(levels = c(0, 1, 2),
+             labels = c("sedentary", "light", "mvpa"))
+    
+    message("DONE\n",
+            appendLF = FALSE)
+    
+    df_estimate_subject_visit <- 
+      data.table(
+        study        = "CO",
+        subject      = as.integer(subject),
+        visit        = as.integer(visit),
+        datetime     = df_rw_1sec$datetime,
+        sojourn_3x   = est_soj3x,
+        montoye      = est_montoye,
+        rowland      = est_rowland,
+        hildebrand   = est_hildebrand,
+        freedson     = est_freedson,
+        staudenmayer = est_staudenmayer,
+        marcotte     = est_marcotte_fudge
+      )
+    
+    lst_estimate[[i]] <- 
+      df_estimate_subject_visit
+    
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  if (FALSE) {
+    
+    # For interactive use and if memory runs out.
+    ## TODO: Find a way to automate this, meaning if there is a function
+    # that returns true when R is interactive and TRUE when memory has ran out,
+    # probably a mixture of tryCatch and some function I dont know about yet.
+    saveRDS(lst_estimate,
+            file = path(fdr_write,
+                        "CO_ALL_model_estimates_IN_PROGRESS.rds"))
+    
+  }
+  
+  fnm_estimate <- 
+    stri_c(
+      "CO_ALL_AG_MODEL_ESTIMATES_",
+      Sys.Date(),
+      ".feather"
+    )
+  arrow::write_feather(
+    rbindlist(lst_estimate),
+    sink = path(fdr_write,
+                fnm_estimate)
+  )
+  
+  cli_alert_success(
+    "SUCCESS. {length(lst_estimate)} File{?/s} {info_function}ed"
+  )
+  library(dtplyr)
+  
+  # df_estimate <- 
+  #   rbindlist(lst_estimate) |> 
+  #   mutate(marcotte = 
+  #            case_when(
+  #              marcotte == "Sedentary"                             ~ 0,
+  #              marcotte == "Light"                                 ~ 1,
+  #              (marcotte == "Moderate") | (marcotte == "Vigorous") ~ 2
+  #            ) |> 
+  #            factor(levels = c(0, 1, 2),
+  #                   labels = c("sedentary", "light", "mvpa")))
+  # df_estimate <- 
+  #   arrow::read_feather(
+  #     path(fdr_write,
+  #          "CO_ALL_AG_MODEL_ESTIMATES_2022-05-06.feather")
+  #   )
+  # df_estimate <- 
+  #   df_estimate |> 
+  #   rename(sojourn3x_present    = sojourn_3x,
+  #          montoye_present      = montoye,
+  #          rowland_present      = rowland,
+  #          hildebrand_present   = hildebrand,
+  #          freedson_present     = freedson,
+  #          staudenmayer_present = staudenmayer,
+  #          marcotte_present     = marcotte)
+  # df_past <- 
+  #   fread(file = path(fdr_write,
+  #                     "summary_data_2022-03-01.csv"),
+  #         sep = ",")
+  # df_past <- 
+  #   df_past |> 
+  #   group_by(participant, time) |> 
+  #   mutate(datetime = seq.POSIXt(from = time[1],
+  #                                to = time[1] + 59,
+  #                                by = 1),
+  #          .after = time) |> 
+  #   rename(sojourn3x_past = soj,
+  #          montoye_past = mont,
+  #          rowland_past = rowlands,
+  #          hildebrand_past = hilde,
+  #          freedson_past = free,
+  #          staudenmayer_past = umass,
+  #          marcotte_past = mar) |> 
+  #   ungroup()
+  # test <- 
+  #   full_join(df_estimate,
+  #             df_past,
+  #             by = c("subject" = "participant",
+  #                    "datetime")) |> 
+  #   select(!contains("chamber")) |> 
+  #   select(study:datetime,
+  #          starts_with("soj"),
+  #          starts_with("mont"),
+  #          starts_with("row"),
+  #          starts_with("hild"),
+  #          starts_with("free"),
+  #          starts_with("stau"),
+  #          starts_with("mar"))
+  # poo <- 
+  # test |> 
+  #   group_by(subject) |> 
+  #   summarize(
+  #     sed_mar_pres = sum(marcotte_present == "sedentary",
+  #                        na.rm = TRUE),
+  #     sed_mar_past = sum(marcotte_past == "sed",
+  #                        na.rm = TRUE),
+  #     lit_mar_pres = sum(marcotte_present == "light",
+  #                        na.rm = TRUE),
+  #     lit_mar_past = sum(marcotte_past == "light",
+  #                        na.rm = TRUE),
+  #     mvp_mar_pres = sum(marcotte_present == "mvpa",
+  #                        na.rm = TRUE),
+  #     mvp_mar_past = sum(marcotte_past == "mvpa",
+  #                        na.rm = TRUE)
+  #   )
+  # poo
+  # fwrite(poo,
+  #        file = path(fdr_write,
+  #                    "marcotte_intensity_by_visit_2022-05-06.csv"),
+  #        sep = ","
+  #        )
+  # vct_map <-
+  #   df_estimate |> 
+  #   select(!study:datetime) |> 
+  #   names()
+  # df_overall_perc <-
+  #   map_dfr(.x = vct_map,
+  #           .f = function(.x) table(df_estimate[[.x]], useNA = "always") / nrow(df_estimate)) |>
+  #   mutate(method = vct_map,
+  #          .before = 1) |> 
+  #   select(-5)
+  # vct_map <-
+  #   df_past |> 
+  #   select(!c(participant:chamber.METs,
+  #          contains("chamber"))) |>
+  #   select(sojourn3x_past, montoye_past, rowland_past, hildebrand_past,
+  #          freedson_past, staudenmayer_past, marcotte_past) |> 
+  #   names()
+  # df_overall_perc_past <-
+  #   map_dfr(.x = vct_map,
+  #           .f = function(.x) table(df_past[[.x]], useNA = "always") / nrow(df_past)) |>
+  #   mutate(method = vct_map,
+  #          .before = 1) |> 
+  #   select(
+  #     method, sed, light, mvpa
+  #     # everything()
+  #   )
+  # df_perc_together <- 
+  #   bind_cols(df_overall_perc,
+  #             df_overall_perc_past |> 
+  #               transmute(sed_past = sed,
+  #                         light_past = light,
+  #                         mvpa_past = mvpa)) %>% 
+  #   mutate(sed_diff = (sedentary - sed_past) / sed_past,
+  #          light_diff = (light - light_past) / light_past,
+  #          mvpa_diff = (mvpa - mvpa_past) / mvpa_past) %>% 
+  #   mutate(across(.cols = !method,
+  #                 .fns = as.double)) |> 
+  #   select(method, starts_with("sed"),
+  #          starts_with("light"),
+  #          starts_with("mvpa"))
+  # 
+  # fwrite(
+  #   df_perc_together,
+  #   file = path(fdr_write,
+  #               stri_c("estimate_diff_", "2022-05-08", "_to_", "2022-03-01", ".csv")),
+  #   sep = ","
+  # )
+  
+}
 compute_agreement <- function() {
   
   fdr_mer <- 
