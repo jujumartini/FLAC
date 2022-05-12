@@ -1,5 +1,5 @@
 # RUN this line the first time you open this script
-source("./Scripts/02_functions.R")
+source("./R/Scripts/02_functions.R")
 
 
 # FLAC - Aim 1 ------------------------------------------------------------

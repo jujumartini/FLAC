@@ -1,6 +1,5 @@
 # RUN this line the first time you open this script
-source("./Scripts/02_functions.R")
-library(magick) # Version: 2.7.3
+source("./R/Scripts/02_functions.R")
 
 # FLAC AIM 1 --------------------------------------------------------------
 
