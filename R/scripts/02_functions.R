@@ -6353,182 +6353,285 @@ process_actigraph_raw <- function() {
   test$axis_x %>% vec_unrep()
   
 }
-process_duration_files <- function(vec_source,
-                                   fdr_vid_merged,
-                                   fdr_vid_processed,
-                                   fnm_merged_all,
-                                   fnm_duration_rds,
-                                   fnm_duration_csv) {
+process_duration_files <- function(vct_variable,
+                                   vct_source,
+                                   fdr_read,
+                                   fdr_write,
+                                   fld_mer,
+                                   fnm_mer,
+                                   ge_than = NULL) {
   
-  # # CHANGES:
+  ###  VERSION 5  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -Update object naming scheme.
+  # -Change "merged" in object names to "mer".
+  # -Remove "get_duration" function as it is all contained within this function.
+  # -Add `ge_than` argument that allows one to filter merged data based on the
+  #   duration of one variable_source before processing durations for each
+  #   variable_source.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # FUNCTION: seq_duration
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # vct_variable
+  #   Self-explanatory
+  # vct_source
+  #   Self-explanatory
+  # fdr_read
+  #   File directory of merged file.
+  # fdr_write
+  #   File directory of processed file.
+  # fnm_mer
+  #   File name of merged file with all subject, visit entries in feather
+  #   format.
+  # ge_than
+  #   A list with the first element containing a variable, the second element
+  #   containing the source for the variable and the third element containing
+  #   the value the variable_source has to be >= than.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # vct_variable <- 
+  #   c("posture",
+  #     "behavior",
+  #     "intensity")
+  # vct_source <-
+  #   c("noldus",
+  #     "rmr",
+  #     "standard")
+  # fdr_read <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "4_AIM1_MERGED_DATA")
+  # fdr_write <-
+  #   fs::path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #            "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #            "3_data", "4_processed")
+  # fld_mer <- 
+  #   "NOLDUS_CHAMBER_RMR"
+  # fnm_mer <-
+  #   "CO_ALL_NOLDUS_CHAMBER_RMR.feather"
+  # ge_than <- 
+  #   NULL
+  # list("behavior",
+  #      "noldus",
+  #      60)
   
-  # -Remove "vid" from object names
-  # -Change "merged" in object names to "mer"
-  # -vec_code_type based off column names.
+  fpa_mer <- 
+    path(fdr_read,
+         list.files(path    = fdr_read,
+                    pattern = fld_mer),
+         fnm_mer)
+  df_mer <- 
+    fpa_mer |> 
+    arrow::read_feather() |>
+    # TODO
+    mutate(across(.cols = starts_with("intensity"),
+                  .fns = 
+                    ~factor(.x,
+                            levels = c("sedentary",
+                                       "light",
+                                       "mvpa")) |> 
+                    fct_explicit_na(na_level = "dark/obscured/oof")
+    )) |> 
+    as.data.table()
   
-  # # FUNCTIONS & ARGUMENTS:
-  
-  # FUNCTION: get_duration_v3
-  # ARG: vec_source
-  #      Self-explanatory
-  # ARG: fdr_mer
-  #      File directory of merged files.
-  # ARG: fdr_processed
-  #      File directory of processed files.
-  # ARG: fnm_mer_all
-  #      File name of merged file with all subject, visit entries
-  # ARG: fnm_duration_rds
-  #      File name of processed duration file. Has rds file extension.
-  # ARG: fnm_duration_csv
-  #      File name of processed duration file. Has csv file extension.
-  
-  # # TESTING
-  
-  # vec_source <-
-  #   c("01",
-  #     "05",
-  #     "10")
-  # fdr_mer <-
-  #   "./3_data/1_cleaned/merged"
-  # fdr_processed <-
-  #   "./3_data/2_processed"
-  # fnm_mer_all <-
-  #   "merged_all.rds"
-  # fnm_duration_rds <-
-  #   "duration_all.rds"
-  # fnm_duration_csv <-
-  #   "duration_all.csv"
-  
-  # tib_mer_all <- 
-  #   readr::read_rds(
-  #     paste(fdr_mer,
-  #           fnm_mer_all,
-  #           sep = "/")
-  #   )
-  
-  vec_source <-
-    c("vid",
-      "img")
-  fdr_mer <-
-    "./3_data/3_merged"
-  fdr_pro <-
-    "./3_data/4_processed"
-  fnm_mer_all <-
-    "merged_all_dowc.rds"
-  fnm_duration_rds <-
-    "duration_all_dowc.rds"
-  fnm_duration_csv <-
-    "duration_all_dowc.csv"
-  
-  
-  tib_mer_all <- 
-    readr::read_rds(file = paste(fdr_mer,
-                                 fnm_mer_all,
-                                 sep = "/"))
-  
-  lst_dur_pos <- 
-    list()
-  lst_dur_beh <- 
-    list()
-  # lst_dur_beh_act <- 
-  #   list()
-  # lst_dur_pos_dom <- 
-  #   list()
-  # lst_dur_beh_dom <- 
-  #   list()
-  lst_dur_int <-
-    list()
-  # lst_dur_env <- 
-  #   list()
-  
-  for (i in seq_along(vec_source)) {
+  if (!is_null(ge_than)) {
     
-    .source <- 
-      vec_source[i]
+    chk_variable <- 
+      !ge_than[[1]] %in% vct_variable
+    chk_source <- 
+      !ge_than[[2]] %in% vct_source
+    chk_cutoff <- 
+      !is.numeric(ge_than[[3]])
     
-    message("Durations for source ", .source, ": ",
-            appendLF = TRUE)
-    
-    tib_source <- 
-      tib_mer_all %>% 
-      select(1:datetime, ends_with(.source)) %>% 
-      rename_with(str_remove, pattern = paste0("_", .source))
-    
-    vec_code_type <- 
-      tib_source %>% 
-      select(!1:datetime) %>% 
-      colnames()
-    # c("posture",
-    #   "behavior",
-    #   "behavior_activity",
-    #   "intensity",
-    #   "posture_domain",
-    #   "behavior_domain",
-    #   "environment")
-    
-    for (ii in seq_along(vec_code_type)) {
+    if (any(chk_variable, chk_source, chk_cutoff)) {
       
-      code_type <- 
-        vec_code_type[ii]
+      loc_error <- 
+        which(
+          c(chk_variable, chk_source, chk_cutoff)
+        ) |> 
+        as.character()
       
-      message(code_type, "...",
-              appendLF = FALSE)
+      error_1 <- 
+        "First value in {.arg ge_than} is not in vct_variable."
+      error_2 <- 
+        "Second value in {.arg ge_than} is not in vct_source."
+      error_3 <- 
+        "Third value in {.arg ge_than} is not a numeric."
       
-      assign(paste0("tib_dur_", code_type),
-             value = get_duration_v3(tib = tib_source,
-                                     .code_type = code_type,
-                                     .source = .source))
+      switch(
+        EXPR = loc_error,
+        "123" = cli_abort(
+          message = c("!" = error_1, "!" = error_2, "!" = error_3)
+        ),
+        "12"  = cli_abort(
+          message = c("!" = error_1, "!" = error_2)
+        ),
+        "13"  = cli_abort(
+          message = c("!" = error_1,"!" = error_3)
+        ),
+        "23"  = cli_abort(
+          message = c("!" = error_2, "!" = error_3)
+        ),
+        "1"   = cli_abort(
+          message = c("!" = error_1)
+        ),
+        "2"   = cli_abort(
+          message = c("!" = error_2)
+        ),
+        "3"   = cli_abort(
+          message = c("!" = error_3)
+        )
+      )
       
     }
     
-    lst_dur_pos[[i]] <- 
-      tib_dur_posture
-    lst_dur_beh[[i]] <- 
-      tib_dur_behavior
-    # lst_dur_beh_act[[i]] <- 
-    #   tib_dur_behavior_activity
-    # lst_dur_pos_dom[[i]] <- 
-    #   tib_dur_posture_domain
-    # lst_dur_beh_dom[[i]] <- 
-    #   tib_dur_behavior_domain
-    lst_dur_int[[i]] <-
-      tib_dur_intensity
-    # lst_dur_env[[i]] <- 
-    #   tib_dur_environment
-    
-    message("DONE\n",
-            appendLF = TRUE)
+    variable_source <- 
+      stri_c(ge_than[[1]], "_", ge_than[[2]])
+    df_mer <- 
+      df_mer |> 
+      group_by(study, subject, visit) |> 
+      mutate(duration = 
+               seq_duration(vct_datetime = datetime,
+                            vct_value = .data[[variable_source]])) |> 
+      filter(duration >= ge_than[[3]]) |> 
+      as.data.table()
     
   }
   
+  vct_var_src <- 
+    # Get all combinations between variables and sources.
+    expand_grid(variable = vct_variable,
+                source = vct_source) %>% 
+    unite(col = "unite",
+          variable, source,
+          sep = "_") |> 
+    pull() |> 
+    # Only keep the combinations that are in the data.frame.
+    stri_subset_regex(pattern = stri_c(names(df_mer), collapse = "|"))
+  
   lst_duration <- 
-    c(
-      lst_dur_pos,
-      lst_dur_beh,
-      # lst_dur_beh_act,
-      # lst_dur_pos_dom,
-      # lst_dur_beh_dom,
-      lst_dur_int
-      # lst_dur_env
+    list()
+  variable_source <- 
+    ""
+  cnt <- 
+    0
+  progress_format <- 
+    stri_c(
+      "Getting duration for variable_source {variable_source} | ",
+      "{cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | ",
+      "[{cli::pb_elapsed}] | {cli::pb_eta_str}"
     )
-  tib_duration <- 
+  
+  cli_alert_info("Processing duration file from {fnm_mer} for variable_sources:")
+  cli_alert_info(stri_c(vct_var_src, collapse = " "))
+  
+  if (!is_null(ge_than)) {
+    
+    cli_alert_info(
+      stri_c(
+        "Merged data filtered by {ge_than[[1]]}_{ge_than[[2]]} values",
+        ">= {ge_than[[3]]} seconds",
+        sep = " "
+      )
+    )
+    
+  } else {
+    
+    cli_alert_info(
+        "Merged data not filtered by any variable_source."
+    )
+    
+  }
+  
+  for (i in cli_progress_along(vct_var_src,
+                               format = progress_format,
+                               clear = FALSE)) {
+    
+    variable_source <- 
+      vct_var_src[i]
+    c(.variable, .source) %<-% (
+      variable_source |> 
+        stri_split_regex(pattern = "_") |> 
+        vec_unchop() |> 
+        vec_chop()
+    )
+    
+    df_dur_var_source <- 
+      df_mer |> 
+      select(1:datetime, 
+             all_of(variable_source)) %>% 
+      group_by(study, subject, visit) |> 
+      transmute(
+        datetime,
+        .data[[variable_source]],
+        event    = rleid(.data[[variable_source]]),
+        duration = seq_duration(vct_datetime = datetime,
+                                vct_value    = .data[[variable_source]])
+      ) |> 
+      as_tibble() |> 
+      group_by(study, subject, visit, event) |> 
+      # As merged df treats a second value as what occurred UP TO THAT 
+      # SECOND, the start time is the minimum value within an event minus one.
+      # Do this for every value EXCEPT for the very first event as that is the
+      # start time to the visit which is always treated ANCHOR NOT AS A DATA
+      # POINT.
+      summarise(
+        source     = .source,
+        variable   = .variable,
+        value      = .data[[variable_source]][1],
+        start_dttm = min(datetime) - 1,
+        stop_dttm  = max(datetime),
+        duration   = duration[1],
+        .groups = "drop"
+      ) |> 
+      relocate(event,
+               .after = last_col()) |> 
+      as.data.table()
+    setkey(df_dur_var_source, NULL)
+    df_dur_var_source[event == 1, start_dttm := start_dttm + 1]
+    
+    lst_duration[[i]] <-
+      df_dur_var_source
+    
+    cli_progress_update()
+    cnt <- 
+      cnt + 1
+    
+  }
+  
+  cli_progress_done()
+  
+  df_duration <- 
     lst_duration %>% 
-    bind_rows()
-  readr::write_rds(
-    tib_duration,
-    file = paste(fdr_pro,
-                 fnm_duration_rds,
-                 sep = "/"),
-    compress = "none"
+    rbindlist()
+  fnm_write <- 
+    stri_c(
+      df_duration$study[1],
+      "ALL",
+      if (!is_null(ge_than)) {
+        stri_c("DUR",
+               ge_than[[1]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+               ge_than[[2]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+               "GE",
+               ge_than[[3]],
+               sep = "_")
+      } else {
+        "DURATION"
+      },
+      fld_mer,
+      sep = "_"
+    )
+  arrow::write_feather(
+    df_duration,
+    sink = path(fdr_write,
+                path_ext_set(fnm_write, "feather"))
   )
-  vroom_write(
-    tib_duration,
-    path = paste(fdr_pro,
-                 fnm_duration_csv,
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
+  fwrite(
+    df_duration,
+    file = path(fdr_write,
+                path_ext_set(fnm_write, "csv")),
+    sep = ","
   )
+  
+  cli_alert_success("SUCCESS. {cnt} File{?/s} processed")
   
 }
 

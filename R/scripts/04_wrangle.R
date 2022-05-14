@@ -162,6 +162,27 @@ shape_ag_sec_flac(
 )
 
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                           PROCESS                           ::
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+process_duration_files(
+  vct_variable = c("posture",
+                 "behavior",
+                 "intensity"),
+  vct_source   = c("noldus",
+                 "rmr",
+                 "standard"),
+  fdr_read     = fdr_merge,
+  fdr_write    = path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+                      "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+                      "3_data", "4_processed"),
+  fld_mer      = "NOLDUS_CHAMBER_RMR",
+  fnm_mer      = "CO_ALL_NOLDUS_CHAMBER_RMR.feather",
+  ge_than      = NULL
+  # ge_than      = list("behavior",
+  #                     "noldus",
+  #                     60)
+)
+##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ##                           COMPUTE                           ::
 ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 compute_acc_model_estimates(
