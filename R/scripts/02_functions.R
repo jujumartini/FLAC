@@ -660,6 +660,87 @@ initiate_wrangle <- function(fdr_read,
          value =  "{info_function}ing {str_to_title(info_source)} file {fnm_read} | {cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | [{cli::pb_elapsed}] | {cli::pb_eta_str}",
          envir = parent.frame())
 }
+initiate_analysis <- function(fdr_result = "./4_results") {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - FIRST VERSION
+  # - Ran before any analysis is done to make sure folder structure
+  #   is correctly setup.
+  # - Specifically, it checks if the folders "feather", "csv", and
+  #   "figure_table" are set up.
+  # - If these folders are not present, it will create them.
+  # - Pre-created folders can have numbers before hand to organize
+  #   them (i.e. 1_feather, 2_csv, 3_figure_table)
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result 
+  #   Default is "./4_results".
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result = "./4_results"
+  
+  vct_fdr <- 
+    dir_ls(path = fdr_result,
+           type = "directory") |> 
+    path_file()
+  
+  missing_feather_directory <- 
+    !any(
+      stri_detect_regex(vct_fdr,
+                        pattern = "feather")  
+    )
+  missing_csv_directory <- 
+    !any(
+      stri_detect_regex(vct_fdr,
+                        pattern = "csv")  
+    )
+  missing_figure_table_directory <- 
+    !any(
+      stri_detect_regex(vct_fdr,
+                        pattern = "figure_table")  
+    )
+  
+  if (missing_feather_directory) {
+    
+    cli_inform(c(
+      "!" = 'No sub directory with phrase "{.emph feather}" found in {.strong RESULT} directory.',
+      "i" = 'Creating sub directory "{.emph feather}" to house feather files.')
+    )
+    fs::dir_create(path = path(fdr_result,
+                               "feather"))
+  }
+  
+  if (missing_csv_directory) {
+    
+    cli_inform(c(
+      "!" = 'No sub directory with phrase "{.emph csv}" found in {.strong RESULT} directory.',
+      "i" = 'Creating sub directory "{.emph csv}" to house csv files.')
+    )
+    fs::dir_create(path = path(fdr_result,
+                               "csv"))
+  }
+  
+  if (missing_figure_table_directory) {
+    
+    cli_inform(c(
+      "!" = 'No sub directory with phrase "{.emph figure_table}" found in {.strong RESULT} directory.',
+      "i" = 'Creating sub directory "{.emph figure_table}" to house figure_table files.')
+    )
+    fs::dir_create(path = path(fdr_result,
+                               "figure_table"))
+  }
+  
+  cli_inform(c(
+    "v" = "Directories under {fdr_result} have been checked.",
+    " " = "",
+    " " = "Ready to start analysis."
+  ))
+  
+}
+
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####                                                                         %%%%
