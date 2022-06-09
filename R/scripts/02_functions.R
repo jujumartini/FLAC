@@ -6555,14 +6555,10 @@ process_duration_files <- function(vct_variable,
                                    fnm_mer,
                                    ge_than = NULL) {
   
-  ###  VERSION 5  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 6  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -Update object naming scheme.
-  # -Change "merged" in object names to "mer".
-  # -Remove "get_duration" function as it is all contained within this function.
-  # -Add `ge_than` argument that allows one to filter merged data based on the
-  #   duration of one variable_source before processing durations for each
-  #   variable_source.
+  # - Make sure it works if the merged file is not in a sub-directory.
+  # - If ge_than is not null, export ge_than merged file for analysis.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # FUNCTION: seq_duration
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
@@ -6574,6 +6570,8 @@ process_duration_files <- function(vct_variable,
   #   File directory of merged file.
   # fdr_write
   #   File directory of processed file.
+  # fld_mer
+  #   Folder name of containing fnm_mer.
   # fnm_mer
   #   File name of merged file with all subject, visit entries in feather
   #   format.
@@ -6581,8 +6579,10 @@ process_duration_files <- function(vct_variable,
   #   A list with the first element containing a variable, the second element
   #   containing the source for the variable and the third element containing
   #   the value the variable_source has to be >= than.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove code after shape_noldus is updated.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # vct_variable <- 
+  # vct_variable <-
   #   c("posture",
   #     "behavior",
   #     "intensity")
@@ -6597,25 +6597,46 @@ process_duration_files <- function(vct_variable,
   #   fs::path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
   #            "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
   #            "3_data", "4_processed")
-  # fld_mer <- 
+  # fld_mer <-
   #   "NOLDUS_CHAMBER_RMR"
   # fnm_mer <-
   #   "CO_ALL_NOLDUS_CHAMBER_RMR.feather"
-  # ge_than <- 
+  # ge_than <-
   #   NULL
-  # list("behavior",
-  #      "noldus",
-  #      60)
+  # list("behavior", "noldus", 60)
+  # fld_mer <-
+  #   NULL
+  # fnm_mer <-
+  #   "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # fdr_write <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "5_AIM1_PROJECTS",
+  #            "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY",
+  #            "1_data", "4_processed")
   
-  fpa_mer <- 
-    path(fdr_read,
-         list.files(path    = fdr_read,
-                    pattern = fld_mer),
-         fnm_mer)
+  if (is_null(fld_mer)) {
+    
+    fpa_mer <- 
+      path(fdr_read,
+           fnm_mer)
+    
+  } else {
+    
+    fpa_mer <- 
+      path(fdr_read,
+           list.files(path    = fdr_read,
+                      pattern = fld_mer),
+           fnm_mer)
+    
+  }
+  
   df_mer <- 
     fpa_mer |> 
     arrow::read_feather() |>
-    # TODO
+    # TODO: Whenver dark/obscured/oof is coded for posture, intensity is ""
+    #       Explicitly state that it is dark/obscured/oof.
+    #       Also when looking at noldus_chamber_rmr merged files, the chamber
+    #       data is not filled up.
     mutate(across(.cols = starts_with("intensity"),
                   .fns = 
                     ~factor(.x,
@@ -6624,6 +6645,7 @@ process_duration_files <- function(vct_variable,
                                        "mvpa")) |> 
                     fct_explicit_na(na_level = "dark/obscured/oof")
     )) |> 
+    # TODO: END
     as.data.table()
   
   if (!is_null(ge_than)) {
@@ -6682,11 +6704,98 @@ process_duration_files <- function(vct_variable,
     df_mer <- 
       df_mer |> 
       group_by(study, subject, visit) |> 
-      mutate(duration = 
-               seq_duration(vct_datetime = datetime,
-                            vct_value = .data[[variable_source]])) |> 
-      filter(duration >= ge_than[[3]]) |> 
+      as_tibble() |> 
+      # TODO: Remove duration_noldus columns from shape_noldus
+      mutate(duration_behavior_noldus = NULL,
+             duration_posture_noldus = NULL) |> 
+      # TODO: END
+      mutate(
+        "duration_{variable_source}" :=
+          seq_duration(vct_datetime = datetime,
+                       vct_value = .data[[variable_source]]),
+        "less_than_{ge_than[[3]]}" := 
+          .data[[glue::glue("duration_{variable_source}")]] < ge_than[[3]],
+        .after = time
+      ) |> 
+      mutate(across(
+        .cols = !c(study:glue::glue("less_than_{ge_than[[3]]}")),
+        function(.x) {
+          if (is.factor(.x)) {
+            fifelse(.data[[glue::glue("less_than_{ge_than[[3]]}")]],
+                    yes = 
+                      factor(NA,
+                             levels = levels(.x)),
+                    no  = .x)
+          } else {
+            base::ifelse(test = .data[[glue::glue("less_than_{ge_than[[3]]}")]],
+                         yes  = NA,
+                         no   = .x)
+          }
+        }
+      )) |> 
       as.data.table()
+    
+    # Write for confusion matrix and agreement functions.
+    fnm_ge_than <- 
+      stri_c(
+        path_ext_remove(fnm_mer),
+        "DUR",
+        ge_than[[1]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+        ge_than[[2]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+        "GE",
+        ge_than[[3]],
+        sep = "_"
+      )
+    
+    if (is_null(fld_mer)) {
+      
+      arrow::write_feather(
+        df_mer,
+        sink = path(fdr_read,
+                    path_ext_set(fnm_ge_than,
+                                 ext = "feather"))
+      )
+      fwrite(
+        df_mer,
+        file = path(fdr_read,
+                    path_ext_set(fnm_ge_than,
+                                 ext = "csv")),
+        sep = ","
+      )
+      
+    } else {
+      
+      arrow::write_feather(
+        df_mer,
+        sink = path(fdr_read,
+                    list.files(path    = fdr_read,
+                               pattern = fld_mer),
+                    path_ext_set(fnm_ge_than,
+                                 ext = "feather"))
+      )
+      fwrite(
+        df_mer,
+        file = path(fdr_read,
+                    list.files(path    = fdr_read,
+                               pattern = fld_mer),
+                    path_ext_set(fnm_ge_than,
+                                 ext = "csv")),
+        sep = ","
+      )
+      
+    }
+    
+    
+    # testt <- 
+    # df_mer |>
+    #   count(study, subject, visit, intensity_rmr) |>
+    #   count(study, subject, visit, wt = n)
+    # df_mer |>
+    #   count(study, subject, visit, intensity_noldus) |>
+    #   count(study, subject, visit, wt = n)
+    # df_mer |>
+    #   count(study, subject, visit, posture_noldus) |>
+    #   count(study, subject, visit, wt = n)
     
   }
   
@@ -6793,6 +6902,19 @@ process_duration_files <- function(vct_variable,
   
   cli_progress_done()
   
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  if(is_null(fld_mer)) {
+    
+    fld_mer <- 
+      fnm_mer |> 
+      path_ext_remove() |> 
+      stri_replace_all_regex(pattern = ".*ALL_",
+                             replacement = "")
+    
+  }
+  
   df_duration <- 
     lst_duration %>% 
     rbindlist()
@@ -6828,7 +6950,7 @@ process_duration_files <- function(vct_variable,
   cli_alert_success("SUCCESS. {cnt} File{?/s} processed")
   
 }
-
+}
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####                                                                         %%%%
