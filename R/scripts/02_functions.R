@@ -9548,127 +9548,316 @@ compute_classification <- function() {
 }
 
 
-compute_confusion_matrix <- function() {
+compute_confusion_matrix <- function(fdr_read,
+                                     fdr_write,
+                                     fld_mer,
+                                     fnm_mer,
+                                     variable,
+                                     vct_criterion,
+                                     vct_estimate,
+                                     output = c("minute",
+                                                "percent",
+                                                "both")) {
   
-  # install.packages("janitor")
-  library(janitor)
-  fdr_mer <- 
-    "./3_data/3_merged"
-  fnm_mer_rds <- 
-    "merged_all_dowc.rds" # From getting tib_mer_all ready for process_duration_files_v4
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make it a loop through all variables
+  # - Define which is the estimate for comparison.
+  # - Update object naming scheme.
+  # - Write csv file in own sub folder and also have one file containing
+  #   all matrixes in one.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory to CO_ALL_{sources}_{duration_file}.
+  # fdr_write 
+  #   File directory to save confusion matrices to.
+  # fld_mer 
+  #   Folder name where merged files are saved to.
+  # fnm_mer
+  #   File name of merged file with all subject, visit entries in feather
+  #   format.
+  # variable 
+  #   String for variable that is present in fnm_mer.
+  # vct_criterion 
+  #   Vector of names for which source(s) is/are the criterion(s).
+  # vct_estimate 
+  #   Vector of names for which source(s) is/are the estimate(s).
+  # output 
+  #   Either "minute", "percent" or "both" to determine how confusion matrix
+  #   will be outputted.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read      = fdr_merge
+  # fdr_write     = fdr_result
+  # fld_mer       = NULL
+  # fnm_mer       = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # variable      = "intensity"
+  # vct_criterion = c("standard",
+  #                   "rmr")
+  # vct_estimate  = c("sojourn3x", "montoye", "rowland", "hildebrand",
+  #                   "freedson", "staudenmayer", "marcotte")
+  # output        = "percent" # minute, percent, both
   
-  tib_mer <- 
-    readr::read_rds(
-      file = paste(fdr_mer,
-                   fnm_mer_rds,
-                   sep = "/")
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  dur_type <- 
+    fnm_mer |> 
+    stri_extract_all_regex(pattern = "DUR.*(?=\\.feather)") |> 
+    vec_unchop()
+  
+  if (is.na(dur_type)) {
+    
+    dur_type <- 
+      "NORMAL"
+    
+  }
+  
+  if (is_null(fld_mer)) {
+    
+    df_mer <- 
+      path(fdr_read,
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  } else {
+    
+    df_mer <- 
+      path(fdr_read,
+           list.files(path    = fdr_read,
+                      pattern = fld_mer),
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  }
+  
+  df_variable <- 
+    df_mer |> 
+    select(starts_with(all_of(variable))) |> 
+    rename_with(.cols = everything(),
+                .fn   = ~stri_replace_all_regex(.x,
+                                                pattern = stri_c(variable, "_"),
+                                                replacement = "")) |> 
+    tidyr::drop_na() |>
+    as.data.table()
+  
+  # Remove any "dark/obscured/oof" if it is present.
+  chk_dark_obscured_oof <- 
+    purrr::map_lgl(.x = names(df_variable),
+                   .f = function(.x) 
+                     "dark/obscured/oof" %in% unique(df_variable[[.x]]))
+  
+  if (any(chk_dark_obscured_oof)) {
+    
+    ind_filter <- 
+      which(chk_dark_obscured_oof) |> 
+      vec_slice(names(df_variable),
+                i = _)
+    
+    for (column in ind_filter) {
+      
+      df_variable <- 
+        df_variable |> 
+        filter(.data[[column]] != "dark/obscured/oof") |> 
+        as.data.table()
+      
+    }
+    
+  }
+  
+  lst_cri_est <- 
+    expand_grid(criterion  = vct_criterion,
+                estimate   = vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  
+  lst_confusion <- 
+    list()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  for (i in seq_along(lst_cri_est)) {
+    
+    c(criterion, estimate) %<-%
+      lst_cri_est[[i]]
+    
+    cli_inform(c(
+      "i" = "{.emph {stri_c(criterion, '_', estimate)}}"
+    ))
+    
+    df_confusion <- 
+      df_variable |> 
+      as_tibble() |>
+      tabyl(.data[[criterion]], .data[[estimate]]) |> 
+      # Change to minutes.
+      mutate(across(.cols = -1,
+                    .fns = ~ round(.x / 60,
+                                   digits = 1))) |> 
+      # So the adorn_ns are based off of minutes.
+      as_tibble() |> 
+      adorn_totals(where = c("row", "col"),
+                   name = c("Total", "Total (minutes)"))
+    
+    switch(
+      EXPR = output,
+      "minute" = {
+        df_confusion <- 
+          df_confusion |> 
+          adorn_title(placement = "combined",
+                      row_name = criterion,
+                      col_name = estimate)
+      },
+      "percent" = {
+        df_confusion <- 
+          df_confusion |> 
+          adorn_percentages(denominator = "row") |> 
+          adorn_pct_formatting(digits = 2) |> 
+          adorn_title(placement = "combined",
+                      row_name = criterion,
+                      col_name = estimate) |> 
+          # Keep Total in minutes.
+          select(-`Total (minutes)`) |> 
+          bind_cols(select(df_confusion,
+                           `Total (minutes)`))
+      },
+      "both" = {
+        df_confusion <- 
+          df_confusion |> 
+          adorn_percentages(denominator = "row") |> 
+          adorn_pct_formatting(digits = 2) |> 
+          adorn_ns(position = "front") |> 
+          adorn_title(placement = "combined",
+                      row_name = criterion,
+                      col_name = estimate)
+      }
+    )
+    
+    type <- 
+      names(df_confusion)[1] |> 
+      stri_replace_all_regex(pattern = "/",
+                             replacement = "_to_") |> 
+      stri_trans_toupper()
+    
+    lst_confusion[[type]] <- 
+      df_confusion |> 
+      rename_with(.cols = 1,
+                  .fn = ~stri_replace_all_regex(.x,
+                                                pattern = "/",
+                                                replacement = "\\\\"))
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Write all confusion matrices in its own folder under fdr_write/csv.
+  fs::dir_create(
+    path(dir_ls(fdr_write,
+                type = "directory",
+                regexp = "csv"),
+         "confusion_matrices")
+    )
+  purrr::walk(
+    .x = names(lst_confusion),
+    function(.x) {
+      fnm_write <- 
+        stri_c(
+          df_mer$study[1],
+          "CONFUSION",
+          stri_trans_toupper(variable),
+          .x,
+          if (output == "both") "MINUTE_PERCENT" else stri_trans_toupper(output),
+          dur_type,
+          sep = "_"
+        )
+      fpa_write <- 
+        path(
+          dir_ls(fdr_write,
+                 type = "directory",
+                 regexp = "csv"),
+          "confusion_matrices",
+          fnm_write
+        )
+      fwrite(
+        lst_confusion[[.x]],
+        file = path_ext_set(fpa_write,
+                            ext = "csv"),
+        sep = ","
+      )
+    }
+  )
+  
+  # Write a collapsed one in fdr_write/csv.
+  fnm_write <- 
+    stri_c(
+      df_mer$study[1],
+      "CONFUSION",
+      stri_trans_toupper(variable),
+      "ALL",
+      if (output == "both") "MINUTE_PERCENT" else stri_trans_toupper(output),
+      dur_type,
+      sep = "_"
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  purrr::map(
+    .x = lst_confusion,
+    function(.x) {
+      col_names <- 
+        names(.x)
+      col_names_generic <- 
+        c("criterion\\estimate",
+          stri_c("Value",
+                 col_names[-(1:2)] |> 
+                   seq_along()),
+          col_names[length(col_names)])
+      .x <- 
+        .x |> 
+        add_row(.before = 1) |> 
+        add_row()
+      .x[1, ] <- 
+        col_names
+      .x[nrow(.x), ] <- 
+        ""
+      names(.x) <- 
+        col_names_generic
+      
+      return(.x)
+      
+    }
+  ) |> 
+    bind_rows() |> 
+    add_row(.before = 1) |> 
+    fwrite(
+      file = path_ext_set(fpa_write,
+                          ext = "csv"),
+      sep = ","
     )
   
-  # Remove first row from each subject_visit to treat each entry in tib_mer as a second
-  # rather than a time anchor.
-  tib_mer <- 
-    tib_mer %>% 
-    group_by(study, subject, visit) %>% 
-    slice(-1) %>% 
-    ungroup()
+  cli_inform(message = c("v" = "SUCCESS"))  
   
-  tib_pos <-
-    tib_mer %>%
-    select(starts_with("posture")) %>%
-    rename_with(.cols = everything(),
-                .fn   = ~ str_remove(.x,
-                                     pattern = "posture_"))
-  tib_int <-
-    tib_mer %>%
-    select(starts_with("intensity")) %>%
-    rename_with(.cols = everything(),
-                .fn   = ~ str_remove(.x,
-                                     pattern = "intensity_"))
-  tib_beh <- 
-    tib_mer %>% 
-    select(starts_with("behavior")) %>% 
-    rename_with(.cols = everything(),
-                .fn   = ~ str_remove(.x,
-                                     pattern = "behavior_"))
-  
-  # tib_pos %>% 
-  #   count(vid, img)
-  table(tib_pos$vid, tib_pos$img) # Same as below but below is better.
-  
-  tib_confusion <- 
-    tib_pos %>% 
-    janitor::tabyl(vid, img) %>% 
-    mutate(across(.cols = !vid,
-                  .fns = ~ round(.x / 60,
-                                 digits = 1))) %>% 
-    as_tibble() # So the adorn_ns are based off of minutes.
-  tib_confusion <- 
-    tib_confusion %>% 
-    adorn_totals(where = c("row", "col")) %>% 
-    adorn_percentages(denominator = "row") %>% 
-    adorn_pct_formatting(digits = 1) %>% 
-    adorn_ns(position = "front") %>% 
-    adorn_title(placement = "combined")
-  
-  vroom_write(
-    tib_confusion,
-    path = paste("./4_results",
-                 "2_csv",
-                 "table_confusion_pos_minutes.csv",
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
-  )
-  
-  tib_confusion <- 
-    tib_int %>% 
-    janitor::tabyl(vid, img) %>% 
-    mutate(across(.cols = !vid,
-                  .fns = ~ round(.x / 60,
-                                 digits = 1))) %>% 
-    as_tibble() # So the adorn_ns are based off of minutes.
-  tib_confusion <- 
-    tib_confusion %>% 
-    adorn_totals(where = c("row", "col")) %>% 
-    adorn_percentages(denominator = "row") %>% 
-    adorn_pct_formatting(digits = 1) %>% 
-    adorn_ns(position = "front") %>% 
-    adorn_title(placement = "combined")
-  
-  vroom_write(
-    tib_confusion,
-    path = paste("./4_results",
-                 "2_csv",
-                 "table_confusion_int_minutes.csv",
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
-  )
-  
-  tib_confusion <- 
-    tib_beh %>% 
-    janitor::tabyl(vid, img) %>% 
-    mutate(across(.cols = !vid,
-                  .fns = ~ round(.x / 60,
-                                 digits = 1))) %>% 
-    as_tibble() # So the adorn_ns are based off of minutes.
-  tib_confusion <- 
-    tib_confusion %>% 
-    adorn_totals(where = c("row", "col")) %>% 
-    adorn_percentages(denominator = "row") %>% 
-    adorn_pct_formatting(digits = 1) %>% 
-    adorn_ns(position = "front") %>% 
-    adorn_title(placement = "combined")
-  
-  vroom_write(
-    tib_confusion,
-    path = paste("./4_results",
-                 "2_csv",
-                 "table_confusion_beh_minutes.csv",
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
-  )
 }
 compute_img_irr <- function(tib_mer_schema) {
   
