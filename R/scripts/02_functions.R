@@ -5704,6 +5704,200 @@ merge_chamber_rmr <- function(fdr_read,
   cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
   
 }
+merge_chamber_ag_model_estimates <- function(fdr_read,
+                                             fdr_write,
+                                             fdr_project  = NULL,
+                                             fnm_acc      = "AG_MODEL_ESTIMATES",
+                                             fnm_chm_rmr  = "CO_ALL_CHAMBER_RMR.feather",
+                                             fnm_merge    = "CHAMBER_RMR_AG_MODEL",
+                                             filter_sub   = NULL,
+                                             project_only = FALSE) {
+  
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make sure it works by keeping {study}_ALL_MODEL_ESTIMATES in the shaped
+  #   folder.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - initiate_wrangle
+  # - get_fpa_read
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read
+  #   File directory of {study}_ALL_MODEL_ESTIMATES files.
+  # fdr_write
+  #   File directory of merged chamber_rmr files and where merged_chamber_rmr
+  #   file will reside
+  # fdr_project
+  #   File directory to where all the merged data resides in the project. If
+  #   this is supplied then files are written to both fdr_write and fdr_project.
+  # fnm_acc
+  #   Folder name of shaped noldus activity files.
+  # fnm_chm_rmr
+  #   Folder name of shaped noldus posture files.
+  # fnm_merge
+  #   Folder name to save merged activity/posture files to.
+  # filter_sub
+  #   Vector of subjects to filter the vct_fpa_read base.
+  # project_only
+  #   Should merged files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove code after compute_acc_model_estimates is updated.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "3_AIM1_SHAPED_DATA")
+  # fdr_write <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "4_AIM1_MERGED_DATA")
+  # fdr_project <-
+  #   NULL
+  # fnm_acc <-
+  #   "AG_MODEL_ESTIMATES"
+  # fnm_chm_rmr <-
+  #   "CO_ALL_CHAMBER_RMR.feather"
+  # fnm_merge <-
+  #   "CHAMBER_RMR_AG_MODEL"
+  # filter_sub <-
+  #   NULL
+  # project_only <-
+  #   FALSE
+  
+  fpa_chm <- 
+    dir_ls(path    = fdr_write,
+           recurse = TRUE,
+           regexp  = fnm_chm_rmr)
+  # Use the most recent AG_MODEL_ESTIMATES file if there are multiple.
+  fpa_acc <- 
+    chuck(
+      .x = dir_ls(path   = fdr_read,
+                  regexp = fnm_acc),
+      dir_ls(path   = fdr_read,
+             regexp = fnm_acc) |> 
+        path_file() |> 
+        stri_extract_first_regex(pattern = "\\d{4}-\\d{2}-\\d{2}") |> 
+        lubridate::as_date() |> 
+        lubridate::seconds() |> 
+        which.max()
+    )
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            MERGE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_mer <- 
+    left_join(
+      arrow::read_feather(fpa_acc),
+      arrow::read_feather(fpa_chm),
+      by = c("study", "subject", "visit", "datetime")
+    ) %>% 
+    mutate(
+      date = as_date(datetime),
+      time = 
+        datetime |> 
+        with_tz(tzone = "America/Chicago") |> 
+        format("%H:%M:%S"),
+      intensity_rmr = 
+        fcase(
+          mets_rmr < 1.5, "sedentary",
+          mets_rmr >= 1.5 & mets_rmr < 3.0, "light",
+          mets_rmr >= 3.0, "mvpa"
+        ) |> 
+        factor(levels = c("sedentary", "light", "mvpa")),
+      intensity_standard =
+        fcase(
+          mets_standard < 1.5, "sedentary",
+          mets_standard >= 1.5 & mets_standard < 3.0, "light",
+          mets_standard >= 3.0, "mvpa"
+        ) |> 
+        factor(levels = c("sedentary", "light", "mvpa")),
+      # TODO: Change this in compute_acc_model_estimates when you can.
+      marcotte = 
+        marcotte |> 
+        forcats::fct_relabel(stri_trans_tolower) |> 
+        fct_collapse(mvpa = c("moderate", "vigorous"))
+      # TODO: END
+    ) %>% 
+    as_tibble() |> 
+    fill(chamber_vo2_ml_kg_min:intensity_standard,
+         .direction = "up") |> 
+    select(study:datetime, date, time,
+           chamber_vo2_ml_kg_min, rmr_vo2_ml_kg_min,
+           mets_rmr:intensity_standard,
+           sojourn3x = sojourn_3x,
+           everything()) |> 
+    rename_with(.cols = !study:intensity_standard,
+                .fn = ~stri_c("intensity_", .x)) |> 
+    # Only complete cases; when there is chamber data.
+    filter(!is.na(chamber_vo2_ml_kg_min)) |>
+    as.data.table()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  fnm_write <- 
+    stri_c(
+      fnm_chm_rmr %>% 
+        str_split(pattern = "_") %>% 
+        vec_unchop() %>% 
+        vec_slice(c(1, 2)) |> 
+        stri_c(collapse = "_"),
+      fnm_merge,
+      fpa_acc |> 
+        path_file() |> 
+        stri_extract_first_regex(pattern = "\\d{4}-\\d{2}-\\d{2}"),
+      sep = "_"
+    )
+  
+  if (project_only) {
+    fpa_project <- 
+      fs::path(
+        dir_ls(fdr_project,
+               type = "directory",
+               regexp = fld_merge),
+        fnm_write
+      )
+    arrow::write_feather(
+      df_mer,
+      sink = fs::path_ext_set(path = fpa_project,
+                              ext = "feather")
+    )
+    return()
+  }
+  
+  fpa_write <- 
+    fs::path(
+      fdr_write,
+      fnm_write
+    )
+  data.table::fwrite(
+    df_mer,
+    file = fs::path_ext_set(path = fpa_write,
+                            ext = "csv"),
+    sep = ",",
+    showProgress = FALSE
+  )
+  arrow::write_feather(
+    df_mer,
+    sink = fs::path_ext_set(path = fpa_write,
+                            ext = "feather")
+  )
+  
+  if (!is_empty(fdr_project)) {
+    fpa_project <- 
+      fs::path(
+        dir_ls(fdr_project,
+               type = "directory",
+               regexp = fld_merge),
+        fnm_write
+      )
+    arrow::write_feather(
+      df_mer,
+      sink = fs::path_ext_set(path = fpa_project,
+                              ext = "feather")
+    )
+  }
+  
+  cli_alert_success("SUCCESS.")
+  
+}
 merge_noldus <- function(fdr_read,
                          fdr_write,
                          fdr_project = NULL,
