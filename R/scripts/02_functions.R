@@ -8636,6 +8636,452 @@ compute_agreement <- function() {
   )
   
 }
+compute_bias <- function(fdr_read,
+                         fdr_write,
+                         fnm_visit_summary,
+                         vct_criterion,
+                         vct_estimate,
+                         output) {
+  
+  ###  VERSION 3  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Input from process_visit_numbers function
+  # - Update object naming scheme.
+  # - Remove lvls_{variable} as it is extracted from df_visit now. Since
+  #   process_visit_summary uses factors vct_value will always be in order
+  #   so stop naming it value_order.
+  # - Stop using df_index and use zeallot to assign .value, .criterion, & 
+  #   .estimate all at once. This makes the code more readable rather than
+  #   having three nested for loops.
+  # - Updated messages to be more informative.
+  # - Have a csv, specific bias table as it is common to use the csv and turn it
+  #   into an excel for presentation/publication.
+  # - Write feather & csv files in their own respective sub folders.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory to VISIT_{variable}_{summary_function}_FROM_{duration_file}.
+  # fdr_write 
+  #   File directory to save bias files to (should have separate folders per
+  #   file type.)
+  # fnm_visit_summary 
+  #   Filename of visit_summary file.
+  # vct_criterion 
+  #   Vector of names for which source(s) is/are the criterion(s).
+  # vct_estimate 
+  #   Vector of names for which source(s) is/are the estimate(s).
+  # output
+  #   "time" or "percent" to represent bias, se and CI. If percent, then
+  #   time_unit from visit_summary is used to represent criterion mean & sd.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Implement changes from compute_bias_v3 from 2022_SURF.
+  # - See if computing bias can be done with data.table.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fdr_write <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # fld_feather <- 
+  #   "1_feather"
+  # fld_csv <- 
+  #   "2_csv"
+  # fnm_visit_summary <- 
+  #   "CO_VISIT_SUM_MINUTES_INTENSITY_FROM_DUR_BEH_NOL_GE_60.feather"
+  # vct_criterion <-
+  #   c("standard",
+  #     "rmr")
+  # vct_estimate <-
+  #   c("noldus")
+  # output <- 
+  #   "time" # time, percent
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_visit <- 
+    arrow::read_feather(path(fdr_read,
+                             fnm_visit_summary)) |> 
+    # Remove dark/obscurred/oof if present.
+    select(!starts_with("dark/obscured/oof")) |> 
+    # TODO: See if things can be done with data.table.
+    as_tibble()
+    # TODO: END
+  
+  # # To test linear mixed effects model.
+  # df_visit <- 
+  #   bind_rows(
+  #     df_visit,
+  #     df_visit |> 
+  #       mutate(across(.cols = !study:time_units,
+  #                     .fns  = ~sample(.x,
+  #                                     size    = nrow(df_visit),
+  #                                     replace = TRUE))) |> 
+  #       mutate(visit = 2L),
+  #     df_visit |> 
+  #       mutate(across(.cols = !study:time_units,
+  #                     .fns  = ~sample(.x,
+  #                                     size    = nrow(df_visit),
+  #                                     replace = TRUE))) |> 
+  #       mutate(visit = 3L)
+  #   ) |> 
+  #   arrange(study, subject, visit)
+  
+  c(summary_function, time_units, .variable, type) %<-%
+    (fnm_visit_summary |> 
+       stri_extract_all_regex(pattern = "(?<=VISIT_).*(?=\\.feather)") |> 
+       stri_replace_all_regex(pattern = "FROM_",
+                              replacement = "") |> 
+       stri_split_regex(pattern = "_",
+                        n = 4) |> 
+       vec_unchop() |> 
+       stri_trans_tolower() |> 
+       vec_chop())
+  
+  variable_sources <- 
+    c(vct_criterion,
+      vct_estimate)
+  vct_value <- 
+    df_visit |> 
+    select(!study:total) |> 
+    names() |> 
+    stri_split_regex(pattern = "_") |> 
+    vec_unchop() |> 
+    stri_subset_regex(pattern = stri_c(variable_sources,
+                                       collapse = "|"),
+                      negate = TRUE) |> 
+    unique()
+  vct_val_src <- 
+    expand_grid(value  = vct_value,
+                source = c(vct_criterion, vct_estimate)) |> 
+    unite(col = "value_source",
+          value, source,
+          sep = "_",
+          remove = TRUE) |> 
+    pull(value_source)
+  
+  lst_cri_est <- 
+    expand_grid(criterion  = vct_criterion,
+                estimate   = vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  lst_val_cri_est <- 
+    expand_grid(vct_value,
+                vct_criterion,
+                vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  lst_bias <- 
+    list()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Determine whether a linear mixed effects model is needed or not. In our case,
+  # if there is more than one visit then a model will be needed.
+  freq_subjects <- 
+    df_visit %>% 
+    pull(subject) %>% 
+    vec_unrep() %>% 
+    pull(times)
+  multiple_visits <- 
+    any(freq_subjects > 1)
+  
+  if (multiple_visits) {
+    
+    # Use a lme model.
+    cli_inform(c(
+      "i" = "Multiple visits per subject found.",
+      "i" = "Using a linear mixed effects model to compute bias.",
+      " " = ""
+    ))
+    
+    for (i in seq_along(lst_val_cri_est)) {
+      
+      # Don't use ".value" as it gets confusing for pivot_wider function when
+      # computing bias by hand.
+      c(value, .criterion, .estimate) %<-%
+        vec_chop(lst_val_cri_est[[i]])
+      
+      value_estimate <- 
+        stri_c(value, "_", .estimate)
+      value_criterion <- 
+        stri_c(value, "_", .criterion)
+      
+      cli_inform(c(
+        "i" = "Computing bias & 95% CI for {.emph {value_estimate}} minus 
+        {.emph {value_criterion}}"
+      ))
+      
+      df_lme <- 
+        df_visit %>% 
+        select(subject,
+               visit,
+               summary_statistic,
+               all_of(c(value_estimate,
+                        value_criterion))) %>% 
+        rename(value_estimate  = .data[[value_estimate]],
+               value_criterion = .data[[value_criterion]]) |> 
+        # lmer() only takes numeric values, not difftime.
+        mutate(value_estimate  = as.double(value_estimate),
+               value_criterion = as.double(value_criterion))
+      
+      lme_model <- 
+        lmer(value_estimate - value_criterion ~ 1 + (1|subject),
+             data = df_lme) |> 
+        suppressMessages()
+      
+      df_bias_value <- 
+        df_lme %>% 
+        summarise(
+          criterion         = .criterion,
+          estimate          = .estimate,
+          summary_statistic = summary_statistic[1],
+          time_units        = time_units,
+          variable          = .variable,
+          value             = value,
+          mean  = mean(value_criterion),
+          sd    = sd(value_criterion),
+          # Bias estimated from model
+          bias  = lme4::fixef(lme_model),
+          # SE is "unexplained variability" in the bias
+          se    = as.data.frame(lme4::VarCorr(lme_model))[2,5],
+          lower = lme4::confint.merMod(lme_model,
+                                       parm = 3,
+                                       quiet = TRUE)[, 1],
+          upper = lme4::confint.merMod(lme_model,
+                                       parm = 3,
+                                       quiet = TRUE)[, 2]
+        )
+      
+      lst_bias[[i]] <- 
+        df_bias_value
+      
+    }
+    
+  } else {
+    
+    # Compute bias by hand.
+    cli_inform(c(
+      "i" = "Only one visit per subject found.",
+      "i" = "Computing bias by hand.",
+      " " = ""
+    ))
+    
+    for (i in seq_along(lst_val_cri_est)) {
+      
+      # Don't use ".value" as it gets confusing for pivot_wider function when
+      # computing bias by hand.
+      c(value, .criterion, .estimate) %<-%
+        vec_chop(lst_val_cri_est[[i]])
+      
+      cli_inform(c(
+        " " = 
+          "Getting {.emph {.estimate}} - criterion {.emph {.criterion}} for 
+        value {.val {value}}"
+      ))
+      
+      value_criterion <- 
+        stri_c(value, "_", .criterion)
+      value_estimate <- 
+        stri_c(value, "_", .estimate)
+      
+      df_visit <-
+        df_visit %>% 
+        mutate(
+          "{value}_{.estimate}_diff_{.criterion}" := 
+            .data[[value_estimate]] - .data[[value_criterion]]
+        )
+      
+    }
+    
+    cli_inform(c(
+      " " = ""
+    ))
+    
+    for (i in seq_along(lst_cri_est)) {
+      
+      c(.criterion, .estimate) %<-%
+        vec_chop(lst_cri_est[[i]])
+      
+      cli_inform(c(
+        "i" = "Computing bias & 95% Confidence Intervals of estimate 
+        {.emph {.estimate}} to criterion {.emph {.criterion}}"
+      ))
+      
+      vct_val_cri <- 
+        vct_val_src |> 
+        stri_subset_regex(pattern = .criterion)
+      
+      df_bias_var <-
+        df_visit %>% 
+        select(c(matches(all_of(vct_val_cri)),
+                 matches(paste0("?",
+                                .estimate,
+                                "_diff_",
+                                .criterion)))) %>% 
+        rename_with(
+          .cols = everything(),
+          .fn = ~ str_remove_all(.x,
+                                 pattern = 
+                                   paste0("_",  .criterion, "|", "_", .estimate))
+        ) %>% 
+        summarise(across(.cols = everything(),
+                         .fns = list(mean = mean, sd = sd),
+                         .names = "{.col}_{.fn}")) %>% 
+        rename_with(.cols = contains("diff_mean"),
+                    .fn = ~ str_replace(.x,
+                                        pattern = "diff_mean",
+                                        replacement = "bias")) %>% 
+        rename_with(.cols = contains("diff_sd"),
+                    .fn = ~ str_replace(.x,
+                                        pattern = "diff_sd",
+                                        replacement = "se")) %>% 
+        pivot_longer(cols = everything(),
+                     names_to = c("value", ".value"),
+                     names_pattern = "(.*)_{1}(.*)") %>% 
+        mutate(lower = bias - qt(.975, df = nrow(df_visit) - 1) * se,
+               upper = bias + qt(.975, df = nrow(df_visit) - 1) * se) %>% 
+        mutate(criterion         = .criterion,
+               estimate          = .estimate,
+               summary_statistic = summary_function,
+               time_units        = time_units,
+               variable          = .variable,
+               .before = 1)
+      
+      lst_bias[[i]] <- 
+        df_bias_var
+      
+    }
+    
+  }
+  
+  df_bias <- 
+    rbindlist(lst_bias) |> 
+    # For some reason, feather file does not save the units attribute of difftime
+    # if it is changed from seconds. Do so now and change columns to double.
+    mutate(across(.cols = mean:upper,
+                  .fns  = 
+                    ~(.x / switch(EXPR = time_units[1],
+                                  "seconds" = 1,
+                                  "minutes" = 60,
+                                  "hours"   = 3600)) |> 
+                    as.double())) |> 
+    # Round.
+    mutate(across(.cols = mean:last_col(),
+                  .fns  = ~round(.x,
+                                 digits = 2))) |> 
+    as.data.table()
+  
+  if (output == "percent") {
+    
+    df_bias <- 
+      df_bias |> 
+      mutate(across(.cols = bias:last_col(),
+                    .fns = ~round(.x / mean,
+                                  digits = 4)))
+    
+  }
+  
+  df_bias <- 
+    df_bias |> 
+    mutate(output = output,
+           .after = time_units) |> 
+    as.data.table()
+  df_bias_csv <- 
+    df_bias |> 
+    mutate(
+      across(
+        .cols = bias:upper,
+        .fns  = function(.x) 
+          if (output == "percent") {
+            scales::label_percent(accuracy = 0.01)(.x)
+          } else {
+            .x
+          }
+      )
+    ) |> 
+    mutate(mean = stri_c(mean, " \u00B1 ", sd),
+           CI = stri_c("(", lower, ", ", upper, ")")) |> 
+    select(Criterion        = criterion,
+           Estimate         = estimate,
+           Value            = value,
+           "Mean \u00B1 SD" = mean,
+           Bias             = bias,
+           CI) |> 
+    as_tibble()
+  setnames(
+    df_bias_csv,
+    old = c("Bias", "CI"),
+    new = 
+      if (output == "time") {
+        c(
+          stri_c("Bias ",
+                 switch(time_units,
+                        "seconds" = " (seconds)",
+                        "minutes" = " (minutes)",
+                        "hours"   = " (hours)")),
+          stri_c("CI ",
+                 switch(time_units,
+                        "seconds" = " (seconds)",
+                        "minutes" = " (minutes)",
+                        "hours"   = " (hours)"))
+        )
+      } else {
+        c("Bias", "CI")
+      }
+  )
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  
+  fnm_write <- 
+    stri_c(
+      df_visit$study[1],
+      "BIAS",
+      stri_trans_toupper(.variable),
+      if (output == "time") stri_trans_toupper(time_units) else "PERCENT",
+      stri_trans_toupper(type),
+      sep = "_"
+    )
+  fpa_write_feather <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "feather"),
+      fnm_write
+    )
+  fpa_write_csv <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  
+  arrow::write_feather(
+    df_bias,
+    sink = path_ext_set(fpa_write_feather,
+                        ext = "feather")
+  )
+  fwrite(
+    df_bias_csv,
+    file = path_ext_set(fpa_write_csv,
+                        ext = "csv"),
+    sep = ",",
+    bom = TRUE
+  )
+  
+  cli_inform(message = c("v" = "SUCCESS"))
+  
+}
 compute_classification <- function() {
   # FROM DOCOMP table_2_v8
   
