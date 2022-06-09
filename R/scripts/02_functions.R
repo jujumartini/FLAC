@@ -6950,6 +6950,223 @@ process_duration_files <- function(vct_variable,
   cli_alert_success("SUCCESS. {cnt} File{?/s} processed")
   
 }
+process_visit_numbers <- function(fdr_read,
+                                  fdr_write,
+                                  fnm_dur,
+                                  summary_function = "sum",
+                                  time_unit) {
+  
+  ###  VERSION 3  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - OLD NAME IS Summarise_per_visit
+  # - Update naming scheme.
+  # - Have it write a csv/feather instead of just using it in the bias pipeline.
+  # - Remove lvls_{.variable} and have it be a switch function FOR NOW.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory of ALL_DUR feather file.
+  # fdr_write 
+  #   File directory to save ALL_VISIT_{VARIABLE}_{SUMMARY_FUNCTION} files.
+  # fnm_dur 
+  #   File name of ALL_DUR feather file.
+  # summary_function 
+  #   String for name of summarising function. Default is "sum".
+  # time_units 
+  #   Unit of time to have each {value}_{source} be in.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Shaped functions for included data should have all character values be 
+  #   factors before this function.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fdr_write <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fnm_dur <- 
+  #   "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather"
+  # summary_function <- 
+  #   "sum"
+  # time_unit <- 
+  #   "mins" # secs, mins, hours
+  
+  df_duration <- 
+    path(fdr_read,
+         fnm_dur) |> 
+    arrow::read_feather()
+  
+  vct_variable <- 
+    df_duration$variable |> 
+    unique()
+  lst_summary_visit <- 
+    list()
+  
+  for (i in seq_along(vct_variable)) {
+    
+    .variable <- 
+      vct_variable[i]
+    
+    cli_alert_info(text = stri_trans_totitle(.variable))
+    
+    # TODO: Shaped should have all character values befactors before this 
+    #       function.
+    lvl_var <- 
+      switch(
+        EXPR = .variable,
+        "posture" = c(
+          "lying",
+          "sitting",
+          "crouching/kneeling/squatting",
+          "standing",
+          "other - posture",
+          "walking",
+          "stepping",
+          "running",
+          "ascending stairs",
+          "descending stairs",
+          "crouching/squatting",
+          "cycling",
+          "other - movement",
+          "intermittent movement",
+          "dark/obscured/oof"
+        ),
+        "behavior" = c(
+          "sports/exercise",
+          "eating/drinking",
+          "transportation",
+          "electronics",
+          "other - manipulating objects",
+          "other - carrying load w/ ue",
+          "other - pushing cart",
+          "talking - person",
+          "talking - phone",
+          "caring/grooming - adult",
+          "caring/grooming - animal/pet",
+          "caring/grooming - child",
+          "caring/grooming - self",
+          "cleaning",
+          "c/f/r/m",
+          "cooking/meal preparation",
+          "laundry" ,
+          "lawn&garden",
+          "leisure based",
+          "only [p/m] code",
+          "talking - researchers",
+          "intermittent activity",
+          "dark/obscured/oof"
+        ),
+        "intensity" = c(
+          "sedentary",
+          "light",
+          "mvpa",
+          "dark/obscured/oof"
+        )
+      )
+    # TODO: END
+    
+    df_dur_var <- 
+      df_duration |>
+      # Cant filter a column with an object with the same name using dtplyr.
+      as_tibble() |>
+      filter(variable == .variable) |>
+      # If the duration file supplied includes GE in the fnm.
+      filter(!is.na(value)) |> 
+      mutate(
+        value =
+          value |>
+          fct_drop() |>
+          # TODO
+          lvls_expand(lvl_var)
+          # TODO: END
+        ) |>
+      group_by(study, subject, visit,
+               source, value) |>
+      summarise(across(.cols = duration,
+                       .fns = rlang::as_function(summary_function)),
+                .groups = "drop") |>
+      # If a value from a source did not appear for a visit, make sure it is
+      # present then give it a value of 0 seconds.
+      complete(study, subject, visit, source, value) |>
+      mutate(duration =
+               duration |>
+               replace_na(replace = as.difftime(0, units = "secs"))) |> 
+      # In seconds now but is made into hours later.
+      add_count(study, subject, visit, source,
+                wt = duration,
+                name = "total") |> 
+      arrange(study, subject, visit, value)
+    
+    units(df_dur_var$duration) <- 
+      time_unit
+    units(df_dur_var$total) <- 
+      time_unit
+    
+    df_summary_variable <- 
+      df_dur_var |> 
+      pivot_wider(names_from = c(value, source),
+                  names_glue = "{value}_{source}",
+                  values_from = duration) |> 
+      mutate(variable          = .variable,
+             summary_statistic = summary_function,
+             time_unit         = recode(time_unit,
+                                        "secs"  = "second",
+                                        "mins"  = "minute",
+                                        "hours" = "hour"),
+             .after            = visit) |> 
+      as.data.table()
+    
+    lst_summary_visit[[.variable]] <- 
+      df_summary_variable
+    
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Write a file for every variable and in filename include which duration
+  # file was used.
+  duration_type <- 
+    fnm_dur |> 
+    stri_extract(regex = "DUR_\\w{3}_\\w{3}_GE_\\d*|DURATION")
+    # stri_extract(regex = "(?<=ALL_).*(?=_NOLDUS)")
+  
+  purrr::walk(.x = seq_along(lst_summary_visit),
+              function(.x) {
+                fnm_summary <- 
+                  stri_c(
+                    "CO_VISIT",
+                    stri_trans_toupper(summary_function),
+                    recode(time_unit,
+                           "secs"  = "SECONDS",
+                           "mins"  = "MINUTES",
+                           "hours" = "HOURS"),
+                    stri_trans_toupper(names(lst_summary_visit)[.x]),
+                    "FROM",
+                    duration_type,
+                    sep = "_"
+                  )
+                arrow::write_feather(
+                  lst_summary_visit[[.x]],
+                  sink = path(fdr_write,
+                              path_ext_set(fnm_summary,
+                                           ext = "feather"))
+                )
+                fwrite(
+                  lst_summary_visit[[.x]],
+                  file = path(fdr_write,
+                              path_ext_set(fnm_summary,
+                                           ext = "csv")),
+                  sep = ","
+                )
+              })
+  
+  cli_inform(message = c("v" = "SUCCESS"))
+  
 }
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
