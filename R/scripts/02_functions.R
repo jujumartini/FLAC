@@ -10176,4 +10176,232 @@ compute_summary_subject_characteristics <- function(fdr_read,
   cli_inform(message = c("v" = "SUCCESS"))  
   
 }
+compute_summary_visit <- function(fdr_read,
+                                  fdr_write,
+                                  time_units) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First Version
+  # - Calculates total visit length & average plus/minus SD for 
+  #   each duration file present in processed folder.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory of duration files.
+  # fdr_write 
+  #   File directory to save summary file to.
+  # time_units 
+  #   Unit of time to have all summary results in.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fdr_write <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # time_units <- 
+  #   "hours" # secs, mins, hours
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Find duration files. If there is a duration file with "GE" in the filename
+  # then add a "Visit Length with {variable} {Source} ≥ {ge_than value (in 
+  # minutes)} ({time_units})" row.
+  vct_fpa_dur <- 
+    dir_ls(
+      path = fdr_read,
+      type = "file",
+      regexp = "ALL_DUR.*feather$"
+    )
+  names(vct_fpa_dur) <- 
+    vct_fpa_dur |> 
+    path_file() |> 
+    stri_extract(regex = "DUR_\\w{3}_\\w{3}_GE_\\d*|DURATION")
+  lst_duration <- 
+    purrr::map(.x = vct_fpa_dur,
+               .f = ~arrow::read_feather(.x))
+  lst_summary <- 
+    list()
+  study <- 
+    chuck(lst_duration, 1, 1, 1)
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  for (i in seq_along(lst_duration)) {
+    
+    df <- 
+      lst_duration[[i]]
+    type <- 
+      names(lst_duration)[i]
+    
+    cli_inform(c(
+      "i" = type
+    ))
+    
+    if (type == "DURATION") {
+      
+      avg_txt <- 
+        ""
+      tot_txt <- 
+        ""
+      
+    } else {
+      
+      ge_than <- 
+        type |> 
+        stri_extract_all_regex(pattern = "(?<=GE_).*") |> 
+        vec_unchop() |> 
+        as.double() / 
+        60
+      
+      if (ge_than == 1) {
+        
+        ge_than_txt <- 
+          stri_c(ge_than, " minute")
+        
+      } else {
+        
+        ge_than_txt <- 
+          stri_c(ge_than, " minutes")
+        
+      }
+      
+      avg_txt <- 
+        type |> 
+        stri_replace_all_regex(pattern = "DUR_",
+                               replacement = "") |> 
+        stri_replace_all_regex(pattern = "GE.*",
+                               replacement = "\u2265") |> 
+        stri_split_regex(pattern = "_") |> 
+        vec_unchop() |> 
+        stri_c(collapse = " ") %>% 
+        glue::glue(
+          " with",
+          .,
+          ge_than_txt,
+          .sep = " "
+        )
+      tot_txt <- 
+        stri_c(" (", stri_trim(avg_txt), ")")
+      
+    }
+    
+    df_vis_len_var_src <- 
+      df |> 
+      filter(!is.na(value)) |> 
+      group_by(study, subject, visit, source, variable,
+               arrange = FALSE) |> 
+      summarise(visit_length = sum(duration),
+                .groups = "drop") |> 
+      arrange(study, subject, visit) |> 
+      group_by(study, subject, visit,
+               arrange = FALSE) |> 
+      mutate(diff_length = 
+               !(duplicated(visit_length) | 
+                   duplicated(visit_length, fromLast=TRUE))) |> 
+      ungroup() |> 
+      as_tibble()
+    
+    if (any(df_vis_len_var_src$diff_length)) {
+      
+      fnm <- 
+        vct_fpa_dur[i] |> 
+        path_file()
+      stu_sub_vis <- 
+        df_vis_len_var_src[diff_length == TRUE,
+                           .(study, subject, visit)] |> 
+        stri_c(collapse = "_")
+      var_src <- 
+        df_vis_len_var_src[diff_length == TRUE,
+                           .(variable, source)] |> 
+        stri_c(collapse = "_")
+      
+      cli_abort(
+        message = c(
+          "!" =  "{.file {fnm}} from {.path fdr_read}",
+          "!" =  "{.strong {stu_sub_vis}} variable source {.emph {var_src}} does not match total
+        visit length of other variable sources.",
+          "!" =  "Double-check merged file that was used to process duration file."
+        )
+      )
+      
+    }
+    
+    units(df_vis_len_var_src$visit_length) <- 
+      time_units
+    
+    lst_summary[[i]] <- 
+      bind_rows(
+        df_vis_len_var_src |> 
+          summarise(
+            Variable = 
+              glue::glue("Total Visit {stri_trans_totitle(time_units)}{tot_txt}"),
+            Value = 
+              visit_length |> 
+              unique() |> 
+              sum() |> 
+              round(digits = 2) |> 
+              as.character()
+          ),
+        df_vis_len_var_src |> 
+          summarise(
+            Variable = 
+              glue::glue("Visit Length{avg_txt} ({time_units})"),
+            mean = 
+              visit_length |> 
+              unique() |> 
+              mean() |> 
+              round(digits = 2),
+            sd   = 
+              visit_length |> 
+              unique() |> 
+              sd() |> 
+              round(digits = 2)
+          ) |> 
+          unite(col = "Value",
+                mean, sd,
+                sep = " \u00B1 ")
+      )
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_summary <- 
+    lst_summary |> 
+    rbindlist() |> 
+    arrange(Variable) |> 
+    as.data.table()
+  
+  fnm_write <- 
+    stri_c(
+      study,
+      "_SUMMARY_VISIT_",
+      stri_trans_toupper(time_units)
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  fwrite(
+    df_summary,
+    file = path_ext_set(fpa_write,
+                        ext = "csv"),
+    sep = ",",
+    bom = TRUE
+  )
+  
+}
 }
