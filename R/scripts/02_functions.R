@@ -6663,37 +6663,15 @@ process_duration_files <- function(vct_variable,
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
   # - Remove code after shape_noldus is updated.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # vct_variable <-
-  #   c("posture",
-  #     "behavior",
-  #     "intensity")
-  # vct_source <-
-  #   c("noldus",
-  #     "rmr",
-  #     "standard")
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "4_AIM1_MERGED_DATA")
-  # fdr_write <-
-  #   fs::path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
-  #            "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #            "3_data", "4_processed")
-  # fld_mer <-
-  #   "NOLDUS_CHAMBER_RMR"
-  # fnm_mer <-
-  #   "CO_ALL_NOLDUS_CHAMBER_RMR.feather"
-  # ge_than <-
-  #   NULL
-  # list("behavior", "noldus", 60)
-  # fld_mer <-
-  #   NULL
-  # fnm_mer <-
-  #   "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "5_AIM1_PROJECTS",
-  #            "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY",
-  #            "1_data", "4_processed")
+  # vct_variable = c("intensity")
+  # vct_source   = c("rmr", "standard", "sojourn3x", "montoye", "rowland",
+  #                  "hildebrand", "freedson", "staudenmayer", "marcotte")
+  # fdr_read     = fdr_merge
+  # fdr_write    = fdr_chaac
+  # fld_mer      = NULL
+  # fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # ge_than      = list("intensity", "standard", 60 * 5)
+  # ge_than      = NULL
   
   if (is_null(fld_mer)) {
     
@@ -6784,8 +6762,8 @@ process_duration_files <- function(vct_variable,
       stri_c(ge_than[[1]], "_", ge_than[[2]])
     df_mer <- 
       df_mer |> 
-      group_by(study, subject, visit) |> 
       as_tibble() |> 
+      group_by(study, subject, visit) |> 
       # TODO: Remove duration_noldus columns from shape_noldus
       mutate(duration_behavior_noldus = NULL,
              duration_posture_noldus = NULL) |> 
@@ -6798,6 +6776,7 @@ process_duration_files <- function(vct_variable,
           .data[[glue::glue("duration_{variable_source}")]] < ge_than[[3]],
         .after = time
       ) |> 
+      ungroup() |> 
       mutate(across(
         .cols = !c(study:glue::glue("less_than_{ge_than[[3]]}")),
         function(.x) {
