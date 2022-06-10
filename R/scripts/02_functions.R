@@ -10404,4 +10404,1037 @@ compute_summary_visit <- function(fdr_read,
   )
   
 }
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                         %%%%
+####                              PLOT FUNCTIONS                             ----
+####                                                                         %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plot_bias <- function(fdr_result,
+                      vct_criterion,
+                      vct_estimate,
+                      vct_variable,
+                      lst_recode       = list(criterion = NULL,
+                                              estimate  = NULL,
+                                              variable  = NULL,
+                                              value     = NULL),
+                      collapse         = FALSE,
+                      separate_values  = FALSE,
+                      flip_axes        = FALSE,
+                      duration_type    = "normal",
+                      type) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First Version.
+  # - Outputs three types of graphs:
+  #   - "Default" which shows all of the variable values on one 
+  #     axis and facets by 1) combinations of vct_criterion & vct_estimate
+  #     & by 2) vct_variable.
+  #   - "Collapsed" which shows all combinations between vct_criterion
+  #     and vct_estimate for each variable in one graph then facets
+  #     by vct_variable.
+  #   - "Separate Values" which has all the values from each estimate
+  #     in one graph (faceted by values within vct_variable). CAN ONLY
+  #     ACCEPT ONE VARIABLE.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result 
+  #   File directory to where the results folder is located.
+  # vct_criterion 
+  #   Character vector of criterions to filter bias tables by.
+  # vct_estimate 
+  #   Character vector of estimates to filter bias tables by.
+  # vct_variable 
+  #   Character vector of variables to filter which bias tables are read in.
+  # lst_recode 
+  #   List of `criteiron`, `estimate`, `variable` & `value` where each entry 
+  #   is a named character vector. The name represents what to change in the 
+  #   respective entry IN TITLE CASE & the element represents what to change
+  #   the name to.
+  # collapse 
+  #   Logical on whether to collapse combinations between criterions and 
+  #   estimates to one graph per variable. If FALSE, the default is to have one 
+  #   graph per variable per combination.
+  # separate_values 
+  #   Logical on whether to have separate graphs for each value in the variable.
+  # flip_axes 
+  #   Logical on whether to have Bias appear in the x-axis or in the y-axis.
+  # duration_type
+  #   "normal"  = "DURATION" files or
+  #   "ge_than" = "DUR_{Variable}_{Source}_{ge_than_value}" files.
+  # type 
+  #   "minute" or "percent"
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make "default" graph.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # fdr_result <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # vct_criterion <- 
+  #   c("standard", "rmr")
+  # vct_estimate <- 
+  #   c("noldus")
+  # vct_variable <- 
+  #   c("intensity")
+  # # c("intensity",
+  # #   "posture")
+  # lst_recode <- 
+  #   list(criterion = c("Rmr" = "RMR"),
+  #        estimate  = c("Noldus" = "Video"),
+  #        variable  = NULL,
+  #        value     = c("Mvpa" = "MVPA"))
+  # collapse <- 
+  #   TRUE
+  # separate_values <- 
+  #   FALSE
+  # flip_axes <- 
+  #   FALSE
+  # type <- 
+  #   "minute" # minutes, percent
+  # fdr_result       = fdr_result
+  # vct_criterion    = c("standard")
+  # vct_estimate     = c("sojourn3x", "montoye", "rowland", "hildebrand",
+  #                      "freedson", "staudenmayer", "marcotte")
+  # vct_variable     = c("intensity")
+  # lst_recode       = list(criterion = c("Standard" = "Chamber"),
+  #                         estimate  = NULL,
+  #                         variable  = NULL,
+  #                         value     = c("Mvpa" = "MVPA"))
+  # collapse         = FALSE
+  # separate_values  = TRUE
+  # flip_axes        = FALSE
+  # duration_type    = "normal"
+  # type             = "minute"
+  
+  # g <- 
+  #   ggplot(data = mpg) +
+  #   geom_point(mapping = aes(x = displ, y = hwy)) +
+  #   coord_flip()
+  # cowplot::plot_grid(g, g, labels=c("A","B"))
+  
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                             READ                           ----
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  cli_inform(c(
+    "i" = "READ"
+  ))
+  # First make sure only one true value was supplied for "collapse" and 
+  # "separate values"
+  if (collapse & separate_values) {
+    
+    cli_abort(c(
+      "Both {.arg collapse} and {.arg separate_values} are TRUE.",
+      "i" = "Only one of these arguments can be true."
+    ))
+    
+  }
+  
+  # If any entry in lst_recode is NULL, give it a dummy named vector.
+  for (i in seq_along(lst_recode)) {
+    
+    if (is_null(lst_recode[[i]])) {
+      
+      lst_recode[[i]] <- 
+        c("BLEU"        = "BOI",
+          "DANGEROUS"   = "DOODOO",
+          "MENTOS"      = "MOMMY",
+          "MAGNIFICENT" = "MONTIPORA")
+    }
+    
+  }
+  
+  # Filter by vct_variable then by type, then by duration_type.
+  vct_fpa_bias <- 
+    dir_ls(
+      path = fdr_result,
+      type = "file",
+      recurse = 1,
+      regexp = 
+        vct_variable |> 
+        stri_trans_toupper() %>% 
+        stri_c("BIAS_", ., "_", stri_trans_toupper(type), ".*\\.feather$") |> 
+        stri_c(collapse = "|")
+    )
+  if (duration_type == "normal") {
+    
+    vct_fpa_bias <- 
+      vct_fpa_bias |> 
+      path_filter(regexp = "DURATION")
+    
+  } else if (duration_type == "ge_than"){
+    
+    vct_fpa_bias <- 
+      vct_fpa_bias |> 
+      path_filter(regexp = "DUR_")
+    
+  }
+  
+  df_bias <- 
+    purrr::map_dfr(.x = vct_fpa_bias,
+                   .f = ~arrow::read_feather(.x)) |> 
+    # Remove rows that do not contain vct_criterion & vct_estimate.
+    filter(stri_detect_regex(criterion,
+                             pattern = stri_c(vct_criterion,
+                                              collapse = "|"))) |> 
+    filter(stri_detect_regex(estimate,
+                             pattern = stri_c(vct_estimate,
+                                              collapse = "|"))) |> 
+    as_tibble()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SHAPE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  cli_inform(c(
+    "i" = "SHAPE"
+  ))
+  # Change values to have mean criterion value underneath value name.
+  # Somehow make it pipeable later?
+  cli_inform(c(
+    "i" = "Adding criterion mean value underneath value names."
+  ))
+  
+  for (i in seq_along(vct_variable)) {
+    
+    .variable <- 
+      vct_variable[i]
+    
+    c(len_cri, len_val) %<-% (
+      df_bias |> 
+        filter(variable == .variable) |> 
+        summarise(across(.cols = c(criterion, value),
+                         .fns = uniqueN)) |> 
+        as_tibble() |> 
+        as.list()
+    )
+    
+    value_fig <- 
+      df_bias |> 
+      filter(variable == .variable) |> 
+      pull(value) |> 
+      unique() |> 
+      stri_trans_totitle() |> 
+      recode(!!!lst_recode$value)
+    
+    
+    for (ii in seq_len(len_cri)) {
+      
+      vct_mean <- 
+        df_bias |> 
+        filter(variable == .variable) |> 
+        pull(mean) |> 
+        vec_slice(i = c(seq_len(len_val) * ii))
+      value_fig <- 
+        value_fig |> 
+        stri_c("\n(", vct_mean, " min)")
+    }
+    
+    df_bias$value[df_bias$variable == .variable] <- value_fig
+    
+  }
+  
+  df_plot <- 
+    df_bias |> 
+    # Pretty up values.
+    mutate(across(.cols = 1:variable,
+                  .fns = stri_trans_totitle)) |> 
+    mutate(criterion = recode(criterion,
+                              !!!lst_recode$criterion),
+           estimate = recode(estimate,
+                             !!!lst_recode$estimate),
+           variable = recode(variable,
+                             !!!lst_recode$variable)) |> 
+    as_tibble() |> 
+    unite(col = "combination",
+          estimate, criterion,
+          sep = " - ",
+          remove = FALSE) |> 
+    # As factors.
+    mutate(
+      across(.cols = c(combination:summary_statistic,
+                       variable:value),
+             .fns  = forcats::as_factor)
+    ) |> 
+    # pull(value) |> 
+    # Pretty up column names.
+    rename_with(.cols = everything(),
+                .fn = stri_trans_totitle) |> 
+    # # When multiple combinations, it is not in order. Reverse it to do so
+    # arrange(rev(Combination)) |>
+    as_tibble()
+  
+  # Change text for geom_label depending on `type`.
+  switch(
+    EXPR = type,
+    "minute" = {
+      df_plot$Label <- 
+        df_plot$Bias
+    },
+    "percent" = {
+      df_plot$Label <- 
+        label_percent(accuracy = 1)(df_plot$Bias)
+    }
+  )
+  
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                             PLOT                           ----
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  cli_inform(c(
+    "i" = "Plotting bias values."
+  ))
+  
+  if (collapse) {
+    
+    fig_bias <- 
+      df_plot |> 
+      ggplot() +
+      geom_vline(
+        mapping  = aes(xintercept = 0),
+        linetype = "dashed"
+      ) +
+      geom_errorbar(
+        mapping  = aes(y     = Value,
+                       xmin  = Lower,
+                       xmax  = Upper,
+                       color = Combination), # When multiple combinations.
+        position = position_dodge(width = -0.5),
+        width    = 0.25
+      ) +
+      geom_point(
+        mapping  = aes(x     = Bias,
+                       y     = Value,
+                       color = Combination),
+        position = position_dodge(width = -0.5) # When multiple combinations.
+      ) +
+      geom_label(
+        # data =
+        #   df_plot |> 
+        #   filter(stri_detect(df_plot$Value,
+        #                      regex = "Sedentary|Light")),
+        mapping = aes(x     = Bias,
+                      y     = Value,
+                      label = Label),
+        color = "black",
+        size = 8 / .pt,
+        label.padding = unit(0.10, units = "lines")
+        # position = position_jitter()
+        # nudge_y = 0.2
+      ) +
+      # The reverse factor order is presented, change it to how it appears in 
+      # table.
+      scale_y_discrete(limits = rev) +
+      scale_x_continuous(breaks = scales::breaks_extended(n = 7)) +
+      # `collapse` specific.
+      coord_capped_cart(
+        left = brackets_vertical(direction = 'right')
+      ) +
+      scale_color_brewer(palette = "Dark2")
+      
+      if (length(vct_variable) != 1L) {
+        
+        # include "paste0("~underline('", {variable}, "')")" to have underline
+        # under header for facets? Right now, NO.
+        
+        fig_bias <- 
+          fig_bias +
+          facet_wrap(
+            facets = vars(Variable),
+            # nrow = length(vct_variable),
+            ncol = length(vct_variable),
+            scales = "free_y",
+            drop = TRUE
+            # dir = "h"
+            # labeller = label_parsed
+          ) +
+          labs(y = "Category")
+        
+      } else {
+        
+        fig_bias <- 
+          fig_bias +
+          labs(y = stri_trans_totitle(vct_variable))
+        
+      }
+    
+  } else if (separate_values) {
+    
+    # Change newlines in values to spaces so as to not clog up facet headers.
+    df_plot <- 
+      df_plot |> 
+      mutate(Value = 
+               Value |> 
+               stri_replace_all_regex(pattern = "\n",
+                                      replacement = " ") |> 
+               as_factor())
+    
+    fig_bias <- 
+      df_plot |> 
+      ggplot() +
+      geom_vline(
+        mapping  = aes(xintercept = 0),
+        linetype = "dashed"
+      ) +
+      geom_errorbar(
+        mapping  = aes(y     = Estimate,
+                       xmin  = Lower,
+                       xmax  = Upper),
+        # position = position_dodge(width = -0.5),
+        width    = 0.25
+      ) +
+      geom_point(
+        mapping = aes(x = Bias,
+                      y = Estimate)
+      ) +
+      geom_label(
+        mapping = aes(x     = Bias,
+                      y     = Estimate,
+                      label = Label),
+        color = "black",
+        size = 8 / .pt,
+        label.padding = unit(0.10, units = "lines")
+        # position = position_jitter()
+        # nudge_y = 0.2
+      ) +
+      # The reverse factor order is presented, change it to how it appears in 
+      # table.
+      scale_y_discrete(limits = rev) +
+      scale_x_continuous(breaks = scales::breaks_extended(n = 7)) +
+      # `separate_values` specific.
+      labs(y = "Estimates")
+    
+    if (length(vct_criterion) == 1) {
+      
+      # include "paste0("~underline('", {variable}, "')")" to have underline
+      # under header for facets? Right now, NO.
+      
+      fig_bias <- 
+        fig_bias +
+        facet_wrap(
+          facets = vars(Value),
+          nrow = uniqueN(df_plot$Value),
+          ncol = 1,
+          scales = "free_y",
+          drop = TRUE
+          # dir = "h"
+          # labeller = label_parsed
+        )  
+      
+    } else {
+      
+      fig_bias <- 
+        fig_bias +
+        facet_wrap(
+          facets = vars(Value, Criterion),
+          nrow = uniqueN(df_plot$Value),
+          ncol = length(vct_criterion),
+          scales = "free_y",
+          drop = TRUE
+          # dir = "h"
+          # labeller = label_parsed
+        )  
+      
+    }
+    
+  } else {
+    
+    # Default: Look at Mikes figure for 2022_NACSM.
+    return("FUCK")
+    
+  }
+  
+  if (type == "percent") {
+    
+    fig_bias <- suppressMessages(
+      fig_bias +
+        scale_x_continuous(labels = label_percent(),
+                           breaks = scales::breaks_extended(n = 7)) +
+        labs(x = "Bias (%)")
+    )
+    
+  } else {
+    
+    fig_bias <- 
+      fig_bias +
+      labs(x = "Bias (minutes)")
+  }
+  
+  if (flip_axes) {
+    
+    fig_bias <- 
+      fig_bias +
+      coord_flip() +
+      theme(
+        panel.grid.major.y         = element_line(
+          color = "grey85"
+        ),
+        panel.grid.minor.y         = element_line(
+          color = "grey85"
+        )
+      )
+    
+  } else {
+    
+    fig_bias <- 
+      fig_bias +
+      theme(
+        panel.grid.major.x         = element_line(
+          color = "grey85"
+        ),
+        panel.grid.minor.x         = element_line(
+          color = "grey85"
+        )
+      ) +
+      facet_wrap(
+        facets = vars(Value),
+        ncol = uniqueN(df_plot$Value),
+        nrow = 1,
+        scales = "free_x",
+        drop = TRUE
+        # dir = "h"
+        # labeller = label_parsed
+      )      
+    
+  }
+  
+  fig_bias <- 
+    fig_bias +
+    # theme_light() +
+    theme(
+      text                       = element_text(
+        family        = "",                                # DEFAULT
+        face          = "plain",                           # DEFAULT
+        colour        = "black",                           # DEFAULT
+        size          = 12,
+        hjust         = 0.5,                               # DEFAULT
+        vjust         = 0.5,                               # DEFAULT
+        angle         = 0,                                 # DEFAULT
+        lineheight    = 0.9,                               # DEFAULT
+        margin        = margin(t = 0,                      # DEFAULT
+                               r = 0,                      # DEFAULT
+                               b = 0,                      # DEFAULT
+                               l = 0,                      # DEFAULT
+                               unit = "pt"),               # DEFAULT
+        debug         = FALSE,                             # DEFAULT
+        inherit.blank = FALSE                              # DEFAULT
+      ),
+      title                      = element_text(
+        family        = "",                                # DEFAULT
+        face          = "bold",                            # DEFAULT
+        colour        = "black",                           # DEFAULT
+        size          = rel(1.2),
+        hjust         = 0.5,                               # DEFAULT
+        vjust         = 0.5,                               # DEFAULT
+        angle         = 0,                                 # DEFAULT
+        lineheight    = 0.9,                               # DEFAULT
+        margin        = margin(t = 0,                      # DEFAULT
+                               r = 0,                      # DEFAULT
+                               b = 0,                      # DEFAULT
+                               l = 0,                      # DEFAULT
+                               unit = "pt"),               # DEFAULT
+        debug         = FALSE,                             # DEFAULT
+        inherit.blank = FALSE                              # DEFAULT
+      ),
+      axis.text                  = element_text(
+        family        = NULL,                              # DEFAULT
+        face          = NULL,                              # DEFAULT
+        colour        = "black",
+        size          = rel(0.8),                          # DEFAULT
+        hjust         = NULL,                              # DEFAULT
+        vjust         = NULL,                              # DEFAULT
+        angle         = NULL,                              # DEFAULT
+        lineheight    = NULL,                              # DEFAULT
+        margin        = NULL,                              # DEFAULT
+        debug         = NULL,                              # DEFAULT
+        inherit.blank = TRUE                               # DEFAULT
+      ),
+      plot.title                 = element_text(hjust = 0.5),
+      panel.border               = element_blank(),
+      # axis.ticks.y.left = element_line(),
+      # TODO: CHANGE THIS LATER AS it is not the same for collapse == TRUE.
+      axis.line.y                = element_line(),
+      axis.line.x                = element_line(),
+      # axis.line    = element_line(),
+      panel.background           = element_rect(
+        fill          = NA,
+        colour        = NA,                                # DEFAULT
+        size          = NULL,                              # DEFAULT
+        linetype      = NULL,                              # DEFAULT
+        inherit.blank = TRUE                               # DEFAULT
+      ),
+      legend.key                 = element_rect(fill = NA),
+      # panel.grid.major.x         = element_line(
+      #   color = "grey85"
+      # ),
+      # panel.grid.minor.x         = element_line(
+      #   color = "grey85"
+      # ),
+      # panel.grid.major.y       = element_blank(),
+      strip.background           = element_rect(fill = "white",
+                                                color = NULL),
+      strip.text                 = element_text(color = "black")
+    )
+  
+  return(fig_bias)
+  
+  cli_abort(c(
+    "i" = "SHOULD NOT BE HERE IF RUNNING FUNCTION."
+  ))
+  
+  theme( # theme_grey()
+    line         = element_line(
+      colour        = "black",                           # DEFAULT
+      size          = 0.5,                               # DEFAULT
+      linetype      = 1,                                 # DEFAULT
+      lineend       = "butt",                            # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    rect         = element_rect(
+      fill          = "white",                           # DEFAULT
+      colour        = "black",                           # DEFAULT
+      size          = 0.5,                               # DEFAULT
+      linetype      = 1,                                 # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    text         = element_text(
+      family        = "",                                # DEFAULT
+      face          = "plain",                           # DEFAULT
+      colour        = "black",                           # DEFAULT
+      size          = 11,                                # DEFAULT
+      hjust         = 0.5,                               # DEFAULT
+      vjust         = 0.5,                               # DEFAULT
+      angle         = 0,                                 # DEFAULT
+      lineheight    = 0.9,                               # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = FALSE,                             # DEFAULT
+      inherit.blank = FALSE                              # DEFAULT
+    ),
+    # title        = element_text(),
+    # aspect.ratio = 1, # 1, 3/4, 1/2, 1/4
+    # axis.title                 = element_text(),
+    axis.title.x               = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 2.75,                   # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.title.x.top           = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 0,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 2.75,                   # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.title.x.bottom        = element_text(),
+    axis.title.y               = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = 90,                                # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 2.75,                   # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.title.y.left          = element_text(),
+    axis.title.y.right         = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 0,                                 # DEFAULT
+      angle         = -90,                               # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 2.75,                   # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.text                  = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = "grey30",                          # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.text.x                = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 2.2,                    # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.text.x.top            = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 0,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 2.2,                    # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.text.x.bottom         = element_text(),
+    axis.text.y                = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 1,                                 # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 2.2,                    # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.text.y.left           = element_text(),
+    axis.text.y.right          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 2.2,                    # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.ticks                 = element_line(
+      colour        = "grey20",                          # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      lineend       = NULL,                              # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.ticks.x               = element_line(),
+    # axis.ticks.x.top           = element_line(),
+    # axis.ticks.x.bottom        = element_line(),
+    # axis.ticks.y               = element_line(),
+    # axis.ticks.y.left          = element_line(),
+    # axis.ticks.y.right         = element_line(),
+    axis.ticks.length          = unit(2.75,              # DEFAULT ?unit
+                                      units = "points"), # DEFAULT
+    # axis.ticks.length.x        = unit(x, units = ),
+    # axis.ticks.length.x.top    = unit(x, units = ),
+    # axis.ticks.length.x.bottom = unit(x, units = ),
+    # axis.ticks.length.y        = unit(x, units = ),
+    # axis.ticks.length.y.left   = unit(x, units = ),
+    # axis.ticks.length.y.right  = unit(x, units = ),
+    axis.line                  = element_blank(),        # DEFAULT
+    # axis.line.x                = element_line(),
+    # axis.line.x.top            = element_line(),
+    # axis.line.x.bottom         = element_line(),
+    # axis.line.y                = element_line(),
+    # axis.line.y.left           = element_line(),
+    # axis.line.y.right          = element_line(),
+    legend.background     = element_rect(
+      fill          = "white",                           # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    legend.margin         = margin(t = 5.5,              # DEFAULT
+                                   r = 5.5,              # DEFAULT
+                                   b = 5.5,              # DEFAULT
+                                   l = 5.5,              # DEFAULT
+                                   unit = "pt"),         # DEFAULT
+    legend.spacing        = unit(11,                     # DEFAULT ?unit
+                                 units = "points"),      # DEFAULT
+    # legend.spacing.x      = unit(x, units = ),
+    # legend.spacing.y      = unit(x, units = ),
+    legend.key            = element_rect(
+      fill          = "grey95",                          # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    legend.key.size       = unit(1.2,                    # DEFAULT ?unit
+                                 units = "lines"),       # DEFAULT
+    # legend.key.height     = unit(x, units = ),
+    # legend.key.width      = unit(x, units = ),
+    legend.text           = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # legend.text.align     = 0, #  (number from 0 (left) to 1 (right))
+    legend.title          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # legend.title.align    = 0, #  (number from 0 (left) to 1 (right))
+    legend.position       = "right", # ("none", "left", "right", "bottom", "top", or two-element numeric vector)
+    # legend.direction      = NULL, #  ("horizontal" or "vertical")
+    legend.justification  = "center", # ("center" or two-element numeric vector)
+    # legend.box            = NULL, #  ("horizontal" or "vertical")
+    # legend.box.just       = NULL, # ("top", "bottom", "left", or "right")
+    legend.box.margin     = margin(t = 0,                # DEFAULT
+                                   r = 0,                # DEFAULT
+                                   b = 0,                # DEFAULT
+                                   l = 0,                # DEFAULT
+                                   unit = "cm"),         # DEFAULT
+    legend.box.background = element_blank(),             # DEFAULT
+    legend.box.spacing    = unit(11,                    # DEFAULT ?unit
+                                 units = "points"),       # DEFAULT
+    panel.background   = element_rect(
+      fill          = "grey92",                          # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    panel.border       = element_blank(),                # DEFAULT
+    panel.spacing      = unit(5.5,                       # DEFAULT ?unit
+                              units = "points"),         # DEFAULT
+    # panel.spacing.x    = unit(x, units = ),
+    # panel.spacing.y    = unit(x, units = ),
+    panel.grid         = element_line(
+      colour        = "white",                           # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      lineend       = NULL,                              # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # panel.grid.major   = element_line(),
+    panel.grid.minor   = element_line(
+      colour        = NULL,                              # DEFAULT
+      size          = rel(0.5),                          # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      lineend       = NULL,                              # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # panel.grid.major.x = element_line(),
+    # panel.grid.major.y = element_line(),
+    # panel.grid.minor.x = element_line(),
+    # panel.grid.minor.y = element_line(),
+    panel.ontop        = FALSE,                          # DEFAULT
+    plot.background       = element_rect(
+      fill          = NULL,                              # DEFAULT
+      colour        = "white",                           # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.title            = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(1.2),                          # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 5.5,                    # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.title.position   = "panel",                     # DEFAULT "panel", "plot"
+    plot.subtitle         = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 5.5,                    # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.caption          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = 1,                                 # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 5.5,                    # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.caption.position = "panel",                     # DEFAULT "panel", "plot",
+    plot.tag              = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(1.2),                          # DEFAULT
+      hjust         = 0.5,                               # DEFAULT
+      vjust         = 0.5,                               # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.tag.position     = "topleft",                   # DEFAULT ("topleft", "top", "topright",
+    #          "left", "right", "bottomleft",
+    #          "bottom", "bottomright")
+    plot.margin           = margin(t = 5.5,              # DEFAULT
+                                   r = 5.5,              # DEFAULT
+                                   b = 5.5,              # DEFAULT
+                                   l = 5.5,              # DEFAULT
+                                   unit = "pt"),         # DEFAULT
+    strip.background      = element_rect(
+      fill          = "grey85",                          # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # strip.background.x    = element_rect(),
+    # strip.background.y    = element_rect(),
+    strip.placement       = "inside",                    # DEFAULT "inside" "outside"
+    strip.text            = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = "grey10",                          # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 4.4,                    # DEFAULT
+                             r = 4.4,                    # DEFAULT
+                             b = 4.4,                    # DEFAULT
+                             l = 4.4,                    # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # strip.text.x          = element_text(),
+    strip.text.y          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = -90,                               # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    strip.switch.pad.grid = unit(2.75,                   # DEFAULT ?unit
+                                 units = "points"),      # DEFAULT
+    strip.switch.pad.wrap = unit(2.75,                   # DEFAULT ?unit
+                                 units = "points"),      # DEFAULT
+    complete = FALSE,
+    validate = TRUE
+  )
+  
 }
