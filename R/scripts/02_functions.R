@@ -9981,3 +9981,199 @@ compute_img_irr <- function(tib_mer_schema) {
   return(tib_irr_schema)
   
 }
+compute_summary_subject_characteristics <- function(fdr_read,
+                                                    fdr_write,
+                                                    fnm_teleform,
+                                                    filter_sub) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First Version
+  # - Calculates average age & BMI as well as frequency & percent.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory of teleform file (should be in RAW folder & not in a 
+  #   subdirectory).
+  # fdr_write 
+  #   File directory to save summary file to.
+  # fnm_teleform 
+  #   File name of teleform file.
+  # filter_sub 
+  #   Vector of integers to filter teleform file by.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Add a ".by" argument wher it allows yout to display overall
+  #   participant demographics and also by the ".by" argument.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read     = fdr_raw
+  # fdr_write    = fdr_result
+  # fnm_teleform = "COV1MERGED2022-03-09v2.csv"
+  # filter_sub   = 
+  #   arrow::read_feather(path(fdr_process,
+  #                            "CO_VISIT_SUM_MINUTES_INTENSITY_FROM_DURATION.feather")) |> 
+  #   pull(subject) |> 
+  #   unique()
+  # filter_sub   = 
+  #   c(
+  #     1001, 1002, 1003, 1004, 1005,
+  #     1007, 1008, 1009, 1010, #1011,
+  #     1025, 1031, #1036,
+  #     1063, 1067,
+  #     1070 #1072, 1073, 1074, 1075,
+  #     #1076
+  #   )
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_tele <- 
+    fread(
+      file = path(fdr_read,
+                  fnm_teleform),
+      sep = ",",
+      fill = TRUE
+    )
+  setnames(df_tele,
+           new = stri_trans_tolower)
+  
+  if (df_tele$site[1] == 0L) {
+    
+    study <- 
+      "CO"
+    
+  } else {
+    
+    study <- 
+      "FLAC"
+    
+  }
+  
+  df_tele <- 
+    df_tele |> 
+    filter(subjectid %in% filter_sub) |> 
+    select(subjectid,
+           functcat,
+           race,
+           hisp,
+           # sex,
+           gender,
+           age = agecalc,
+           bmi = bmicalc
+    ) |> 
+    mutate(
+      race = 
+        race |> 
+        factor(levels = 1:7,
+               labels = c("White",
+                          "African American",
+                          "Asian",
+                          "Native American or Indian",
+                          "Hawaiian or Other Pacific Islander",
+                          "Other Race",
+                          "Multi Race")),
+      hisp = 
+        hisp |> 
+        factor(levels = 0:1,
+               labels = c("Non Hispanic",
+                          "Hispanic or Latino")),
+      gender = 
+        gender |> 
+        factor(levels = 0:2,
+               labels = c("Female",
+                          "Male",
+                          "Other"))
+    ) |> 
+    as_tibble()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_summary <- 
+    bind_rows(
+      # Age, BMI, Subject N
+      df_tele |> 
+        group_by() |> 
+        summarise(
+          `Age (years)` = 
+            stri_c(
+              age |> 
+                mean() |> 
+                round(digits = 1),
+              " \u00B1 ",
+              age |> 
+                sd() |> 
+                round(digits = 1)
+            ),
+          `BMI (kg/m2)` = 
+            stri_c(
+              bmi |> 
+                mean() |> 
+                round(digits = 1),
+              " \u00B1 ",
+              bmi |> 
+                sd() |> 
+                round(digits = 1)
+            ),
+          Subjects = n()
+        ) |> 
+        transpose(keep.names = "Variable") |> 
+        rename(n = V1),
+      # Race
+      tibble_row(Variable = "Race", n = ""),
+      df_tele |> 
+        group_by(Variable = race) |> 
+        tally() |> 
+        mutate(
+          Variable = stri_c("     ",
+                            Variable),
+          n        = stri_c(n,
+                            " ",
+                            label_percent(accuracy = 1,
+                                          prefix = "(",
+                                          suffix = "%)")(n / sum(n)))
+        ),
+      # Gender
+      tibble_row(Variable = "Gender", n = ""),
+      df_tele |> 
+        group_by(Variable = gender) |> 
+        tally() |> 
+        mutate(
+          Variable = stri_c("     ",
+                            Variable),
+          n        = stri_c(n,
+                            " ",
+                            label_percent(accuracy = 1,
+                                          prefix = "(",
+                                          suffix = "%)")(n / sum(n)))
+        )
+    ) |> 
+    rename("n (%)\nMean \u00B1 SD" = n)
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  fnm_write <- 
+    stri_c(
+      study,
+      "_SUMMARY_SUBJECT_CHARACTERISTICS"
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  fwrite(
+    df_summary,
+    file = path_ext_set(fpa_write,
+                        ext = "csv"),
+    sep = ",",
+    bom = TRUE
+  )
+  
+  cli_inform(message = c("v" = "SUCCESS"))  
+  
+}
+}
