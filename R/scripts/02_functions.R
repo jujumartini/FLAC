@@ -4039,7 +4039,7 @@ shape_chamber <- function(fdr_read,
       transmute(
         study, subject, visit,
         datetime = lubridate::mdy_hms(datetime,
-                                      tz = "America/Chicago"),
+                                      tz = "America/Denver"),
         date = lubridate::date(datetime),
         time = format(datetime,
                       "%H:%M:%S"),
