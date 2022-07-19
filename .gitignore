@@ -5,6 +5,7 @@
 /ActiGraph Software/*
 /activPAL Software/*
 /Colorado/*
+/Drawio_Graphics/*
 /FFmpeg/*
 /FLAC Protocol Meetings/*
 /FLAC_AIM1_DATA/*
@@ -14,6 +15,9 @@
 /Noldus Observer XT 14/*
 /Noldus Observer XT 15 (TEST)/*
 /OxfordImageBrowser-win32-x64/*
+/R/scripts/00_explore.R
+/R/scripts/06_tasks.R
 /R/scripts/TASK_copy_and_move_odx.log
+/R/StrathR01-Aim1-Chamber/*
 /R/task_logs/*
 /z_ARCHIVE/*
