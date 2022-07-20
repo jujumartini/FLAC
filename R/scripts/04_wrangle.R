@@ -189,6 +189,9 @@ compute_acc_model_estimates(
   project_only = FALSE
 )
 
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+##                            PROJECT: 2022_ICAMPAM                         ----
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 process_duration_files(
   vct_variable = c("posture",
                  "behavior",
@@ -203,19 +206,23 @@ process_duration_files(
   fld_mer      = "NOLDUS_CHAMBER_RMR",
   fnm_mer      = "CO_ALL_NOLDUS_CHAMBER_RMR.feather",
   ge_than      = NULL
-  # ge_than      = list("behavior",
-  #                     "noldus",
-  #                     60)
+  # ge_than      = list("behavior", "noldus", 60)
 )
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                           COMPUTE                           ::
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-compute_acc_model_estimates(
-  fdr_read     =  fs::path("FLAC_AIM1_DATA",
-                           "3_AIM1_SHAPED_DATA"),
-  fdr_write    = fs::path("FLAC_AIM1_DATA",
-                          "5_AIM1_PROJECTS",
-                          "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY"),
+process_visit_numbers(
+  fdr_read         = 
+    path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+         "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+         "3_data", "4_processed"),
+  fdr_write        = 
+    path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+         "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+         "3_data", "4_processed"),
+  fnm_dur          = "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+  
+)
+
   fdr_project  = NULL,
   folder       = c("GT3X_RH_CSV_1SEC",
                    "GT3X_RW_CSV_1SEC",
