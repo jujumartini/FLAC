@@ -9990,6 +9990,228 @@ compute_img_irr <- function(tib_mer_schema) {
   return(tib_irr_schema)
   
 }
+compute_irr <- function(fdr_read,
+                        fdr_write,
+                        fld_mer,
+                        fnm_mer,
+                        variable,
+                        vct_criterion,
+                        vct_estimate,
+                        kappa_weight = "unweighted") {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - FIRST VERSION
+  # - Only calculates percent agreement & cohens kappa between two
+  #   sources for one variable.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory to CO_ALL_{sources}_{duration_file}.
+  # fdr_write 
+  #   File directory to save confusion matrices to.
+  # fld_mer 
+  #   Folder name where merged files are saved to.
+  # fnm_mer
+  #   File name of merged file with all subject, visit entries in feather
+  #   format.
+  # variable 
+  #   String for variable that is present in fnm_mer.
+  # vct_criterion 
+  #   Vector of names for which source(s) is/are the criterion(s).
+  # vct_estimate 
+  #   Vector of names for which source(s) is/are the estimate(s).
+  # kappa_weight
+  #   Weight of kappa to be used. See ?kappa2 for more info.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read      = fdr_merge
+  # fdr_write     = fdr_result
+  # fld_mer       = NULL
+  # fnm_mer       = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # variable      = "intensity"
+  # vct_criterion = c("standard")
+  # vct_estimate  = c("sojourn3x", "montoye", "rowland", "hildebrand",
+  #                   "freedson", "staudenmayer", "marcotte")
+  # kappa_weight  = "squared"
+  
+  # Uses same arguments as compute_confusion_matrix
+  dur_type <- 
+    fnm_mer |> 
+    stri_extract_all_regex(pattern = "DUR.*(?=\\.feather)") |> 
+    vec_unchop()
+  
+  if (is.na(dur_type)) {
+    
+    dur_type <- 
+      "NORMAL"
+    
+  }
+  
+  if (is_null(fld_mer)) {
+    
+    df_mer <- 
+      path(fdr_read,
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  } else {
+    
+    df_mer <- 
+      path(fdr_read,
+           list.files(path    = fdr_read,
+                      pattern = fld_mer),
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  }
+  
+  df_variable <- 
+    df_mer |> 
+    select(starts_with(all_of(variable))) |> 
+    rename_with(.cols = everything(),
+                .fn   = ~stri_replace_all_regex(.x,
+                                                pattern = stri_c(variable, "_"),
+                                                replacement = "")) |> 
+    tidyr::drop_na() |>
+    as.data.table()
+  
+  # Remove any "dark/obscured/oof" if it is present.
+  chk_dark_obscured_oof <- 
+    purrr::map_lgl(.x = names(df_variable),
+                   .f = function(.x) 
+                     "dark/obscured/oof" %in% unique(df_variable[[.x]]))
+  
+  if (any(chk_dark_obscured_oof)) {
+    
+    ind_filter <- 
+      which(chk_dark_obscured_oof) |> 
+      vec_slice(names(df_variable),
+                i = _)
+    
+    for (column in ind_filter) {
+      
+      df_variable <- 
+        df_variable |> 
+        filter(.data[[column]] != "dark/obscured/oof") |> 
+        as.data.table()
+      
+    }
+    
+  }
+  
+  lst_cri_est <- 
+    expand_grid(criterion  = vct_criterion,
+                estimate   = vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  
+  lst_irr <- 
+    list()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  for (i in seq_along(lst_cri_est)) {
+    
+    c(criterion, estimate) %<-%
+      lst_cri_est[[i]]
+    
+    cli_inform(c(
+      "i" = "{.emph {stri_c(criterion, '_', estimate)}}"
+    ))
+    
+    df_cri_est <- 
+      df_variable |> 
+      select(.data[[criterion]], .data[[estimate]]) |> 
+      as.data.table()
+    # irr::agree(df_cri_est)
+    # df_cri_est |> 
+    #   summarise(
+    #     `%_agree` = 
+    #       (.data[[criterion]] == .data[[estimate]]) |> 
+    #       sum() / 
+    #       n() *
+    #       100
+    #   )
+    # irr::kappa2(
+    #   df_cri_est, # subjects x 2 raters
+    #   weight = kappa_weight
+    # )
+    # irr::icc(
+    #   df_cri_est, # subjects x raters
+    #   model = "oneway",
+    #   type = "consistency",
+    #   unit = "single"
+    # )
+    df_irr <- 
+      tibble(
+        criterion   = criterion,
+        estimtae    = estimate,
+        `%_agree`   = 
+          (df_cri_est[[criterion]] == df_cri_est[[estimate]]) |> 
+          sum() / 
+          nrow(df_cri_est) *
+          100,
+        kappa_method = kappa_weight,
+        kappa_value = 
+          irr::kappa2(
+            df_cri_est, # subjects x 2 raters
+            weight = kappa_weight
+          )$value
+      )
+    
+    type <- 
+      stri_c(criterion, '_to_', estimate) |> 
+      stri_trans_toupper()
+    lst_irr[[type]] <- 
+      df_irr
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  fnm_write <- 
+    stri_c(
+      df_mer$study[1],
+      "IRR",
+      stri_trans_toupper(variable),
+      dur_type,
+      sep = "_"
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  rbindlist(lst_irr) |> 
+    fwrite(
+      file = path_ext_set(fpa_write,
+                          ext = "csv"),
+      sep = ","
+    )
+  
+  cli_inform(message = c("v" = "SUCCESS"))  
+  
+}
 compute_summary_subject_characteristics <- function(fdr_read,
                                                     fdr_write,
                                                     fnm_teleform,
