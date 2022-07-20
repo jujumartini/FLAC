@@ -8761,11 +8761,8 @@ compute_bias <- function(fdr_read,
     df_visit |> 
     select(!study:total) |> 
     names() |> 
-    stri_split_regex(pattern = "_") |> 
-    vec_unchop() |> 
-    stri_subset_regex(pattern = stri_c(variable_sources,
-                                       collapse = "|"),
-                      negate = TRUE) |> 
+    stri_replace_all_regex(pattern = "_(?!.*_).*",
+                           replacement = "") |> 
     unique()
   vct_val_src <- 
     expand_grid(value  = vct_value,
