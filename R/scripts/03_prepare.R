@@ -85,12 +85,11 @@ extract_autographer_images_v4(
 
 # put name of folder you want to create images for in between the quotation marks
 # EXAMPLE: PPAQ_49_2_2014_12_14
-img_set <- "DLW_Pilot_MAR01_20220303_01"
+img_set <- ""
 
 # create images
-create_oxford_images_v5(
-  # fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
-  fdr_load        = "./FLAC_AIM3_DATA/images",
+create_oxford_images(
+  fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
   fdr_img         = img_set
 )
@@ -130,66 +129,50 @@ create_videos_list(path_flv = "./Noldus Observer XT 14/Surface Videos/flv/",
 
 # EXAMPLE: PPAQ_49_2_2014_12_14
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
 img_set <- ""
-create_oxford_images_v4(
+create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
-  fnm_img_set = img_set,
-  begin       = NULL,
-  end         = NULL
+  fdr_img         = img_set
 )
