@@ -223,13 +223,126 @@ process_visit_numbers(
   
 )
 
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+##                               PROJECT: CHAAC                             ----
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+merge_chamber_ag_model_estimates(
+  fdr_read     = fdr_shape,
+  fdr_write    = fdr_merge,
   fdr_project  = NULL,
-  folder       = c("GT3X_RH_CSV_1SEC",
-                   "GT3X_RW_CSV_1SEC",
-                   "GT3X_RW_CSV_RAW"),
+  fnm_acc      = "AG_MODEL_ESTIMATES",
+  fnm_chm_rmr  = "CO_ALL_CHAMBER_RMR.feather",
+  fnm_merge    = "CHAMBER_RMR_AG_MODEL",
   filter_sub   = NULL,
-  filter_loc   = NULL,
   project_only = FALSE
+)
+# Normal
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = NULL
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DURATION_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 5 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 5)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_300_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 10 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 10)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_600_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 15 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 15)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_900_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 20 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 20)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_1200_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 25 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 25)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_1500_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
 )
 
 docomp_beh_buck_key <-
