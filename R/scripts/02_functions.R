@@ -4395,6 +4395,7 @@ shape_noldus <- function(fdr_read,
                          filter_sub = NULL,
                          project_only = FALSE) {
   
+  ###  VERSION 12  ::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # -   Include code for fdr_project
   # -   Include code for filter_sub
@@ -4424,6 +4425,11 @@ shape_noldus <- function(fdr_read,
   #      Vector of subjects to filter the vct_fpa_read base.
   # ARG: project_only
   #      Should shaped files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove calculating duration since its incorrect and it is done later.
+  # - Make intensity and environment dark/obscurred/oof when posture/behavior
+  #   is dark/obscurred/oof (it is currently NA/"").
+  # - Make output variables into factors.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # fdr_read <-
   #   fs::path("FLAC_AIM1_DATA",
@@ -4890,28 +4896,26 @@ shape_oxford <- function(type,
                          fdr_img_raw,
                          tib_cor_time) {
   
-  # # CHANGES:
-  
-  # -update naming scheme.
-  # -move checks and cleaning to clean_oxford_v1.
-  # -dont make it dependent on schema anymore.
-  # -clean up preliminary such that fpt is the full filepath to the file in question.
-  #  Don't have "fld" objects anymore.
-  
-  
-  # # FUNCTIONS & ARGUMENTS:
-  
-  # FUNCTION: NA
-  
+  ###  VERSION 6  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - update naming scheme.
+  # - move checks and cleaning to clean_oxford_v1.
+  # - dont make it dependent on schema anymore.
+  # - clean up preliminary such that fpt is the full filepath to the file in question.
+  # - Don't have "fld" objects anymore.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_timestamps
   #      File directory of timestamp file.
   # ARG: fnm_timestamps
   #      File name of timestamp file.
   # ARG: tib_timestamps
   #      Tibble from read_img_timestamps_v5
-  
-  # # TESTING
-  
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove calculating duration since its incorrect and it is done later.
+  # - Make output variables into factors.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # type <- "POS"
   # fdr_cln <- 
   #   "./3_data/1_cleaned"
@@ -10702,6 +10706,8 @@ plot_bias <- function(fdr_result,
   #   "minute" or "percent"
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
   # - Make "default" graph.
+  # - duration_type argument can't just be "ge_than". It has to be "ge_[NUMBER]"
+  #   in order to filter out the correct bias file.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # fdr_result <- 
   #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
