@@ -2418,16 +2418,12 @@ clean_noldus <- function(fdr_read,
                          filter_sub = NULL,
                          project_only = FALSE) {
   
+  ###  VERSION 4  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Include code for fdr_project
-  # -   Include code for filter_sub
-  # -   Change "fli" to "df_info" to make it easier to access.
-  # -   Incorporate get_fpa_read_noldus as it is the same across all functions.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
-  # -   Change warnings/errors from base to cli.
+  # - Updated errors to appropriate warnings
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read_noldus
+  # - initiate_wrangle
+  # - get_fpa_read_noldus
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
   #      File directory of clean noldus files.
@@ -2445,22 +2441,16 @@ clean_noldus <- function(fdr_read,
   #      Vector of subjects to filter the vct_fpa_read base.
   # ARG: project_only
   #      Should shaped files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <- 
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "1_AIM1_RAW_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "2_AIM1_CLEANED_DATA")
-  # fdr_project <-
-  #   NULL
-  # fld_act <- 
-  #   "NOLDUS_ACTIVITY"
-  # fld_pos <- 
-  #   "NOLDUS_POSTURE"
-  # filter_sub <- 
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_raw
+  # fdr_write    = fdr_clean
+  # fdr_project  = NULL
+  # fld_act      = "NOLDUS_ACTIVITY"
+  # fld_pos      = "NOLDUS_POSTURE"
+  # filter_sub   = NULL
+  # project_only = FALSE
   
   initiate_wrangle(fdr_read     = fdr_read,
                    fdr_project  = fdr_project,
@@ -2590,19 +2580,28 @@ clean_noldus <- function(fdr_read,
     if ((df_cln$behavior == "[U] Start/Stop") %>% 
         sum() != 2) {
       
-      # IDK man.
-      cli_abort("STAAAAAAAAAAAAAAAAAHP. [U] Start/Stop was applied more than twice or only once.")
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "[U] Start/Stop was applied more than twice or only once."
+      ))
+      next()
       
     } else if (is.na(df_info$start)) {
+      
       cli_warn(c(
-        "{fnm_read}:",
+        "File #{i}: {fnm_read}",
         "!" = "Start Time is not in MM-DD-YYYY hh:mm:ss"
       ))
+      next()
+      
     } else if (is.na(df_info$stop)) {
+      
       cli_warn(c(
-        "{fnm_read}:",
+        "File #{i}: {fnm_read}",
         "!" = "Stop Time is not in MM-DD-YYYY hh:mm:ss"
       ))
+      next()
+      
     }
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2657,14 +2656,27 @@ clean_noldus <- function(fdr_read,
     # the last [U] Start/Stop. Use Relative_hmsf to make sure it was placed at
     # exactly the same frame.
     if (chk_start) {
+      
       # The timestmap of [U] Start Time was NOT placed at the same time as the first
       # annotation code.
-      cli_abort("First code does not align with start time.")
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "First code does not align with start time."
+      ))
+      next()
+      
     } else if (chk_end) {
+      
       # The timestamp of [U] Stop Time was NOT placed at the same time as the last
       # [U] Start/Stop.
-      cli_abort("Stop time does not match last code timestamp + its duration.")
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "Stop time does not match last code timestamp + its duration."
+      ))
+      next()
+      
     } else if (chk_abs_vs_rel) {
+      
       t1 <- 
         difftime(time1 = dtm_vid_stop,
                  time2 = dtm_vid_start,
@@ -2675,11 +2687,13 @@ clean_noldus <- function(fdr_read,
                  units = "secs")
       diff_abs_rel <- 
         t1 - t2
-      cli_abort(c(
-        "{fnm_read}",
-        "x" = "Difference between absolute and relative times are not < 5 seconds",
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "Difference between absolute and relative times are not < 5 seconds",
         "i" = "Difference = {diff_abs_rel} seconds" 
       ))
+      next()
+      
     }
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2696,7 +2710,13 @@ clean_noldus <- function(fdr_read,
       as.integer()
     
     if (anyNA(int_duration)) {
-      cli_abort("Duration of a code is less than a second??? IDK man")
+      
+      cli_progress_done()
+      cli_abort(c(
+        "{fnm_read}",
+        "x" = "Duration of a code is less than a second??? IDK man"
+      ))
+      
     }
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
