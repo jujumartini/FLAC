@@ -1,9 +1,13 @@
 # RUN this line the first time you open this script
 source("./R/Scripts/02_functions.R")
 
-
-# FLAC - Aim 1 ------------------------------------------------------------
-
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                  FLAC AIM 1                               ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fdr_raw <- 
   fs::path("FLAC_AIM1_DATA",
            "1_AIM1_RAW_DATA")
@@ -16,10 +20,15 @@ fdr_shape <-
 fdr_merge <- 
   fs::path("FLAC_AIM1_DATA",
            "4_AIM1_MERGED_DATA")
+fdr_chaac <- 
+  fs::path("FLAC_AIM1_DATA",
+           "5_AIM1_PROJECTS",
+           "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY",
+           "1_data", "4_processed")
 
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                             RMR                             ::
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                                     RMR                                  ----
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 shape_rmr(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
@@ -28,9 +37,9 @@ shape_rmr(
   filter_sub   = NULL,
   project_only = FALSE
 )
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                           CHAMBER                           ::
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                                   CHAMBER                                ----
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 shape_chamber(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
@@ -48,12 +57,11 @@ merge_chamber_rmr(
   fld_merge    = "CHAMBER_RMR",
   filter_sub   = NULL,
   project_only = FALSE
-  
 )
 
-##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                            NOLDUS                            ::
-##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                                   NOLDUS                                 ----
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 clean_noldus(
   fdr_read     = fdr_raw,
   fdr_write    = fdr_clean,
@@ -93,9 +101,9 @@ merge_noldus_chamber_rmr(
   project_only = FALSE
 )
 
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                        ACTIGRAPH RAW                        ::
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                                ACTIGRAPH RAW                             ----
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 shape_ag_raw_flac(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
@@ -127,9 +135,9 @@ shape_ag_raw_flac(
   project_only = FALSE
 )
 
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                       ACTIGRAPH EPOCH                       ::
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                               ACTIGRAPH EPOCH                            ----
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 shape_ag_sec_flac(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
@@ -161,9 +169,11 @@ shape_ag_sec_flac(
   project_only = FALSE
 )
 
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-##                           COMPUTE                           ::
-##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+##                             AG MODEL ESTIMATES                           ----
+##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+load(file = "./R/acc_models/lyden_2014.RData")
+load(file = "./R/acc_models/staudenmayer_2015.RData")
 compute_acc_model_estimates(
   fdr_read     =  fs::path("FLAC_AIM1_DATA",
                            "3_AIM1_SHAPED_DATA"),
@@ -179,6 +189,169 @@ compute_acc_model_estimates(
   project_only = FALSE
 )
 
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+##                            PROJECT: 2022_ICAMPAM                         ----
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+process_duration_files(
+  vct_variable = c("posture",
+                 "behavior",
+                 "intensity"),
+  vct_source   = c("noldus",
+                 "rmr",
+                 "standard"),
+  fdr_read     = fdr_merge,
+  fdr_write    = path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+                      "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+                      "3_data", "4_processed"),
+  fld_mer      = "NOLDUS_CHAMBER_RMR",
+  fnm_mer      = "CO_ALL_NOLDUS_CHAMBER_RMR.feather",
+  ge_than      = NULL
+  # ge_than      = list("behavior", "noldus", 60)
+)
+process_visit_numbers(
+  fdr_read         = 
+    path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+         "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+         "3_data", "4_processed"),
+  fdr_write        = 
+    path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+         "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+         "3_data", "4_processed"),
+  fnm_dur          = "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+  
+)
+
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+##                               PROJECT: CHAAC                             ----
+##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+merge_chamber_ag_model_estimates(
+  fdr_read     = fdr_shape,
+  fdr_write    = fdr_merge,
+  fdr_project  = NULL,
+  fnm_acc      = "AG_MODEL_ESTIMATES",
+  fnm_chm_rmr  = "CO_ALL_CHAMBER_RMR.feather",
+  fnm_merge    = "CHAMBER_RMR_AG_MODEL",
+  filter_sub   = NULL,
+  project_only = FALSE
+)
+# Normal
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = NULL
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DURATION_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 5 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 5)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_300_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 10 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 10)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_600_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 15 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 15)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_900_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 20 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 20)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_1200_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+# 25 minutes
+process_duration_files(
+  vct_variable = c("intensity"),
+  vct_source   = c("standard","freedson", "sojourn3x", "hildebrand",
+                   "marcotte", "montoye", "rowlands", "staudenmayer"),
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_chaac,
+  fld_mer      = NULL,
+  fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  ge_than      = list("intensity", "standard", 60 * 25)
+)
+process_visit_numbers(
+  fdr_read         = fdr_chaac,
+  fdr_write        = fdr_chaac,
+  fnm_dur          = "CO_ALL_DUR_INT_STA_GE_1500_CHAMBER_RMR_AG_MODEL_2022-06-15.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                  FLAC AIM 2                               ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 docomp_beh_buck_key <-
   c(
     "Sports/Exercise"              = 1L,
@@ -301,9 +474,6 @@ lvls_environment <-
     "Occupation",
     "Organizational/Civic/Religiious",
     "Dark/Obscured/OoF")
-
-
-# FLAC - Aim 2 ------------------------------------------------------------
 # RUN this line the first time you open this script
 source("./Scripts/02_functions.R")
 

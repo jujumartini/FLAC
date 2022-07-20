@@ -1916,7 +1916,6 @@ pow1020 <- function(modulus,
   
 }
 
-# Fudge this janky soj_g code. ----
 # Taken straight from https://github.com/robmarcotte/MOCAfunctions/tree/3578dd44177d1cdae34e27ce23fa02174eb82114
 # before changes on March 6th on Github. Small changes only include defining
 # function argument names & 

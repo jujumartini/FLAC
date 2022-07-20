@@ -660,6 +660,87 @@ initiate_wrangle <- function(fdr_read,
          value =  "{info_function}ing {str_to_title(info_source)} file {fnm_read} | {cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | [{cli::pb_elapsed}] | {cli::pb_eta_str}",
          envir = parent.frame())
 }
+initiate_analysis <- function(fdr_result = "./4_results") {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - FIRST VERSION
+  # - Ran before any analysis is done to make sure folder structure
+  #   is correctly setup.
+  # - Specifically, it checks if the folders "feather", "csv", and
+  #   "figure_table" are set up.
+  # - If these folders are not present, it will create them.
+  # - Pre-created folders can have numbers before hand to organize
+  #   them (i.e. 1_feather, 2_csv, 3_figure_table)
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result 
+  #   Default is "./4_results".
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result = "./4_results"
+  
+  vct_fdr <- 
+    dir_ls(path = fdr_result,
+           type = "directory") |> 
+    path_file()
+  
+  missing_feather_directory <- 
+    !any(
+      stri_detect_regex(vct_fdr,
+                        pattern = "feather")  
+    )
+  missing_csv_directory <- 
+    !any(
+      stri_detect_regex(vct_fdr,
+                        pattern = "csv")  
+    )
+  missing_figure_table_directory <- 
+    !any(
+      stri_detect_regex(vct_fdr,
+                        pattern = "figure_table")  
+    )
+  
+  if (missing_feather_directory) {
+    
+    cli_inform(c(
+      "!" = 'No sub directory with phrase "{.emph feather}" found in {.strong RESULT} directory.',
+      "i" = 'Creating sub directory "{.emph feather}" to house feather files.')
+    )
+    fs::dir_create(path = path(fdr_result,
+                               "feather"))
+  }
+  
+  if (missing_csv_directory) {
+    
+    cli_inform(c(
+      "!" = 'No sub directory with phrase "{.emph csv}" found in {.strong RESULT} directory.',
+      "i" = 'Creating sub directory "{.emph csv}" to house csv files.')
+    )
+    fs::dir_create(path = path(fdr_result,
+                               "csv"))
+  }
+  
+  if (missing_figure_table_directory) {
+    
+    cli_inform(c(
+      "!" = 'No sub directory with phrase "{.emph figure_table}" found in {.strong RESULT} directory.',
+      "i" = 'Creating sub directory "{.emph figure_table}" to house figure_table files.')
+    )
+    fs::dir_create(path = path(fdr_result,
+                               "figure_table"))
+  }
+  
+  cli_inform(c(
+    "v" = "Directories under {fdr_result} have been checked.",
+    " " = "",
+    " " = "Ready to start analysis."
+  ))
+  
+}
+
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####                                                                         %%%%
@@ -1080,6 +1161,8 @@ view_unconverted_videos <- function(path_flv,
 create_oxford_images <- function(fdr_load,
                                  fdr_fake_images,
                                  fdr_img) {
+  
+  ###  VERSION 5  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # -Update to most recent object naming scheme as of 2022 March.
   # -See if I can remove the begin & end arguments since they arent really used anymore.
@@ -1101,17 +1184,17 @@ create_oxford_images <- function(fdr_load,
   #      Don't know if this is needed anymore.
   # ARG: end
   #      Don't know if this is needed anymore.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::  
-  # fdr_load <-
-  #   "./FLAC_AIM3_DATA/images"
-  # fdr_fake_images <- 
-  #   "./OxfordImageBrowser-win32-x64/6_Fake Images"
-  # fdr_img <- 
-  #   "DLW_Pilot_BAY01_2022_03_10"
+  # fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load"
+  # fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images"
+  # fdr_img         = img_set
   
   fdr_load_img <- 
-    fs::path(fdr_load,
-             fdr_img)
+    dir_ls(path = fdr_load,
+           recurse = 1,
+           regexp = fdr_img)
   chk_img_set <- 
     rlang::is_empty(fdr_load_img)
   
@@ -2337,16 +2420,12 @@ clean_noldus <- function(fdr_read,
                          filter_sub = NULL,
                          project_only = FALSE) {
   
+  ###  VERSION 4  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Include code for fdr_project
-  # -   Include code for filter_sub
-  # -   Change "fli" to "df_info" to make it easier to access.
-  # -   Incorporate get_fpa_read_noldus as it is the same across all functions.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
-  # -   Change warnings/errors from base to cli.
+  # - Updated errors to appropriate warnings
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read_noldus
+  # - initiate_wrangle
+  # - get_fpa_read_noldus
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
   #      File directory of clean noldus files.
@@ -2364,22 +2443,16 @@ clean_noldus <- function(fdr_read,
   #      Vector of subjects to filter the vct_fpa_read base.
   # ARG: project_only
   #      Should shaped files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <- 
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "1_AIM1_RAW_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "2_AIM1_CLEANED_DATA")
-  # fdr_project <-
-  #   NULL
-  # fld_act <- 
-  #   "NOLDUS_ACTIVITY"
-  # fld_pos <- 
-  #   "NOLDUS_POSTURE"
-  # filter_sub <- 
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_raw
+  # fdr_write    = fdr_clean
+  # fdr_project  = NULL
+  # fld_act      = "NOLDUS_ACTIVITY"
+  # fld_pos      = "NOLDUS_POSTURE"
+  # filter_sub   = NULL
+  # project_only = FALSE
   
   initiate_wrangle(fdr_read     = fdr_read,
                    fdr_project  = fdr_project,
@@ -2509,19 +2582,28 @@ clean_noldus <- function(fdr_read,
     if ((df_cln$behavior == "[U] Start/Stop") %>% 
         sum() != 2) {
       
-      # IDK man.
-      cli_abort("STAAAAAAAAAAAAAAAAAHP. [U] Start/Stop was applied more than twice or only once.")
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "[U] Start/Stop was applied more than twice or only once."
+      ))
+      next()
       
     } else if (is.na(df_info$start)) {
+      
       cli_warn(c(
-        "{fnm_read}:",
+        "File #{i}: {fnm_read}",
         "!" = "Start Time is not in MM-DD-YYYY hh:mm:ss"
       ))
+      next()
+      
     } else if (is.na(df_info$stop)) {
+      
       cli_warn(c(
-        "{fnm_read}:",
+        "File #{i}: {fnm_read}",
         "!" = "Stop Time is not in MM-DD-YYYY hh:mm:ss"
       ))
+      next()
+      
     }
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2576,14 +2658,27 @@ clean_noldus <- function(fdr_read,
     # the last [U] Start/Stop. Use Relative_hmsf to make sure it was placed at
     # exactly the same frame.
     if (chk_start) {
+      
       # The timestmap of [U] Start Time was NOT placed at the same time as the first
       # annotation code.
-      cli_abort("First code does not align with start time.")
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "First code does not align with start time."
+      ))
+      next()
+      
     } else if (chk_end) {
+      
       # The timestamp of [U] Stop Time was NOT placed at the same time as the last
       # [U] Start/Stop.
-      cli_abort("Stop time does not match last code timestamp + its duration.")
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "Stop time does not match last code timestamp + its duration."
+      ))
+      next()
+      
     } else if (chk_abs_vs_rel) {
+      
       t1 <- 
         difftime(time1 = dtm_vid_stop,
                  time2 = dtm_vid_start,
@@ -2594,11 +2689,13 @@ clean_noldus <- function(fdr_read,
                  units = "secs")
       diff_abs_rel <- 
         t1 - t2
-      cli_abort(c(
-        "{fnm_read}",
-        "x" = "Difference between absolute and relative times are not < 5 seconds",
+      cli_warn(c(
+        "File #{i}: {fnm_read}",
+        "!" = "Difference between absolute and relative times are not < 5 seconds",
         "i" = "Difference = {diff_abs_rel} seconds" 
       ))
+      next()
+      
     }
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -2615,7 +2712,13 @@ clean_noldus <- function(fdr_read,
       as.integer()
     
     if (anyNA(int_duration)) {
-      cli_abort("Duration of a code is less than a second??? IDK man")
+      
+      cli_progress_done()
+      cli_abort(c(
+        "{fnm_read}",
+        "x" = "Duration of a code is less than a second??? IDK man"
+      ))
+      
     }
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -3958,7 +4061,7 @@ shape_chamber <- function(fdr_read,
       transmute(
         study, subject, visit,
         datetime = lubridate::mdy_hms(datetime,
-                                      tz = "America/Chicago"),
+                                      tz = "America/Denver"),
         date = lubridate::date(datetime),
         time = format(datetime,
                       "%H:%M:%S"),
@@ -4292,6 +4395,7 @@ shape_noldus <- function(fdr_read,
                          filter_sub = NULL,
                          project_only = FALSE) {
   
+  ###  VERSION 12  ::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # -   Include code for fdr_project
   # -   Include code for filter_sub
@@ -4321,6 +4425,11 @@ shape_noldus <- function(fdr_read,
   #      Vector of subjects to filter the vct_fpa_read base.
   # ARG: project_only
   #      Should shaped files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove calculating duration since its incorrect and it is done later.
+  # - Make intensity and environment dark/obscurred/oof when posture/behavior
+  #   is dark/obscurred/oof (it is currently NA/"").
+  # - Make output variables into factors.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # fdr_read <-
   #   fs::path("FLAC_AIM1_DATA",
@@ -4787,28 +4896,26 @@ shape_oxford <- function(type,
                          fdr_img_raw,
                          tib_cor_time) {
   
-  # # CHANGES:
-  
-  # -update naming scheme.
-  # -move checks and cleaning to clean_oxford_v1.
-  # -dont make it dependent on schema anymore.
-  # -clean up preliminary such that fpt is the full filepath to the file in question.
-  #  Don't have "fld" objects anymore.
-  
-  
-  # # FUNCTIONS & ARGUMENTS:
-  
-  # FUNCTION: NA
-  
+  ###  VERSION 6  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - update naming scheme.
+  # - move checks and cleaning to clean_oxford_v1.
+  # - dont make it dependent on schema anymore.
+  # - clean up preliminary such that fpt is the full filepath to the file in question.
+  # - Don't have "fld" objects anymore.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_timestamps
   #      File directory of timestamp file.
   # ARG: fnm_timestamps
   #      File name of timestamp file.
   # ARG: tib_timestamps
   #      Tibble from read_img_timestamps_v5
-  
-  # # TESTING
-  
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove calculating duration since its incorrect and it is done later.
+  # - Make output variables into factors.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # type <- "POS"
   # fdr_cln <- 
   #   "./3_data/1_cleaned"
@@ -5704,6 +5811,200 @@ merge_chamber_rmr <- function(fdr_read,
   cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
   
 }
+merge_chamber_ag_model_estimates <- function(fdr_read,
+                                             fdr_write,
+                                             fdr_project  = NULL,
+                                             fnm_acc      = "AG_MODEL_ESTIMATES",
+                                             fnm_chm_rmr  = "CO_ALL_CHAMBER_RMR.feather",
+                                             fnm_merge    = "CHAMBER_RMR_AG_MODEL",
+                                             filter_sub   = NULL,
+                                             project_only = FALSE) {
+  
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make sure it works by keeping {study}_ALL_MODEL_ESTIMATES in the shaped
+  #   folder.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - initiate_wrangle
+  # - get_fpa_read
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read
+  #   File directory of {study}_ALL_MODEL_ESTIMATES files.
+  # fdr_write
+  #   File directory of merged chamber_rmr files and where merged_chamber_rmr
+  #   file will reside
+  # fdr_project
+  #   File directory to where all the merged data resides in the project. If
+  #   this is supplied then files are written to both fdr_write and fdr_project.
+  # fnm_acc
+  #   Folder name of shaped noldus activity files.
+  # fnm_chm_rmr
+  #   Folder name of shaped noldus posture files.
+  # fnm_merge
+  #   Folder name to save merged activity/posture files to.
+  # filter_sub
+  #   Vector of subjects to filter the vct_fpa_read base.
+  # project_only
+  #   Should merged files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove code after compute_acc_model_estimates is updated.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "3_AIM1_SHAPED_DATA")
+  # fdr_write <-
+  #   fs::path("FLAC_AIM1_DATA",
+  #            "4_AIM1_MERGED_DATA")
+  # fdr_project <-
+  #   NULL
+  # fnm_acc <-
+  #   "AG_MODEL_ESTIMATES"
+  # fnm_chm_rmr <-
+  #   "CO_ALL_CHAMBER_RMR.feather"
+  # fnm_merge <-
+  #   "CHAMBER_RMR_AG_MODEL"
+  # filter_sub <-
+  #   NULL
+  # project_only <-
+  #   FALSE
+  
+  fpa_chm <- 
+    dir_ls(path    = fdr_write,
+           recurse = TRUE,
+           regexp  = fnm_chm_rmr)
+  # Use the most recent AG_MODEL_ESTIMATES file if there are multiple.
+  fpa_acc <- 
+    chuck(
+      .x = dir_ls(path   = fdr_read,
+                  regexp = fnm_acc),
+      dir_ls(path   = fdr_read,
+             regexp = fnm_acc) |> 
+        path_file() |> 
+        stri_extract_first_regex(pattern = "\\d{4}-\\d{2}-\\d{2}") |> 
+        lubridate::as_date() |> 
+        lubridate::seconds() |> 
+        which.max()
+    )
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            MERGE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_mer <- 
+    left_join(
+      arrow::read_feather(fpa_acc),
+      arrow::read_feather(fpa_chm),
+      by = c("study", "subject", "visit", "datetime")
+    ) %>% 
+    mutate(
+      date = as_date(datetime),
+      time = 
+        datetime |> 
+        with_tz(tzone = "America/Denver") |> 
+        format("%H:%M:%S"),
+      intensity_rmr = 
+        fcase(
+          mets_rmr < 1.5, "sedentary",
+          mets_rmr >= 1.5 & mets_rmr < 3.0, "light",
+          mets_rmr >= 3.0, "mvpa"
+        ) |> 
+        factor(levels = c("sedentary", "light", "mvpa")),
+      intensity_standard =
+        fcase(
+          mets_standard < 1.5, "sedentary",
+          mets_standard >= 1.5 & mets_standard < 3.0, "light",
+          mets_standard >= 3.0, "mvpa"
+        ) |> 
+        factor(levels = c("sedentary", "light", "mvpa")),
+      # TODO: Change this in compute_acc_model_estimates when you can.
+      marcotte = 
+        marcotte |> 
+        forcats::fct_relabel(stri_trans_tolower) |> 
+        fct_collapse(mvpa = c("moderate", "vigorous"))
+      # TODO: END
+    ) %>% 
+    as_tibble() |> 
+    fill(chamber_vo2_ml_kg_min:intensity_standard,
+         .direction = "up") |> 
+    select(study:datetime, date, time,
+           chamber_vo2_ml_kg_min, rmr_vo2_ml_kg_min,
+           mets_rmr:intensity_standard,
+           sojourn3x = sojourn_3x,
+           everything()) |> 
+    rename_with(.cols = !study:intensity_standard,
+                .fn = ~stri_c("intensity_", .x)) |> 
+    # Only complete cases; when there is chamber data.
+    filter(!is.na(chamber_vo2_ml_kg_min)) |>
+    as.data.table()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  fnm_write <- 
+    stri_c(
+      fnm_chm_rmr %>% 
+        str_split(pattern = "_") %>% 
+        vec_unchop() %>% 
+        vec_slice(c(1, 2)) |> 
+        stri_c(collapse = "_"),
+      fnm_merge,
+      fpa_acc |> 
+        path_file() |> 
+        stri_extract_first_regex(pattern = "\\d{4}-\\d{2}-\\d{2}"),
+      sep = "_"
+    )
+  
+  if (project_only) {
+    fpa_project <- 
+      fs::path(
+        dir_ls(fdr_project,
+               type = "directory",
+               regexp = fld_merge),
+        fnm_write
+      )
+    arrow::write_feather(
+      df_mer,
+      sink = fs::path_ext_set(path = fpa_project,
+                              ext = "feather")
+    )
+    return()
+  }
+  
+  fpa_write <- 
+    fs::path(
+      fdr_write,
+      fnm_write
+    )
+  data.table::fwrite(
+    df_mer,
+    file = fs::path_ext_set(path = fpa_write,
+                            ext = "csv"),
+    sep = ",",
+    showProgress = FALSE
+  )
+  arrow::write_feather(
+    df_mer,
+    sink = fs::path_ext_set(path = fpa_write,
+                            ext = "feather")
+  )
+  
+  if (!is_empty(fdr_project)) {
+    fpa_project <- 
+      fs::path(
+        dir_ls(fdr_project,
+               type = "directory",
+               regexp = fld_merge),
+        fnm_write
+      )
+    arrow::write_feather(
+      df_mer,
+      sink = fs::path_ext_set(path = fpa_project,
+                              ext = "feather")
+    )
+  }
+  
+  cli_alert_success("SUCCESS.")
+  
+}
 merge_noldus <- function(fdr_read,
                          fdr_write,
                          fdr_project = NULL,
@@ -6353,185 +6654,606 @@ process_actigraph_raw <- function() {
   test$axis_x %>% vec_unrep()
   
 }
-process_duration_files <- function(vec_source,
-                                   fdr_vid_merged,
-                                   fdr_vid_processed,
-                                   fnm_merged_all,
-                                   fnm_duration_rds,
-                                   fnm_duration_csv) {
+process_duration_files <- function(vct_variable,
+                                   vct_source,
+                                   fdr_read,
+                                   fdr_write,
+                                   fld_mer,
+                                   fnm_mer,
+                                   ge_than = NULL) {
   
-  # # CHANGES:
+  ###  VERSION 6  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make sure it works if the merged file is not in a sub-directory.
+  # - If ge_than is not null, export ge_than merged file for analysis.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # FUNCTION: seq_duration
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # vct_variable
+  #   Self-explanatory
+  # vct_source
+  #   Self-explanatory
+  # fdr_read
+  #   File directory of merged file.
+  # fdr_write
+  #   File directory of processed file.
+  # fld_mer
+  #   Folder name of containing fnm_mer.
+  # fnm_mer
+  #   File name of merged file with all subject, visit entries in feather
+  #   format.
+  # ge_than
+  #   A list with the first element containing a variable, the second element
+  #   containing the source for the variable and the third element containing
+  #   the value the variable_source has to be >= than.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Remove code after shape_noldus is updated.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # vct_variable = c("intensity")
+  # vct_source   = c("rmr", "standard", "sojourn3x", "montoye", "rowland",
+  #                  "hildebrand", "freedson", "staudenmayer", "marcotte")
+  # fdr_read     = fdr_merge
+  # fdr_write    = fdr_chaac
+  # fld_mer      = NULL
+  # fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # ge_than      = list("intensity", "standard", 60 * 5)
+  # ge_than      = NULL
   
-  # -Remove "vid" from object names
-  # -Change "merged" in object names to "mer"
-  # -vec_code_type based off column names.
-  
-  # # FUNCTIONS & ARGUMENTS:
-  
-  # FUNCTION: get_duration_v3
-  # ARG: vec_source
-  #      Self-explanatory
-  # ARG: fdr_mer
-  #      File directory of merged files.
-  # ARG: fdr_processed
-  #      File directory of processed files.
-  # ARG: fnm_mer_all
-  #      File name of merged file with all subject, visit entries
-  # ARG: fnm_duration_rds
-  #      File name of processed duration file. Has rds file extension.
-  # ARG: fnm_duration_csv
-  #      File name of processed duration file. Has csv file extension.
-  
-  # # TESTING
-  
-  # vec_source <-
-  #   c("01",
-  #     "05",
-  #     "10")
-  # fdr_mer <-
-  #   "./3_data/1_cleaned/merged"
-  # fdr_processed <-
-  #   "./3_data/2_processed"
-  # fnm_mer_all <-
-  #   "merged_all.rds"
-  # fnm_duration_rds <-
-  #   "duration_all.rds"
-  # fnm_duration_csv <-
-  #   "duration_all.csv"
-  
-  # tib_mer_all <- 
-  #   readr::read_rds(
-  #     paste(fdr_mer,
-  #           fnm_mer_all,
-  #           sep = "/")
-  #   )
-  
-  vec_source <-
-    c("vid",
-      "img")
-  fdr_mer <-
-    "./3_data/3_merged"
-  fdr_pro <-
-    "./3_data/4_processed"
-  fnm_mer_all <-
-    "merged_all_dowc.rds"
-  fnm_duration_rds <-
-    "duration_all_dowc.rds"
-  fnm_duration_csv <-
-    "duration_all_dowc.csv"
-  
-  
-  tib_mer_all <- 
-    readr::read_rds(file = paste(fdr_mer,
-                                 fnm_mer_all,
-                                 sep = "/"))
-  
-  lst_dur_pos <- 
-    list()
-  lst_dur_beh <- 
-    list()
-  # lst_dur_beh_act <- 
-  #   list()
-  # lst_dur_pos_dom <- 
-  #   list()
-  # lst_dur_beh_dom <- 
-  #   list()
-  lst_dur_int <-
-    list()
-  # lst_dur_env <- 
-  #   list()
-  
-  for (i in seq_along(vec_source)) {
+  if (is_null(fld_mer)) {
     
-    .source <- 
-      vec_source[i]
+    fpa_mer <- 
+      path(fdr_read,
+           fnm_mer)
     
-    message("Durations for source ", .source, ": ",
-            appendLF = TRUE)
+  } else {
     
-    tib_source <- 
-      tib_mer_all %>% 
-      select(1:datetime, ends_with(.source)) %>% 
-      rename_with(str_remove, pattern = paste0("_", .source))
-    
-    vec_code_type <- 
-      tib_source %>% 
-      select(!1:datetime) %>% 
-      colnames()
-    # c("posture",
-    #   "behavior",
-    #   "behavior_activity",
-    #   "intensity",
-    #   "posture_domain",
-    #   "behavior_domain",
-    #   "environment")
-    
-    for (ii in seq_along(vec_code_type)) {
-      
-      code_type <- 
-        vec_code_type[ii]
-      
-      message(code_type, "...",
-              appendLF = FALSE)
-      
-      assign(paste0("tib_dur_", code_type),
-             value = get_duration_v3(tib = tib_source,
-                                     .code_type = code_type,
-                                     .source = .source))
-      
-    }
-    
-    lst_dur_pos[[i]] <- 
-      tib_dur_posture
-    lst_dur_beh[[i]] <- 
-      tib_dur_behavior
-    # lst_dur_beh_act[[i]] <- 
-    #   tib_dur_behavior_activity
-    # lst_dur_pos_dom[[i]] <- 
-    #   tib_dur_posture_domain
-    # lst_dur_beh_dom[[i]] <- 
-    #   tib_dur_behavior_domain
-    lst_dur_int[[i]] <-
-      tib_dur_intensity
-    # lst_dur_env[[i]] <- 
-    #   tib_dur_environment
-    
-    message("DONE\n",
-            appendLF = TRUE)
+    fpa_mer <- 
+      path(fdr_read,
+           list.files(path    = fdr_read,
+                      pattern = fld_mer),
+           fnm_mer)
     
   }
   
+  df_mer <- 
+    fpa_mer |> 
+    arrow::read_feather() |>
+    # TODO: Whenver dark/obscured/oof is coded for posture, intensity is ""
+    #       Explicitly state that it is dark/obscured/oof.
+    #       Also when looking at noldus_chamber_rmr merged files, the chamber
+    #       data is not filled up.
+    mutate(across(.cols = starts_with("intensity"),
+                  .fns = 
+                    ~factor(.x,
+                            levels = c("sedentary",
+                                       "light",
+                                       "mvpa")) |> 
+                    fct_explicit_na(na_level = "dark/obscured/oof")
+    )) |> 
+    # TODO: END
+    as.data.table()
+  
+  if (!is_null(ge_than)) {
+    
+    chk_variable <- 
+      !ge_than[[1]] %in% vct_variable
+    chk_source <- 
+      !ge_than[[2]] %in% vct_source
+    chk_cutoff <- 
+      !is.numeric(ge_than[[3]])
+    
+    if (any(chk_variable, chk_source, chk_cutoff)) {
+      
+      loc_error <- 
+        which(
+          c(chk_variable, chk_source, chk_cutoff)
+        ) |> 
+        as.character()
+      
+      error_1 <- 
+        "First value in {.arg ge_than} is not in vct_variable."
+      error_2 <- 
+        "Second value in {.arg ge_than} is not in vct_source."
+      error_3 <- 
+        "Third value in {.arg ge_than} is not a numeric."
+      
+      switch(
+        EXPR = loc_error,
+        "123" = cli_abort(
+          message = c("!" = error_1, "!" = error_2, "!" = error_3)
+        ),
+        "12"  = cli_abort(
+          message = c("!" = error_1, "!" = error_2)
+        ),
+        "13"  = cli_abort(
+          message = c("!" = error_1,"!" = error_3)
+        ),
+        "23"  = cli_abort(
+          message = c("!" = error_2, "!" = error_3)
+        ),
+        "1"   = cli_abort(
+          message = c("!" = error_1)
+        ),
+        "2"   = cli_abort(
+          message = c("!" = error_2)
+        ),
+        "3"   = cli_abort(
+          message = c("!" = error_3)
+        )
+      )
+      
+    }
+    
+    variable_source <- 
+      stri_c(ge_than[[1]], "_", ge_than[[2]])
+    df_mer <- 
+      df_mer |> 
+      as_tibble() |> 
+      group_by(study, subject, visit) |> 
+      # TODO: Remove duration_noldus columns from shape_noldus
+      mutate(duration_behavior_noldus = NULL,
+             duration_posture_noldus = NULL) |> 
+      # TODO: END
+      mutate(
+        "duration_{variable_source}" :=
+          seq_duration(vct_datetime = datetime,
+                       vct_value = .data[[variable_source]]),
+        "less_than_{ge_than[[3]]}" := 
+          .data[[glue::glue("duration_{variable_source}")]] < ge_than[[3]],
+        .after = time
+      ) |> 
+      ungroup() |> 
+      mutate(across(
+        .cols = !c(study:glue::glue("less_than_{ge_than[[3]]}")),
+        function(.x) {
+          if (is.factor(.x)) {
+            fifelse(.data[[glue::glue("less_than_{ge_than[[3]]}")]],
+                    yes = 
+                      factor(NA,
+                             levels = levels(.x)),
+                    no  = .x)
+          } else {
+            base::ifelse(test = .data[[glue::glue("less_than_{ge_than[[3]]}")]],
+                         yes  = NA,
+                         no   = .x)
+          }
+        }
+      )) |> 
+      as.data.table()
+    
+    # Write for confusion matrix and agreement functions.
+    fnm_ge_than <- 
+      stri_c(
+        path_ext_remove(fnm_mer),
+        "DUR",
+        ge_than[[1]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+        ge_than[[2]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+        "GE",
+        ge_than[[3]],
+        sep = "_"
+      )
+    
+    if (is_null(fld_mer)) {
+      
+      arrow::write_feather(
+        df_mer,
+        sink = path(fdr_read,
+                    path_ext_set(fnm_ge_than,
+                                 ext = "feather"))
+      )
+      fwrite(
+        df_mer,
+        file = path(fdr_read,
+                    path_ext_set(fnm_ge_than,
+                                 ext = "csv")),
+        sep = ","
+      )
+      
+    } else {
+      
+      arrow::write_feather(
+        df_mer,
+        sink = path(fdr_read,
+                    list.files(path    = fdr_read,
+                               pattern = fld_mer),
+                    path_ext_set(fnm_ge_than,
+                                 ext = "feather"))
+      )
+      fwrite(
+        df_mer,
+        file = path(fdr_read,
+                    list.files(path    = fdr_read,
+                               pattern = fld_mer),
+                    path_ext_set(fnm_ge_than,
+                                 ext = "csv")),
+        sep = ","
+      )
+      
+    }
+    
+    
+    # testt <- 
+    # df_mer |>
+    #   count(study, subject, visit, intensity_rmr) |>
+    #   count(study, subject, visit, wt = n)
+    # df_mer |>
+    #   count(study, subject, visit, intensity_noldus) |>
+    #   count(study, subject, visit, wt = n)
+    # df_mer |>
+    #   count(study, subject, visit, posture_noldus) |>
+    #   count(study, subject, visit, wt = n)
+    
+  }
+  
+  vct_var_src <- 
+    # Get all combinations between variables and sources.
+    expand_grid(variable = vct_variable,
+                source = vct_source) %>% 
+    unite(col = "unite",
+          variable, source,
+          sep = "_") |> 
+    pull() |> 
+    # Only keep the combinations that are in the data.frame.
+    stri_subset_regex(pattern = stri_c(names(df_mer), collapse = "|"))
+  
   lst_duration <- 
-    c(
-      lst_dur_pos,
-      lst_dur_beh,
-      # lst_dur_beh_act,
-      # lst_dur_pos_dom,
-      # lst_dur_beh_dom,
-      lst_dur_int
-      # lst_dur_env
+    list()
+  variable_source <- 
+    ""
+  cnt <- 
+    0
+  progress_format <- 
+    stri_c(
+      "Getting duration for variable_source {variable_source} | ",
+      "{cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | ",
+      "[{cli::pb_elapsed}] | {cli::pb_eta_str}"
     )
-  tib_duration <- 
+  
+  cli_alert_info("Processing duration file from {fnm_mer} for variable_sources:")
+  cli_alert_info(stri_c(vct_var_src, collapse = " "))
+  
+  if (!is_null(ge_than)) {
+    
+    cli_alert_info(
+      stri_c(
+        "Merged data filtered by {ge_than[[1]]}_{ge_than[[2]]} values",
+        ">= {ge_than[[3]]} seconds",
+        sep = " "
+      )
+    )
+    
+  } else {
+    
+    cli_alert_info(
+        "Merged data not filtered by any variable_source."
+    )
+    
+  }
+  
+  for (i in cli_progress_along(vct_var_src,
+                               format = progress_format,
+                               clear = FALSE)) {
+    
+    variable_source <- 
+      vct_var_src[i]
+    c(.variable, .source) %<-% (
+      variable_source |> 
+        stri_split_regex(pattern = "_") |> 
+        vec_unchop() |> 
+        vec_chop()
+    )
+    
+    df_dur_var_source <- 
+      df_mer |> 
+      select(1:datetime, 
+             all_of(variable_source)) %>% 
+      group_by(study, subject, visit) |> 
+      transmute(
+        datetime,
+        .data[[variable_source]],
+        event    = rleid(.data[[variable_source]]),
+        duration = seq_duration(vct_datetime = datetime,
+                                vct_value    = .data[[variable_source]])
+      ) |> 
+      as_tibble() |> 
+      group_by(study, subject, visit, event) |> 
+      # As merged df treats a second value as what occurred UP TO THAT 
+      # SECOND, the start time is the minimum value within an event minus one.
+      # Do this for every value EXCEPT for the very first event as that is the
+      # start time to the visit which is always treated ANCHOR NOT AS A DATA
+      # POINT.
+      summarise(
+        source     = .source,
+        variable   = .variable,
+        value      = .data[[variable_source]][1],
+        start_dttm = min(datetime) - 1,
+        stop_dttm  = max(datetime),
+        duration   = duration[1],
+        .groups = "drop"
+      ) |> 
+      relocate(event,
+               .after = last_col()) |> 
+      as.data.table()
+    setkey(df_dur_var_source, NULL)
+    df_dur_var_source[event == 1, start_dttm := start_dttm + 1]
+    
+    lst_duration[[i]] <-
+      df_dur_var_source
+    
+    cli_progress_update()
+    cnt <- 
+      cnt + 1
+    
+  }
+  
+  cli_progress_done()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  if(is_null(fld_mer)) {
+    
+    fld_mer <- 
+      fnm_mer |> 
+      path_ext_remove() |> 
+      stri_replace_all_regex(pattern = ".*ALL_",
+                             replacement = "")
+    
+  }
+  
+  df_duration <- 
     lst_duration %>% 
-    bind_rows()
-  readr::write_rds(
-    tib_duration,
-    file = paste(fdr_pro,
-                 fnm_duration_rds,
-                 sep = "/"),
-    compress = "none"
+    rbindlist()
+  fnm_write <- 
+    stri_c(
+      df_duration$study[1],
+      "ALL",
+      if (!is_null(ge_than)) {
+        stri_c("DUR",
+               ge_than[[1]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+               ge_than[[2]] |> stri_sub(to = 3) |> stri_trans_toupper(),
+               "GE",
+               ge_than[[3]],
+               sep = "_")
+      } else {
+        "DURATION"
+      },
+      fld_mer,
+      sep = "_"
+    )
+  arrow::write_feather(
+    df_duration,
+    sink = path(fdr_write,
+                path_ext_set(fnm_write, "feather"))
   )
-  vroom_write(
-    tib_duration,
-    path = paste(fdr_pro,
-                 fnm_duration_csv,
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
+  fwrite(
+    df_duration,
+    file = path(fdr_write,
+                path_ext_set(fnm_write, "csv")),
+    sep = ","
   )
   
+  cli_alert_success("SUCCESS. {cnt} File{?/s} processed")
+  
 }
-
+process_visit_numbers <- function(fdr_read,
+                                  fdr_write,
+                                  fnm_dur,
+                                  summary_function = "sum",
+                                  time_unit) {
+  
+  ###  VERSION 3  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - OLD NAME IS Summarise_per_visit
+  # - Update naming scheme.
+  # - Have it write a csv/feather instead of just using it in the bias pipeline.
+  # - Remove lvls_{.variable} and have it be a switch function FOR NOW.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory of ALL_DUR feather file.
+  # fdr_write 
+  #   File directory to save ALL_VISIT_{VARIABLE}_{SUMMARY_FUNCTION} files.
+  # fnm_dur 
+  #   File name of ALL_DUR feather file.
+  # summary_function 
+  #   String for name of summarising function. Default is "sum".
+  # time_units 
+  #   Unit of time to have each {value}_{source} be in.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Shaped functions for included data should have all character values be 
+  #   factors before this function.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fdr_write <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fnm_dur <- 
+  #   "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather"
+  # summary_function <- 
+  #   "sum"
+  # time_unit <- 
+  #   "mins" # secs, mins, hours
+  
+  df_duration <- 
+    path(fdr_read,
+         fnm_dur) |> 
+    arrow::read_feather()
+  
+  vct_variable <- 
+    df_duration$variable |> 
+    unique()
+  lst_summary_visit <- 
+    list()
+  
+  for (i in seq_along(vct_variable)) {
+    
+    .variable <- 
+      vct_variable[i]
+    
+    cli_alert_info(text = stri_trans_totitle(.variable))
+    
+    # TODO: Shaped should have all character values befactors before this 
+    #       function.
+    lvl_var <- 
+      switch(
+        EXPR = .variable,
+        "posture" = c(
+          "lying",
+          "sitting",
+          "crouching/kneeling/squatting",
+          "standing",
+          "other - posture",
+          "walking",
+          "stepping",
+          "running",
+          "ascending stairs",
+          "descending stairs",
+          "crouching/squatting",
+          "cycling",
+          "other - movement",
+          "intermittent movement",
+          "dark/obscured/oof"
+        ),
+        "behavior" = c(
+          "sports/exercise",
+          "eating/drinking",
+          "transportation",
+          "electronics",
+          "other - manipulating objects",
+          "other - carrying load w/ ue",
+          "other - pushing cart",
+          "talking - person",
+          "talking - phone",
+          "caring/grooming - adult",
+          "caring/grooming - animal/pet",
+          "caring/grooming - child",
+          "caring/grooming - self",
+          "cleaning",
+          "c/f/r/m",
+          "cooking/meal preparation",
+          "laundry" ,
+          "lawn&garden",
+          "leisure based",
+          "only [p/m] code",
+          "talking - researchers",
+          "intermittent activity",
+          "dark/obscured/oof"
+        ),
+        "intensity" = c(
+          "sedentary",
+          "light",
+          "mvpa",
+          "dark/obscured/oof"
+        )
+      )
+    # TODO: END
+    
+    df_dur_var <- 
+      df_duration |>
+      # Cant filter a column with an object with the same name using dtplyr.
+      as_tibble() |>
+      filter(variable == .variable) |>
+      # If the duration file supplied includes GE in the fnm.
+      filter(!is.na(value)) |> 
+      mutate(
+        value =
+          value |>
+          fct_drop() |>
+          # TODO
+          lvls_expand(lvl_var)
+          # TODO: END
+        ) |>
+      group_by(study, subject, visit,
+               source, value) |>
+      summarise(across(.cols = duration,
+                       .fns = rlang::as_function(summary_function)),
+                .groups = "drop") |>
+      # If a value from a source did not appear for a visit, make sure it is
+      # present then give it a value of 0 seconds.
+      complete(study, subject, visit, source, value) |>
+      mutate(duration =
+               duration |>
+               replace_na(replace = as.difftime(0, units = "secs"))) |> 
+      # In seconds now but is made into hours later.
+      add_count(study, subject, visit, source,
+                wt = duration,
+                name = "total") |> 
+      arrange(study, subject, visit, value)
+    
+    units(df_dur_var$duration) <- 
+      time_unit
+    units(df_dur_var$total) <- 
+      time_unit
+    
+    df_summary_variable <- 
+      df_dur_var |> 
+      pivot_wider(names_from = c(value, source),
+                  names_glue = "{value}_{source}",
+                  values_from = duration) |> 
+      mutate(variable          = .variable,
+             summary_statistic = summary_function,
+             time_unit         = recode(time_unit,
+                                        "secs"  = "second",
+                                        "mins"  = "minute",
+                                        "hours" = "hour"),
+             .after            = visit) |> 
+      as.data.table()
+    
+    lst_summary_visit[[.variable]] <- 
+      df_summary_variable
+    
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Write a file for every variable and in filename include which duration
+  # file was used.
+  duration_type <- 
+    fnm_dur |> 
+    stri_extract(regex = "DUR_\\w{3}_\\w{3}_GE_\\d*|DURATION")
+    # stri_extract(regex = "(?<=ALL_).*(?=_NOLDUS)")
+  
+  purrr::walk(.x = seq_along(lst_summary_visit),
+              function(.x) {
+                fnm_summary <- 
+                  stri_c(
+                    "CO_VISIT",
+                    stri_trans_toupper(summary_function),
+                    recode(time_unit,
+                           "secs"  = "SECONDS",
+                           "mins"  = "MINUTES",
+                           "hours" = "HOURS"),
+                    stri_trans_toupper(names(lst_summary_visit)[.x]),
+                    "FROM",
+                    duration_type,
+                    sep = "_"
+                  )
+                arrow::write_feather(
+                  lst_summary_visit[[.x]],
+                  sink = path(fdr_write,
+                              path_ext_set(fnm_summary,
+                                           ext = "feather"))
+                )
+                fwrite(
+                  lst_summary_visit[[.x]],
+                  file = path(fdr_write,
+                              path_ext_set(fnm_summary,
+                                           ext = "csv")),
+                  sep = ","
+                )
+              })
+  
+  cli_inform(message = c("v" = "SUCCESS"))
+  
+}
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####                                                                         %%%%
@@ -7233,14 +7955,18 @@ summarize_value_distribution <- function() {
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 compute_acc_model_estimates <- function(fdr_read,
                                         fdr_write,
-                                        fdr_project = NULL,
-                                        folder = NULL,
-                                        filter_sub = NULL,
-                                        filter_loc = NULL,
+                                        fdr_project  = NULL,
+                                        folder       = NULL,
+                                        filter_sub   = NULL,
+                                        filter_loc   = NULL,
                                         project_only = FALSE) {
   
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   First version
+  # - Move loading "lyden_2014.RData" and "staudenmayer_2015.RData" to
+  #   outside the function as it doesnt work when kept inside the function.
+  # - Update Marcotte code with github code from ref 
+  #   "ce1f12d5e1f1a9a4bb5d35ee08687364be9cdfdb"
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # -   initiate_wrangle
   # -   get_fpa_read
@@ -7262,29 +7988,18 @@ compute_acc_model_estimates <- function(fdr_read,
   # ARG: project_only
   #      Should merged files only be written to fdr_project?
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "5_AIM1_PROJECTS",
-  #            "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY")
-  # fdr_project <-
-  #   NULL
-  # folder <-
-  #   c("GT3X_RH_CSV_1SEC",
-  #     "GT3X_RW_CSV_1SEC",
-  #     "GT3X_RW_CSV_RAW")
-  # filter_sub <-
-  #   NULL
-  # filter_loc <-
-  #   NULL
-  # project_only <-
-  #   FALSE
+  # fdr_read     = fdr_shape
+  # fdr_write    = fdr_chaac
+  # fdr_project  = NULL
+  # fdr_project  = NULL
+  # folder       = c("GT3X_RH_CSV_1SEC",
+  #                  "GT3X_RW_CSV_1SEC",
+  #                  "GT3X_RW_CSV_RAW")
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
   source(file = "./R/acc_models/acc_models.R")
-  load(file = "./R/acc_models/lyden_2014.RData")
-  load(file = "./R/acc_models/staudenmayer_2015.RData")
   library(MOCAModelData)
   library(zoo)
   
@@ -7315,7 +8030,6 @@ compute_acc_model_estimates <- function(fdr_read,
     ) %>% 
     keep(.p = ~str_detect(path_file(.x),
                           pattern = filter_sub))
-  # }
   
   if (!is_empty(filter_loc)) {
     
@@ -7472,6 +8186,27 @@ compute_acc_model_estimates <- function(fdr_read,
     message("DONE\n",
             "Marcotte 2021...",
             appendLF = FALSE)
+    
+    
+    # rob marcotte's new method
+    mar.est <-
+      as.character(
+        MOCAfunctions::soj_g(
+          data = 
+            df_rw_raw |> 
+            select(Timestamp = datetime,
+                   AxisX = axis_x,
+                   AxisY = axis_y,
+                   AxisZ = axis_z,
+                   VM    = vector_magnitude),
+          export_format             = "seconds",
+          freq                      = 100,
+          step1_sd_threshold        = 0.00375,
+          step2_nest_length         = 5,
+          step3_nest_length         = 60,
+          step3_orig_soj_length_min = 180
+        )$step3_estimate_intensity
+      )
     # est_marcotte <- 
     #   marcotte_2021_soj_g(
     #     data                      = 
@@ -7917,6 +8652,449 @@ compute_agreement <- function() {
     delim = ",",
     progress = FALSE
   )
+  
+}
+compute_bias <- function(fdr_read,
+                         fdr_write,
+                         fnm_visit_summary,
+                         vct_criterion,
+                         vct_estimate,
+                         output) {
+  
+  ###  VERSION 3  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Input from process_visit_numbers function
+  # - Update object naming scheme.
+  # - Remove lvls_{variable} as it is extracted from df_visit now. Since
+  #   process_visit_summary uses factors vct_value will always be in order
+  #   so stop naming it value_order.
+  # - Stop using df_index and use zeallot to assign .value, .criterion, & 
+  #   .estimate all at once. This makes the code more readable rather than
+  #   having three nested for loops.
+  # - Updated messages to be more informative.
+  # - Have a csv, specific bias table as it is common to use the csv and turn it
+  #   into an excel for presentation/publication.
+  # - Write feather & csv files in their own respective sub folders.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory to VISIT_{variable}_{summary_function}_FROM_{duration_file}.
+  # fdr_write 
+  #   File directory to save bias files to (should have separate folders per
+  #   file type.)
+  # fnm_visit_summary 
+  #   Filename of visit_summary file.
+  # vct_criterion 
+  #   Vector of names for which source(s) is/are the criterion(s).
+  # vct_estimate 
+  #   Vector of names for which source(s) is/are the estimate(s).
+  # output
+  #   "time" or "percent" to represent bias, se and CI. If percent, then
+  #   time_unit from visit_summary is used to represent criterion mean & sd.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Implement changes from compute_bias_v3 from 2022_SURF.
+  # - See if computing bias can be done with data.table.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fdr_write <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # fld_feather <- 
+  #   "1_feather"
+  # fld_csv <- 
+  #   "2_csv"
+  # fnm_visit_summary <- 
+  #   "CO_VISIT_SUM_MINUTES_INTENSITY_FROM_DUR_BEH_NOL_GE_60.feather"
+  # vct_criterion <-
+  #   c("standard",
+  #     "rmr")
+  # vct_estimate <-
+  #   c("noldus")
+  # output <- 
+  #   "time" # time, percent
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_visit <- 
+    arrow::read_feather(path(fdr_read,
+                             fnm_visit_summary)) |> 
+    # Remove dark/obscurred/oof if present.
+    select(!starts_with("dark/obscured/oof")) |> 
+    # TODO: See if things can be done with data.table.
+    as_tibble()
+    # TODO: END
+  
+  # # To test linear mixed effects model.
+  # df_visit <- 
+  #   bind_rows(
+  #     df_visit,
+  #     df_visit |> 
+  #       mutate(across(.cols = !study:time_units,
+  #                     .fns  = ~sample(.x,
+  #                                     size    = nrow(df_visit),
+  #                                     replace = TRUE))) |> 
+  #       mutate(visit = 2L),
+  #     df_visit |> 
+  #       mutate(across(.cols = !study:time_units,
+  #                     .fns  = ~sample(.x,
+  #                                     size    = nrow(df_visit),
+  #                                     replace = TRUE))) |> 
+  #       mutate(visit = 3L)
+  #   ) |> 
+  #   arrange(study, subject, visit)
+  
+  c(summary_function, time_units, .variable, type) %<-%
+    (fnm_visit_summary |> 
+       stri_extract_all_regex(pattern = "(?<=VISIT_).*(?=\\.feather)") |> 
+       stri_replace_all_regex(pattern = "FROM_",
+                              replacement = "") |> 
+       stri_split_regex(pattern = "_",
+                        n = 4) |> 
+       vec_unchop() |> 
+       stri_trans_tolower() |> 
+       vec_chop())
+  
+  variable_sources <- 
+    c(vct_criterion,
+      vct_estimate)
+  vct_value <- 
+    df_visit |> 
+    select(!study:total) |> 
+    names() |> 
+    stri_replace_all_regex(pattern = "_(?!.*_).*",
+                           replacement = "") |> 
+    unique()
+  vct_val_src <- 
+    expand_grid(value  = vct_value,
+                source = c(vct_criterion, vct_estimate)) |> 
+    unite(col = "value_source",
+          value, source,
+          sep = "_",
+          remove = TRUE) |> 
+    pull(value_source)
+  
+  lst_cri_est <- 
+    expand_grid(criterion  = vct_criterion,
+                estimate   = vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  lst_val_cri_est <- 
+    expand_grid(vct_value,
+                vct_criterion,
+                vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  lst_bias <- 
+    list()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Determine whether a linear mixed effects model is needed or not. In our case,
+  # if there is more than one visit then a model will be needed.
+  freq_subjects <- 
+    df_visit %>% 
+    pull(subject) %>% 
+    vec_unrep() %>% 
+    pull(times)
+  multiple_visits <- 
+    any(freq_subjects > 1)
+  
+  if (multiple_visits) {
+    
+    # Use a lme model.
+    cli_inform(c(
+      "i" = "Multiple visits per subject found.",
+      "i" = "Using a linear mixed effects model to compute bias.",
+      " " = ""
+    ))
+    
+    for (i in seq_along(lst_val_cri_est)) {
+      
+      # Don't use ".value" as it gets confusing for pivot_wider function when
+      # computing bias by hand.
+      c(value, .criterion, .estimate) %<-%
+        vec_chop(lst_val_cri_est[[i]])
+      
+      value_estimate <- 
+        stri_c(value, "_", .estimate)
+      value_criterion <- 
+        stri_c(value, "_", .criterion)
+      
+      cli_inform(c(
+        "i" = "Computing bias & 95% CI for {.emph {value_estimate}} minus 
+        {.emph {value_criterion}}"
+      ))
+      
+      df_lme <- 
+        df_visit %>% 
+        select(subject,
+               visit,
+               summary_statistic,
+               all_of(c(value_estimate,
+                        value_criterion))) %>% 
+        rename(value_estimate  = .data[[value_estimate]],
+               value_criterion = .data[[value_criterion]]) |> 
+        # lmer() only takes numeric values, not difftime.
+        mutate(value_estimate  = as.double(value_estimate),
+               value_criterion = as.double(value_criterion))
+      
+      lme_model <- 
+        lmer(value_estimate - value_criterion ~ 1 + (1|subject),
+             data = df_lme) |> 
+        suppressMessages()
+      
+      df_bias_value <- 
+        df_lme %>% 
+        summarise(
+          criterion         = .criterion,
+          estimate          = .estimate,
+          summary_statistic = summary_statistic[1],
+          time_units        = time_units,
+          variable          = .variable,
+          value             = value,
+          mean  = mean(value_criterion),
+          sd    = sd(value_criterion),
+          # Bias estimated from model
+          bias  = lme4::fixef(lme_model),
+          # SE is "unexplained variability" in the bias
+          se    = as.data.frame(lme4::VarCorr(lme_model))[2,5],
+          lower = lme4::confint.merMod(lme_model,
+                                       parm = 3,
+                                       quiet = TRUE)[, 1],
+          upper = lme4::confint.merMod(lme_model,
+                                       parm = 3,
+                                       quiet = TRUE)[, 2]
+        )
+      
+      lst_bias[[i]] <- 
+        df_bias_value
+      
+    }
+    
+  } else {
+    
+    # Compute bias by hand.
+    cli_inform(c(
+      "i" = "Only one visit per subject found.",
+      "i" = "Computing bias by hand.",
+      " " = ""
+    ))
+    
+    for (i in seq_along(lst_val_cri_est)) {
+      
+      # Don't use ".value" as it gets confusing for pivot_wider function when
+      # computing bias by hand.
+      c(value, .criterion, .estimate) %<-%
+        vec_chop(lst_val_cri_est[[i]])
+      
+      cli_inform(c(
+        " " = 
+          "Getting {.emph {.estimate}} - criterion {.emph {.criterion}} for 
+        value {.val {value}}"
+      ))
+      
+      value_criterion <- 
+        stri_c(value, "_", .criterion)
+      value_estimate <- 
+        stri_c(value, "_", .estimate)
+      
+      df_visit <-
+        df_visit %>% 
+        mutate(
+          "{value}_{.estimate}_diff_{.criterion}" := 
+            .data[[value_estimate]] - .data[[value_criterion]]
+        )
+      
+    }
+    
+    cli_inform(c(
+      " " = ""
+    ))
+    
+    for (i in seq_along(lst_cri_est)) {
+      
+      c(.criterion, .estimate) %<-%
+        vec_chop(lst_cri_est[[i]])
+      
+      cli_inform(c(
+        "i" = "Computing bias & 95% Confidence Intervals of estimate 
+        {.emph {.estimate}} to criterion {.emph {.criterion}}"
+      ))
+      
+      vct_val_cri <- 
+        vct_val_src |> 
+        stri_subset_regex(pattern = .criterion)
+      
+      df_bias_var <-
+        df_visit %>% 
+        select(c(matches(all_of(vct_val_cri)),
+                 matches(paste0("?",
+                                .estimate,
+                                "_diff_",
+                                .criterion)))) %>% 
+        rename_with(
+          .cols = everything(),
+          .fn = ~ str_remove_all(.x,
+                                 pattern = 
+                                   paste0("_",  .criterion, "|", "_", .estimate))
+        ) %>% 
+        summarise(across(.cols = everything(),
+                         .fns = list(mean = mean, sd = sd),
+                         .names = "{.col}_{.fn}")) %>% 
+        rename_with(.cols = contains("diff_mean"),
+                    .fn = ~ str_replace(.x,
+                                        pattern = "diff_mean",
+                                        replacement = "bias")) %>% 
+        rename_with(.cols = contains("diff_sd"),
+                    .fn = ~ str_replace(.x,
+                                        pattern = "diff_sd",
+                                        replacement = "se")) %>% 
+        pivot_longer(cols = everything(),
+                     names_to = c("value", ".value"),
+                     names_pattern = "(.*)_{1}(.*)") %>% 
+        mutate(lower = bias - qt(.975, df = nrow(df_visit) - 1) * se,
+               upper = bias + qt(.975, df = nrow(df_visit) - 1) * se) %>% 
+        mutate(criterion         = .criterion,
+               estimate          = .estimate,
+               summary_statistic = summary_function,
+               time_units        = time_units,
+               variable          = .variable,
+               .before = 1)
+      
+      lst_bias[[i]] <- 
+        df_bias_var
+      
+    }
+    
+  }
+  
+  df_bias <- 
+    rbindlist(lst_bias) |> 
+    # For some reason, feather file does not save the units attribute of difftime
+    # if it is changed from seconds. Do so now and change columns to double.
+    mutate(across(.cols = mean:upper,
+                  .fns  = 
+                    ~(.x / switch(EXPR = time_units[1],
+                                  "seconds" = 1,
+                                  "minutes" = 60,
+                                  "hours"   = 3600)) |> 
+                    as.double())) |> 
+    # Round.
+    mutate(across(.cols = mean:last_col(),
+                  .fns  = ~round(.x,
+                                 digits = 2))) |> 
+    as.data.table()
+  
+  if (output == "percent") {
+    
+    df_bias <- 
+      df_bias |> 
+      mutate(across(.cols = bias:last_col(),
+                    .fns = ~round(.x / mean,
+                                  digits = 4)))
+    
+  }
+  
+  df_bias <- 
+    df_bias |> 
+    mutate(output = output,
+           .after = time_units) |> 
+    as.data.table()
+  df_bias_csv <- 
+    df_bias |> 
+    mutate(
+      across(
+        .cols = bias:upper,
+        .fns  = function(.x) 
+          if (output == "percent") {
+            scales::label_percent(accuracy = 0.01)(.x)
+          } else {
+            .x
+          }
+      )
+    ) |> 
+    mutate(mean = stri_c(mean, " \u00B1 ", sd),
+           CI = stri_c("(", lower, ", ", upper, ")")) |> 
+    select(Criterion        = criterion,
+           Estimate         = estimate,
+           Value            = value,
+           "Mean \u00B1 SD" = mean,
+           Bias             = bias,
+           CI) |> 
+    as_tibble()
+  setnames(
+    df_bias_csv,
+    old = c("Bias", "CI"),
+    new = 
+      if (output == "time") {
+        c(
+          stri_c("Bias ",
+                 switch(time_units,
+                        "seconds" = " (seconds)",
+                        "minutes" = " (minutes)",
+                        "hours"   = " (hours)")),
+          stri_c("CI ",
+                 switch(time_units,
+                        "seconds" = " (seconds)",
+                        "minutes" = " (minutes)",
+                        "hours"   = " (hours)"))
+        )
+      } else {
+        c("Bias", "CI")
+      }
+  )
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  
+  fnm_write <- 
+    stri_c(
+      df_visit$study[1],
+      "BIAS",
+      stri_trans_toupper(.variable),
+      if (output == "time") stri_trans_toupper(time_units) else "PERCENT",
+      stri_trans_toupper(type),
+      sep = "_"
+    )
+  fpa_write_feather <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "feather"),
+      fnm_write
+    )
+  fpa_write_csv <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  
+  arrow::write_feather(
+    df_bias,
+    sink = path_ext_set(fpa_write_feather,
+                        ext = "feather")
+  )
+  fwrite(
+    df_bias_csv,
+    file = path_ext_set(fpa_write_csv,
+                        ext = "csv"),
+    sep = ",",
+    bom = TRUE
+  )
+  
+  cli_inform(message = c("v" = "SUCCESS"))
   
 }
 compute_classification <- function() {
@@ -8385,127 +9563,316 @@ compute_classification <- function() {
 }
 
 
-compute_confusion_matrix <- function() {
+compute_confusion_matrix <- function(fdr_read,
+                                     fdr_write,
+                                     fld_mer,
+                                     fnm_mer,
+                                     variable,
+                                     vct_criterion,
+                                     vct_estimate,
+                                     output = c("minute",
+                                                "percent",
+                                                "both")) {
   
-  # install.packages("janitor")
-  library(janitor)
-  fdr_mer <- 
-    "./3_data/3_merged"
-  fnm_mer_rds <- 
-    "merged_all_dowc.rds" # From getting tib_mer_all ready for process_duration_files_v4
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make it a loop through all variables
+  # - Define which is the estimate for comparison.
+  # - Update object naming scheme.
+  # - Write csv file in own sub folder and also have one file containing
+  #   all matrixes in one.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory to CO_ALL_{sources}_{duration_file}.
+  # fdr_write 
+  #   File directory to save confusion matrices to.
+  # fld_mer 
+  #   Folder name where merged files are saved to.
+  # fnm_mer
+  #   File name of merged file with all subject, visit entries in feather
+  #   format.
+  # variable 
+  #   String for variable that is present in fnm_mer.
+  # vct_criterion 
+  #   Vector of names for which source(s) is/are the criterion(s).
+  # vct_estimate 
+  #   Vector of names for which source(s) is/are the estimate(s).
+  # output 
+  #   Either "minute", "percent" or "both" to determine how confusion matrix
+  #   will be outputted.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read      = fdr_merge
+  # fdr_write     = fdr_result
+  # fld_mer       = NULL
+  # fnm_mer       = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # variable      = "intensity"
+  # vct_criterion = c("standard",
+  #                   "rmr")
+  # vct_estimate  = c("sojourn3x", "montoye", "rowland", "hildebrand",
+  #                   "freedson", "staudenmayer", "marcotte")
+  # output        = "percent" # minute, percent, both
   
-  tib_mer <- 
-    readr::read_rds(
-      file = paste(fdr_mer,
-                   fnm_mer_rds,
-                   sep = "/")
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  dur_type <- 
+    fnm_mer |> 
+    stri_extract_all_regex(pattern = "DUR.*(?=\\.feather)") |> 
+    vec_unchop()
+  
+  if (is.na(dur_type)) {
+    
+    dur_type <- 
+      "NORMAL"
+    
+  }
+  
+  if (is_null(fld_mer)) {
+    
+    df_mer <- 
+      path(fdr_read,
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  } else {
+    
+    df_mer <- 
+      path(fdr_read,
+           list.files(path    = fdr_read,
+                      pattern = fld_mer),
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  }
+  
+  df_variable <- 
+    df_mer |> 
+    select(starts_with(all_of(variable))) |> 
+    rename_with(.cols = everything(),
+                .fn   = ~stri_replace_all_regex(.x,
+                                                pattern = stri_c(variable, "_"),
+                                                replacement = "")) |> 
+    tidyr::drop_na() |>
+    as.data.table()
+  
+  # Remove any "dark/obscured/oof" if it is present.
+  chk_dark_obscured_oof <- 
+    purrr::map_lgl(.x = names(df_variable),
+                   .f = function(.x) 
+                     "dark/obscured/oof" %in% unique(df_variable[[.x]]))
+  
+  if (any(chk_dark_obscured_oof)) {
+    
+    ind_filter <- 
+      which(chk_dark_obscured_oof) |> 
+      vec_slice(names(df_variable),
+                i = _)
+    
+    for (column in ind_filter) {
+      
+      df_variable <- 
+        df_variable |> 
+        filter(.data[[column]] != "dark/obscured/oof") |> 
+        as.data.table()
+      
+    }
+    
+  }
+  
+  lst_cri_est <- 
+    expand_grid(criterion  = vct_criterion,
+                estimate   = vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  
+  lst_confusion <- 
+    list()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  for (i in seq_along(lst_cri_est)) {
+    
+    c(criterion, estimate) %<-%
+      lst_cri_est[[i]]
+    
+    cli_inform(c(
+      "i" = "{.emph {stri_c(criterion, '_', estimate)}}"
+    ))
+    
+    df_confusion <- 
+      df_variable |> 
+      as_tibble() |>
+      tabyl(.data[[criterion]], .data[[estimate]]) |> 
+      # Change to minutes.
+      mutate(across(.cols = -1,
+                    .fns = ~ round(.x / 60,
+                                   digits = 1))) |> 
+      # So the adorn_ns are based off of minutes.
+      as_tibble() |> 
+      adorn_totals(where = c("row", "col"),
+                   name = c("Total", "Total (minutes)"))
+    
+    switch(
+      EXPR = output,
+      "minute" = {
+        df_confusion <- 
+          df_confusion |> 
+          adorn_title(placement = "combined",
+                      row_name = criterion,
+                      col_name = estimate)
+      },
+      "percent" = {
+        df_confusion <- 
+          df_confusion |> 
+          adorn_percentages(denominator = "row") |> 
+          adorn_pct_formatting(digits = 2) |> 
+          adorn_title(placement = "combined",
+                      row_name = criterion,
+                      col_name = estimate) |> 
+          # Keep Total in minutes.
+          select(-`Total (minutes)`) |> 
+          bind_cols(select(df_confusion,
+                           `Total (minutes)`))
+      },
+      "both" = {
+        df_confusion <- 
+          df_confusion |> 
+          adorn_percentages(denominator = "row") |> 
+          adorn_pct_formatting(digits = 2) |> 
+          adorn_ns(position = "front") |> 
+          adorn_title(placement = "combined",
+                      row_name = criterion,
+                      col_name = estimate)
+      }
+    )
+    
+    type <- 
+      names(df_confusion)[1] |> 
+      stri_replace_all_regex(pattern = "/",
+                             replacement = "_to_") |> 
+      stri_trans_toupper()
+    
+    lst_confusion[[type]] <- 
+      df_confusion |> 
+      rename_with(.cols = 1,
+                  .fn = ~stri_replace_all_regex(.x,
+                                                pattern = "/",
+                                                replacement = "\\\\"))
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Write all confusion matrices in its own folder under fdr_write/csv.
+  fs::dir_create(
+    path(dir_ls(fdr_write,
+                type = "directory",
+                regexp = "csv"),
+         "confusion_matrices")
+    )
+  purrr::walk(
+    .x = names(lst_confusion),
+    function(.x) {
+      fnm_write <- 
+        stri_c(
+          df_mer$study[1],
+          "CONFUSION",
+          stri_trans_toupper(variable),
+          .x,
+          if (output == "both") "MINUTE_PERCENT" else stri_trans_toupper(output),
+          dur_type,
+          sep = "_"
+        )
+      fpa_write <- 
+        path(
+          dir_ls(fdr_write,
+                 type = "directory",
+                 regexp = "csv"),
+          "confusion_matrices",
+          fnm_write
+        )
+      fwrite(
+        lst_confusion[[.x]],
+        file = path_ext_set(fpa_write,
+                            ext = "csv"),
+        sep = ","
+      )
+    }
+  )
+  
+  # Write a collapsed one in fdr_write/csv.
+  fnm_write <- 
+    stri_c(
+      df_mer$study[1],
+      "CONFUSION",
+      stri_trans_toupper(variable),
+      "ALL",
+      if (output == "both") "MINUTE_PERCENT" else stri_trans_toupper(output),
+      dur_type,
+      sep = "_"
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  purrr::map(
+    .x = lst_confusion,
+    function(.x) {
+      col_names <- 
+        names(.x)
+      col_names_generic <- 
+        c("criterion\\estimate",
+          stri_c("Value",
+                 col_names[-(1:2)] |> 
+                   seq_along()),
+          col_names[length(col_names)])
+      .x <- 
+        .x |> 
+        add_row(.before = 1) |> 
+        add_row()
+      .x[1, ] <- 
+        col_names
+      .x[nrow(.x), ] <- 
+        ""
+      names(.x) <- 
+        col_names_generic
+      
+      return(.x)
+      
+    }
+  ) |> 
+    bind_rows() |> 
+    add_row(.before = 1) |> 
+    fwrite(
+      file = path_ext_set(fpa_write,
+                          ext = "csv"),
+      sep = ","
     )
   
-  # Remove first row from each subject_visit to treat each entry in tib_mer as a second
-  # rather than a time anchor.
-  tib_mer <- 
-    tib_mer %>% 
-    group_by(study, subject, visit) %>% 
-    slice(-1) %>% 
-    ungroup()
+  cli_inform(message = c("v" = "SUCCESS"))  
   
-  tib_pos <-
-    tib_mer %>%
-    select(starts_with("posture")) %>%
-    rename_with(.cols = everything(),
-                .fn   = ~ str_remove(.x,
-                                     pattern = "posture_"))
-  tib_int <-
-    tib_mer %>%
-    select(starts_with("intensity")) %>%
-    rename_with(.cols = everything(),
-                .fn   = ~ str_remove(.x,
-                                     pattern = "intensity_"))
-  tib_beh <- 
-    tib_mer %>% 
-    select(starts_with("behavior")) %>% 
-    rename_with(.cols = everything(),
-                .fn   = ~ str_remove(.x,
-                                     pattern = "behavior_"))
-  
-  # tib_pos %>% 
-  #   count(vid, img)
-  table(tib_pos$vid, tib_pos$img) # Same as below but below is better.
-  
-  tib_confusion <- 
-    tib_pos %>% 
-    janitor::tabyl(vid, img) %>% 
-    mutate(across(.cols = !vid,
-                  .fns = ~ round(.x / 60,
-                                 digits = 1))) %>% 
-    as_tibble() # So the adorn_ns are based off of minutes.
-  tib_confusion <- 
-    tib_confusion %>% 
-    adorn_totals(where = c("row", "col")) %>% 
-    adorn_percentages(denominator = "row") %>% 
-    adorn_pct_formatting(digits = 1) %>% 
-    adorn_ns(position = "front") %>% 
-    adorn_title(placement = "combined")
-  
-  vroom_write(
-    tib_confusion,
-    path = paste("./4_results",
-                 "2_csv",
-                 "table_confusion_pos_minutes.csv",
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
-  )
-  
-  tib_confusion <- 
-    tib_int %>% 
-    janitor::tabyl(vid, img) %>% 
-    mutate(across(.cols = !vid,
-                  .fns = ~ round(.x / 60,
-                                 digits = 1))) %>% 
-    as_tibble() # So the adorn_ns are based off of minutes.
-  tib_confusion <- 
-    tib_confusion %>% 
-    adorn_totals(where = c("row", "col")) %>% 
-    adorn_percentages(denominator = "row") %>% 
-    adorn_pct_formatting(digits = 1) %>% 
-    adorn_ns(position = "front") %>% 
-    adorn_title(placement = "combined")
-  
-  vroom_write(
-    tib_confusion,
-    path = paste("./4_results",
-                 "2_csv",
-                 "table_confusion_int_minutes.csv",
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
-  )
-  
-  tib_confusion <- 
-    tib_beh %>% 
-    janitor::tabyl(vid, img) %>% 
-    mutate(across(.cols = !vid,
-                  .fns = ~ round(.x / 60,
-                                 digits = 1))) %>% 
-    as_tibble() # So the adorn_ns are based off of minutes.
-  tib_confusion <- 
-    tib_confusion %>% 
-    adorn_totals(where = c("row", "col")) %>% 
-    adorn_percentages(denominator = "row") %>% 
-    adorn_pct_formatting(digits = 1) %>% 
-    adorn_ns(position = "front") %>% 
-    adorn_title(placement = "combined")
-  
-  vroom_write(
-    tib_confusion,
-    path = paste("./4_results",
-                 "2_csv",
-                 "table_confusion_beh_minutes.csv",
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
-  )
 }
 compute_img_irr <- function(tib_mer_schema) {
   
@@ -8627,5 +9994,1686 @@ compute_img_irr <- function(tib_mer_schema) {
   }
   
   return(tib_irr_schema)
+  
+}
+compute_irr <- function(fdr_read,
+                        fdr_write,
+                        fld_mer,
+                        fnm_mer,
+                        variable,
+                        vct_criterion,
+                        vct_estimate,
+                        kappa_weight = "unweighted") {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - FIRST VERSION
+  # - Only calculates percent agreement & cohens kappa between two
+  #   sources for one variable.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory to CO_ALL_{sources}_{duration_file}.
+  # fdr_write 
+  #   File directory to save confusion matrices to.
+  # fld_mer 
+  #   Folder name where merged files are saved to.
+  # fnm_mer
+  #   File name of merged file with all subject, visit entries in feather
+  #   format.
+  # variable 
+  #   String for variable that is present in fnm_mer.
+  # vct_criterion 
+  #   Vector of names for which source(s) is/are the criterion(s).
+  # vct_estimate 
+  #   Vector of names for which source(s) is/are the estimate(s).
+  # kappa_weight
+  #   Weight of kappa to be used. See ?kappa2 for more info.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read      = fdr_merge
+  # fdr_write     = fdr_result
+  # fld_mer       = NULL
+  # fnm_mer       = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # variable      = "intensity"
+  # vct_criterion = c("standard")
+  # vct_estimate  = c("sojourn3x", "montoye", "rowland", "hildebrand",
+  #                   "freedson", "staudenmayer", "marcotte")
+  # kappa_weight  = "squared"
+  
+  # Uses same arguments as compute_confusion_matrix
+  dur_type <- 
+    fnm_mer |> 
+    stri_extract_all_regex(pattern = "DUR.*(?=\\.feather)") |> 
+    vec_unchop()
+  
+  if (is.na(dur_type)) {
+    
+    dur_type <- 
+      "NORMAL"
+    
+  }
+  
+  if (is_null(fld_mer)) {
+    
+    df_mer <- 
+      path(fdr_read,
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  } else {
+    
+    df_mer <- 
+      path(fdr_read,
+           list.files(path    = fdr_read,
+                      pattern = fld_mer),
+           fnm_mer) |> 
+      arrow::read_feather() |> 
+      # Remove the first row of each visit to have correct comparisons
+      # (start time was always treated as an anchor, not as a data point.)
+      group_by(study, subject, visit) |> 
+      slice(-1) |> 
+      ungroup() |> 
+      as.data.table()
+    
+  }
+  
+  df_variable <- 
+    df_mer |> 
+    select(starts_with(all_of(variable))) |> 
+    rename_with(.cols = everything(),
+                .fn   = ~stri_replace_all_regex(.x,
+                                                pattern = stri_c(variable, "_"),
+                                                replacement = "")) |> 
+    tidyr::drop_na() |>
+    as.data.table()
+  
+  # Remove any "dark/obscured/oof" if it is present.
+  chk_dark_obscured_oof <- 
+    purrr::map_lgl(.x = names(df_variable),
+                   .f = function(.x) 
+                     "dark/obscured/oof" %in% unique(df_variable[[.x]]))
+  
+  if (any(chk_dark_obscured_oof)) {
+    
+    ind_filter <- 
+      which(chk_dark_obscured_oof) |> 
+      vec_slice(names(df_variable),
+                i = _)
+    
+    for (column in ind_filter) {
+      
+      df_variable <- 
+        df_variable |> 
+        filter(.data[[column]] != "dark/obscured/oof") |> 
+        as.data.table()
+      
+    }
+    
+  }
+  
+  lst_cri_est <- 
+    expand_grid(criterion  = vct_criterion,
+                estimate   = vct_estimate) |> 
+    data.table::transpose() |> 
+    as.list() |> 
+    set_names(nm = NULL)
+  
+  lst_irr <- 
+    list()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  for (i in seq_along(lst_cri_est)) {
+    
+    c(criterion, estimate) %<-%
+      lst_cri_est[[i]]
+    
+    cli_inform(c(
+      "i" = "{.emph {stri_c(criterion, '_', estimate)}}"
+    ))
+    
+    df_cri_est <- 
+      df_variable |> 
+      select(.data[[criterion]], .data[[estimate]]) |> 
+      as.data.table()
+    # irr::agree(df_cri_est)
+    # df_cri_est |> 
+    #   summarise(
+    #     `%_agree` = 
+    #       (.data[[criterion]] == .data[[estimate]]) |> 
+    #       sum() / 
+    #       n() *
+    #       100
+    #   )
+    # irr::kappa2(
+    #   df_cri_est, # subjects x 2 raters
+    #   weight = kappa_weight
+    # )
+    # irr::icc(
+    #   df_cri_est, # subjects x raters
+    #   model = "oneway",
+    #   type = "consistency",
+    #   unit = "single"
+    # )
+    df_irr <- 
+      tibble(
+        criterion   = criterion,
+        estimtae    = estimate,
+        `%_agree`   = 
+          (df_cri_est[[criterion]] == df_cri_est[[estimate]]) |> 
+          sum() / 
+          nrow(df_cri_est) *
+          100,
+        kappa_method = kappa_weight,
+        kappa_value = 
+          irr::kappa2(
+            df_cri_est, # subjects x 2 raters
+            weight = kappa_weight
+          )$value
+      )
+    
+    type <- 
+      stri_c(criterion, '_to_', estimate) |> 
+      stri_trans_toupper()
+    lst_irr[[type]] <- 
+      df_irr
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  fnm_write <- 
+    stri_c(
+      df_mer$study[1],
+      "IRR",
+      stri_trans_toupper(variable),
+      dur_type,
+      sep = "_"
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  rbindlist(lst_irr) |> 
+    fwrite(
+      file = path_ext_set(fpa_write,
+                          ext = "csv"),
+      sep = ","
+    )
+  
+  cli_inform(message = c("v" = "SUCCESS"))  
+  
+}
+compute_summary_subject_characteristics <- function(fdr_read,
+                                                    fdr_write,
+                                                    fnm_teleform,
+                                                    filter_sub) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First Version
+  # - Calculates average age & BMI as well as frequency & percent.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory of teleform file (should be in RAW folder & not in a 
+  #   subdirectory).
+  # fdr_write 
+  #   File directory to save summary file to.
+  # fnm_teleform 
+  #   File name of teleform file.
+  # filter_sub 
+  #   Vector of integers to filter teleform file by.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Add a ".by" argument wher it allows yout to display overall
+  #   participant demographics and also by the ".by" argument.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read     = fdr_raw
+  # fdr_write    = fdr_result
+  # fnm_teleform = "COV1MERGED2022-03-09v2.csv"
+  # filter_sub   = 
+  #   arrow::read_feather(path(fdr_process,
+  #                            "CO_VISIT_SUM_MINUTES_INTENSITY_FROM_DURATION.feather")) |> 
+  #   pull(subject) |> 
+  #   unique()
+  # filter_sub   = 
+  #   c(
+  #     1001, 1002, 1003, 1004, 1005,
+  #     1007, 1008, 1009, 1010, #1011,
+  #     1025, 1031, #1036,
+  #     1063, 1067,
+  #     1070 #1072, 1073, 1074, 1075,
+  #     #1076
+  #   )
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_tele <- 
+    fread(
+      file = path(fdr_read,
+                  fnm_teleform),
+      sep = ",",
+      fill = TRUE
+    )
+  setnames(df_tele,
+           new = stri_trans_tolower)
+  
+  if (df_tele$site[1] == 0L) {
+    
+    study <- 
+      "CO"
+    
+  } else {
+    
+    study <- 
+      "FLAC"
+    
+  }
+  
+  df_tele <- 
+    df_tele |> 
+    filter(subjectid %in% filter_sub) |> 
+    select(subjectid,
+           functcat,
+           race,
+           hisp,
+           # sex,
+           gender,
+           age = agecalc,
+           bmi = bmicalc
+    ) |> 
+    mutate(
+      race = 
+        race |> 
+        factor(levels = 1:7,
+               labels = c("White",
+                          "African American",
+                          "Asian",
+                          "Native American or Indian",
+                          "Hawaiian or Other Pacific Islander",
+                          "Other Race",
+                          "Multi Race")),
+      hisp = 
+        hisp |> 
+        factor(levels = 0:1,
+               labels = c("Non Hispanic",
+                          "Hispanic or Latino")),
+      gender = 
+        gender |> 
+        factor(levels = 0:2,
+               labels = c("Female",
+                          "Male",
+                          "Other"))
+    ) |> 
+    as_tibble()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_summary <- 
+    bind_rows(
+      # Age, BMI, Subject N
+      df_tele |> 
+        group_by() |> 
+        summarise(
+          `Age (years)` = 
+            stri_c(
+              age |> 
+                mean() |> 
+                round(digits = 1),
+              " \u00B1 ",
+              age |> 
+                sd() |> 
+                round(digits = 1)
+            ),
+          `BMI (kg/m2)` = 
+            stri_c(
+              bmi |> 
+                mean() |> 
+                round(digits = 1),
+              " \u00B1 ",
+              bmi |> 
+                sd() |> 
+                round(digits = 1)
+            ),
+          Subjects = n()
+        ) |> 
+        transpose(keep.names = "Variable") |> 
+        rename(n = V1),
+      # Race
+      tibble_row(Variable = "Race", n = ""),
+      df_tele |> 
+        group_by(Variable = race) |> 
+        tally() |> 
+        mutate(
+          Variable = stri_c("     ",
+                            Variable),
+          n        = stri_c(n,
+                            " ",
+                            label_percent(accuracy = 1,
+                                          prefix = "(",
+                                          suffix = "%)")(n / sum(n)))
+        ),
+      # Gender
+      tibble_row(Variable = "Gender", n = ""),
+      df_tele |> 
+        group_by(Variable = gender) |> 
+        tally() |> 
+        mutate(
+          Variable = stri_c("     ",
+                            Variable),
+          n        = stri_c(n,
+                            " ",
+                            label_percent(accuracy = 1,
+                                          prefix = "(",
+                                          suffix = "%)")(n / sum(n)))
+        )
+    ) |> 
+    rename("n (%)\nMean \u00B1 SD" = n)
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  fnm_write <- 
+    stri_c(
+      study,
+      "_SUMMARY_SUBJECT_CHARACTERISTICS"
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  fwrite(
+    df_summary,
+    file = path_ext_set(fpa_write,
+                        ext = "csv"),
+    sep = ",",
+    bom = TRUE
+  )
+  
+  cli_inform(message = c("v" = "SUCCESS"))  
+  
+}
+compute_summary_visit <- function(fdr_read,
+                                  fdr_write,
+                                  time_units) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First Version
+  # - Calculates total visit length & average plus/minus SD for 
+  #   each duration file present in processed folder.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read 
+  #   File directory of duration files.
+  # fdr_write 
+  #   File directory to save summary file to.
+  # time_units 
+  #   Unit of time to have all summary results in.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "3_data", "4_processed")
+  # fdr_write <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # time_units <- 
+  #   "hours" # secs, mins, hours
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SETUP                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # Find duration files. If there is a duration file with "GE" in the filename
+  # then add a "Visit Length with {variable} {Source} ≥ {ge_than value (in 
+  # minutes)} ({time_units})" row.
+  vct_fpa_dur <- 
+    dir_ls(
+      path = fdr_read,
+      type = "file",
+      regexp = "ALL_DUR.*feather$"
+    )
+  names(vct_fpa_dur) <- 
+    vct_fpa_dur |> 
+    path_file() |> 
+    stri_extract(regex = "DUR_\\w{3}_\\w{3}_GE_\\d*|DURATION")
+  lst_duration <- 
+    purrr::map(.x = vct_fpa_dur,
+               .f = ~arrow::read_feather(.x))
+  lst_summary <- 
+    list()
+  study <- 
+    chuck(lst_duration, 1, 1, 1)
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                           COMPUTE                         ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  for (i in seq_along(lst_duration)) {
+    
+    df <- 
+      lst_duration[[i]]
+    type <- 
+      names(lst_duration)[i]
+    
+    cli_inform(c(
+      "i" = type
+    ))
+    
+    if (type == "DURATION") {
+      
+      avg_txt <- 
+        ""
+      tot_txt <- 
+        ""
+      
+    } else {
+      
+      ge_than <- 
+        type |> 
+        stri_extract_all_regex(pattern = "(?<=GE_).*") |> 
+        vec_unchop() |> 
+        as.double() / 
+        60
+      
+      if (ge_than == 1) {
+        
+        ge_than_txt <- 
+          stri_c(ge_than, " minute")
+        
+      } else {
+        
+        ge_than_txt <- 
+          stri_c(ge_than, " minutes")
+        
+      }
+      
+      avg_txt <- 
+        type |> 
+        stri_replace_all_regex(pattern = "DUR_",
+                               replacement = "") |> 
+        stri_replace_all_regex(pattern = "GE.*",
+                               replacement = "\u2265") |> 
+        stri_split_regex(pattern = "_") |> 
+        vec_unchop() |> 
+        stri_c(collapse = " ") %>% 
+        glue::glue(
+          " with",
+          .,
+          ge_than_txt,
+          .sep = " "
+        )
+      tot_txt <- 
+        stri_c(" (", stri_trim(avg_txt), ")")
+      
+    }
+    
+    df_vis_len_var_src <- 
+      df |> 
+      filter(!is.na(value)) |> 
+      group_by(study, subject, visit, source, variable,
+               arrange = FALSE) |> 
+      summarise(visit_length = sum(duration),
+                .groups = "drop") |> 
+      arrange(study, subject, visit) |> 
+      group_by(study, subject, visit,
+               arrange = FALSE) |> 
+      mutate(diff_length = 
+               !(duplicated(visit_length) | 
+                   duplicated(visit_length, fromLast=TRUE))) |> 
+      ungroup() |> 
+      as_tibble()
+    
+    if (any(df_vis_len_var_src$diff_length)) {
+      
+      fnm <- 
+        vct_fpa_dur[i] |> 
+        path_file()
+      stu_sub_vis <- 
+        df_vis_len_var_src[diff_length == TRUE,
+                           .(study, subject, visit)] |> 
+        stri_c(collapse = "_")
+      var_src <- 
+        df_vis_len_var_src[diff_length == TRUE,
+                           .(variable, source)] |> 
+        stri_c(collapse = "_")
+      
+      cli_abort(
+        message = c(
+          "!" =  "{.file {fnm}} from {.path fdr_read}",
+          "!" =  "{.strong {stu_sub_vis}} variable source {.emph {var_src}} does not match total
+        visit length of other variable sources.",
+          "!" =  "Double-check merged file that was used to process duration file."
+        )
+      )
+      
+    }
+    
+    units(df_vis_len_var_src$visit_length) <- 
+      time_units
+    
+    lst_summary[[i]] <- 
+      bind_rows(
+        df_vis_len_var_src |> 
+          summarise(
+            Variable = 
+              glue::glue("Total Visit {stri_trans_totitle(time_units)}{tot_txt}"),
+            Value = 
+              visit_length |> 
+              unique() |> 
+              sum() |> 
+              round(digits = 2) |> 
+              as.character()
+          ),
+        df_vis_len_var_src |> 
+          summarise(
+            Variable = 
+              glue::glue("Visit Length{avg_txt} ({time_units})"),
+            mean = 
+              visit_length |> 
+              unique() |> 
+              mean() |> 
+              round(digits = 2),
+            sd   = 
+              visit_length |> 
+              unique() |> 
+              sd() |> 
+              round(digits = 2)
+          ) |> 
+          unite(col = "Value",
+                mean, sd,
+                sep = " \u00B1 ")
+      )
+    
+  }
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            WRITE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  df_summary <- 
+    lst_summary |> 
+    rbindlist() |> 
+    arrange(Variable) |> 
+    as.data.table()
+  
+  fnm_write <- 
+    stri_c(
+      study,
+      "_SUMMARY_VISIT_",
+      stri_trans_toupper(time_units)
+    )
+  fpa_write <- 
+    path(
+      dir_ls(fdr_write,
+             type = "directory",
+             regexp = "csv"),
+      fnm_write
+    )
+  fwrite(
+    df_summary,
+    file = path_ext_set(fpa_write,
+                        ext = "csv"),
+    sep = ",",
+    bom = TRUE
+  )
+  
+}
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                         %%%%
+####                              PLOT FUNCTIONS                             ----
+####                                                                         %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+plot_bias <- function(fdr_result,
+                      vct_criterion,
+                      vct_estimate,
+                      vct_variable,
+                      lst_recode       = list(criterion = NULL,
+                                              estimate  = NULL,
+                                              variable  = NULL,
+                                              value     = NULL),
+                      collapse         = FALSE,
+                      separate_values  = FALSE,
+                      flip_axes        = FALSE,
+                      duration_type    = "normal",
+                      type) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First Version.
+  # - Outputs three types of graphs:
+  #   - "Default" which shows all of the variable values on one 
+  #     axis and facets by 1) combinations of vct_criterion & vct_estimate
+  #     & by 2) vct_variable.
+  #   - "Collapsed" which shows all combinations between vct_criterion
+  #     and vct_estimate for each variable in one graph then facets
+  #     by vct_variable.
+  #   - "Separate Values" which has all the values from each estimate
+  #     in one graph (faceted by values within vct_variable). CAN ONLY
+  #     ACCEPT ONE VARIABLE.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result 
+  #   File directory to where the results folder is located.
+  # vct_criterion 
+  #   Character vector of criterions to filter bias tables by.
+  # vct_estimate 
+  #   Character vector of estimates to filter bias tables by.
+  # vct_variable 
+  #   Character vector of variables to filter which bias tables are read in.
+  # lst_recode 
+  #   List of `criteiron`, `estimate`, `variable` & `value` where each entry 
+  #   is a named character vector. The name represents what to change in the 
+  #   respective entry IN TITLE CASE & the element represents what to change
+  #   the name to.
+  # collapse 
+  #   Logical on whether to collapse combinations between criterions and 
+  #   estimates to one graph per variable. If FALSE, the default is to have one 
+  #   graph per variable per combination.
+  # separate_values 
+  #   Logical on whether to have separate graphs for each value in the variable.
+  # flip_axes 
+  #   Logical on whether to have Bias appear in the x-axis or in the y-axis.
+  # duration_type
+  #   "normal"  = "DURATION" files or
+  #   "ge_than" = "DUR_{Variable}_{Source}_{ge_than_value}" files.
+  # type 
+  #   "minute" or "percent"
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make "default" graph.
+  # - duration_type argument can't just be "ge_than". It has to be "ge_[NUMBER]"
+  #   in order to filter out the correct bias file.
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_result <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # fdr_result <- 
+  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
+  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
+  #        "4_results")
+  # vct_criterion <- 
+  #   c("standard", "rmr")
+  # vct_estimate <- 
+  #   c("noldus")
+  # vct_variable <- 
+  #   c("intensity")
+  # # c("intensity",
+  # #   "posture")
+  # lst_recode <- 
+  #   list(criterion = c("Rmr" = "RMR"),
+  #        estimate  = c("Noldus" = "Video"),
+  #        variable  = NULL,
+  #        value     = c("Mvpa" = "MVPA"))
+  # collapse <- 
+  #   TRUE
+  # separate_values <- 
+  #   FALSE
+  # flip_axes <- 
+  #   FALSE
+  # type <- 
+  #   "minute" # minutes, percent
+  # fdr_result       = fdr_result
+  # vct_criterion    = c("standard")
+  # vct_estimate     = c("sojourn3x", "montoye", "rowland", "hildebrand",
+  #                      "freedson", "staudenmayer", "marcotte")
+  # vct_variable     = c("intensity")
+  # lst_recode       = list(criterion = c("Standard" = "Chamber"),
+  #                         estimate  = NULL,
+  #                         variable  = NULL,
+  #                         value     = c("Mvpa" = "MVPA"))
+  # collapse         = FALSE
+  # separate_values  = TRUE
+  # flip_axes        = FALSE
+  # duration_type    = "normal"
+  # type             = "minute"
+  
+  # g <- 
+  #   ggplot(data = mpg) +
+  #   geom_point(mapping = aes(x = displ, y = hwy)) +
+  #   coord_flip()
+  # cowplot::plot_grid(g, g, labels=c("A","B"))
+  
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                             READ                           ----
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  cli_inform(c(
+    "i" = "READ"
+  ))
+  # First make sure only one true value was supplied for "collapse" and 
+  # "separate values"
+  if (collapse & separate_values) {
+    
+    cli_abort(c(
+      "Both {.arg collapse} and {.arg separate_values} are TRUE.",
+      "i" = "Only one of these arguments can be true."
+    ))
+    
+  }
+  
+  # If any entry in lst_recode is NULL, give it a dummy named vector.
+  for (i in seq_along(lst_recode)) {
+    
+    if (is_null(lst_recode[[i]])) {
+      
+      lst_recode[[i]] <- 
+        c("BLEU"        = "BOI",
+          "DANGEROUS"   = "DOODOO",
+          "MENTOS"      = "MOMMY",
+          "MAGNIFICENT" = "MONTIPORA")
+    }
+    
+  }
+  
+  # Filter by vct_variable then by type, then by duration_type.
+  vct_fpa_bias <- 
+    dir_ls(
+      path = fdr_result,
+      type = "file",
+      recurse = 1,
+      regexp = 
+        vct_variable |> 
+        stri_trans_toupper() %>% 
+        stri_c("BIAS_", ., "_", stri_trans_toupper(type), ".*\\.feather$") |> 
+        stri_c(collapse = "|")
+    )
+  if (duration_type == "normal") {
+    
+    vct_fpa_bias <- 
+      vct_fpa_bias |> 
+      path_filter(regexp = "DURATION")
+    
+  } else if (duration_type == "ge_than"){
+    
+    vct_fpa_bias <- 
+      vct_fpa_bias |> 
+      path_filter(regexp = "DUR_")
+    
+  }
+  
+  df_bias <- 
+    purrr::map_dfr(.x = vct_fpa_bias,
+                   .f = ~arrow::read_feather(.x)) |> 
+    # Remove rows that do not contain vct_criterion & vct_estimate.
+    filter(stri_detect_regex(criterion,
+                             pattern = stri_c(vct_criterion,
+                                              collapse = "|"))) |> 
+    filter(stri_detect_regex(estimate,
+                             pattern = stri_c(vct_estimate,
+                                              collapse = "|"))) |> 
+    as_tibble()
+  
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            SHAPE                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  cli_inform(c(
+    "i" = "SHAPE"
+  ))
+  # Change values to have mean criterion value underneath value name.
+  # Somehow make it pipeable later?
+  cli_inform(c(
+    "i" = "Adding criterion mean value underneath value names."
+  ))
+  
+  for (i in seq_along(vct_variable)) {
+    
+    .variable <- 
+      vct_variable[i]
+    
+    c(len_cri, len_val) %<-% (
+      df_bias |> 
+        filter(variable == .variable) |> 
+        summarise(across(.cols = c(criterion, value),
+                         .fns = uniqueN)) |> 
+        as_tibble() |> 
+        as.list()
+    )
+    
+    value_fig <- 
+      df_bias |> 
+      filter(variable == .variable) |> 
+      pull(value) |> 
+      unique() |> 
+      stri_trans_totitle() |> 
+      recode(!!!lst_recode$value)
+    
+    
+    for (ii in seq_len(len_cri)) {
+      
+      vct_mean <- 
+        df_bias |> 
+        filter(variable == .variable) |> 
+        pull(mean) |> 
+        vec_slice(i = c(seq_len(len_val) * ii))
+      value_fig <- 
+        value_fig |> 
+        stri_c("\n(", vct_mean, " min)")
+    }
+    
+    df_bias$value[df_bias$variable == .variable] <- value_fig
+    
+  }
+  
+  df_plot <- 
+    df_bias |> 
+    # Pretty up values.
+    mutate(across(.cols = 1:variable,
+                  .fns = stri_trans_totitle)) |> 
+    mutate(criterion = recode(criterion,
+                              !!!lst_recode$criterion),
+           estimate = recode(estimate,
+                             !!!lst_recode$estimate),
+           variable = recode(variable,
+                             !!!lst_recode$variable)) |> 
+    as_tibble() |> 
+    unite(col = "combination",
+          estimate, criterion,
+          sep = " - ",
+          remove = FALSE) |> 
+    # As factors.
+    mutate(
+      across(.cols = c(combination:summary_statistic,
+                       variable:value),
+             .fns  = forcats::as_factor)
+    ) |> 
+    # pull(value) |> 
+    # Pretty up column names.
+    rename_with(.cols = everything(),
+                .fn = stri_trans_totitle) |> 
+    # # When multiple combinations, it is not in order. Reverse it to do so
+    # arrange(rev(Combination)) |>
+    as_tibble()
+  
+  # Change text for geom_label depending on `type`.
+  switch(
+    EXPR = type,
+    "minute" = {
+      df_plot$Label <- 
+        df_plot$Bias
+    },
+    "percent" = {
+      df_plot$Label <- 
+        label_percent(accuracy = 1)(df_plot$Bias)
+    }
+  )
+  
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                             PLOT                           ----
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  cli_inform(c(
+    "i" = "Plotting bias values."
+  ))
+  
+  if (collapse) {
+    
+    fig_bias <- 
+      df_plot |> 
+      ggplot() +
+      geom_vline(
+        mapping  = aes(xintercept = 0),
+        linetype = "dashed"
+      ) +
+      geom_errorbar(
+        mapping  = aes(y     = Value,
+                       xmin  = Lower,
+                       xmax  = Upper,
+                       color = Combination), # When multiple combinations.
+        position = position_dodge(width = -0.5),
+        width    = 0.25
+      ) +
+      geom_point(
+        mapping  = aes(x     = Bias,
+                       y     = Value,
+                       color = Combination),
+        position = position_dodge(width = -0.5) # When multiple combinations.
+      ) +
+      geom_label(
+        # data =
+        #   df_plot |> 
+        #   filter(stri_detect(df_plot$Value,
+        #                      regex = "Sedentary|Light")),
+        mapping = aes(x     = Bias,
+                      y     = Value,
+                      label = Label),
+        color = "black",
+        size = 8 / .pt,
+        label.padding = unit(0.10, units = "lines")
+        # position = position_jitter()
+        # nudge_y = 0.2
+      ) +
+      # The reverse factor order is presented, change it to how it appears in 
+      # table.
+      scale_y_discrete(limits = rev) +
+      scale_x_continuous(breaks = scales::breaks_extended(n = 7)) +
+      # `collapse` specific.
+      coord_capped_cart(
+        left = brackets_vertical(direction = 'right')
+      ) +
+      scale_color_brewer(palette = "Dark2")
+      
+      if (length(vct_variable) != 1L) {
+        
+        # include "paste0("~underline('", {variable}, "')")" to have underline
+        # under header for facets? Right now, NO.
+        
+        fig_bias <- 
+          fig_bias +
+          facet_wrap(
+            facets = vars(Variable),
+            # nrow = length(vct_variable),
+            ncol = length(vct_variable),
+            scales = "free_y",
+            drop = TRUE
+            # dir = "h"
+            # labeller = label_parsed
+          ) +
+          labs(y = "Category")
+        
+      } else {
+        
+        fig_bias <- 
+          fig_bias +
+          labs(y = stri_trans_totitle(vct_variable))
+        
+      }
+    
+  } else if (separate_values) {
+    
+    # Change newlines in values to spaces so as to not clog up facet headers.
+    df_plot <- 
+      df_plot |> 
+      mutate(Value = 
+               Value |> 
+               stri_replace_all_regex(pattern = "\n",
+                                      replacement = " ") |> 
+               as_factor())
+    
+    fig_bias <- 
+      df_plot |> 
+      ggplot() +
+      geom_vline(
+        mapping  = aes(xintercept = 0),
+        linetype = "dashed"
+      ) +
+      geom_errorbar(
+        mapping  = aes(y     = Estimate,
+                       xmin  = Lower,
+                       xmax  = Upper),
+        # position = position_dodge(width = -0.5),
+        width    = 0.25
+      ) +
+      geom_point(
+        mapping = aes(x = Bias,
+                      y = Estimate)
+      ) +
+      geom_label(
+        mapping = aes(x     = Bias,
+                      y     = Estimate,
+                      label = Label),
+        color = "black",
+        size = 8 / .pt,
+        label.padding = unit(0.10, units = "lines")
+        # position = position_jitter()
+        # nudge_y = 0.2
+      ) +
+      # The reverse factor order is presented, change it to how it appears in 
+      # table.
+      scale_y_discrete(limits = rev) +
+      scale_x_continuous(breaks = scales::breaks_extended(n = 7)) +
+      # `separate_values` specific.
+      labs(y = "Estimates")
+    
+    if (length(vct_criterion) == 1) {
+      
+      # include "paste0("~underline('", {variable}, "')")" to have underline
+      # under header for facets? Right now, NO.
+      
+      fig_bias <- 
+        fig_bias +
+        facet_wrap(
+          facets = vars(Value),
+          nrow = uniqueN(df_plot$Value),
+          ncol = 1,
+          scales = "free_y",
+          drop = TRUE
+          # dir = "h"
+          # labeller = label_parsed
+        )  
+      
+    } else {
+      
+      fig_bias <- 
+        fig_bias +
+        facet_wrap(
+          facets = vars(Value, Criterion),
+          nrow = uniqueN(df_plot$Value),
+          ncol = length(vct_criterion),
+          scales = "free_y",
+          drop = TRUE
+          # dir = "h"
+          # labeller = label_parsed
+        )  
+      
+    }
+    
+  } else {
+    
+    # Default: Look at Mikes figure for 2022_NACSM.
+    return("FUCK")
+    
+  }
+  
+  if (type == "percent") {
+    
+    fig_bias <- suppressMessages(
+      fig_bias +
+        scale_x_continuous(labels = label_percent(),
+                           breaks = scales::breaks_extended(n = 7)) +
+        labs(x = "Bias (%)")
+    )
+    
+  } else {
+    
+    fig_bias <- 
+      fig_bias +
+      labs(x = "Bias (minutes)")
+  }
+  
+  if (flip_axes) {
+    
+    fig_bias <- 
+      fig_bias +
+      coord_flip() +
+      theme(
+        panel.grid.major.y         = element_line(
+          color = "grey85"
+        ),
+        panel.grid.minor.y         = element_line(
+          color = "grey85"
+        )
+      )
+    
+  } else {
+    
+    fig_bias <- 
+      fig_bias +
+      theme(
+        panel.grid.major.x         = element_line(
+          color = "grey85"
+        ),
+        panel.grid.minor.x         = element_line(
+          color = "grey85"
+        )
+      ) +
+      facet_wrap(
+        facets = vars(Value),
+        ncol = uniqueN(df_plot$Value),
+        nrow = 1,
+        scales = "free_x",
+        drop = TRUE
+        # dir = "h"
+        # labeller = label_parsed
+      )      
+    
+  }
+  
+  fig_bias <- 
+    fig_bias +
+    # theme_light() +
+    theme(
+      text                       = element_text(
+        family        = "",                                # DEFAULT
+        face          = "plain",                           # DEFAULT
+        colour        = "black",                           # DEFAULT
+        size          = 12,
+        hjust         = 0.5,                               # DEFAULT
+        vjust         = 0.5,                               # DEFAULT
+        angle         = 0,                                 # DEFAULT
+        lineheight    = 0.9,                               # DEFAULT
+        margin        = margin(t = 0,                      # DEFAULT
+                               r = 0,                      # DEFAULT
+                               b = 0,                      # DEFAULT
+                               l = 0,                      # DEFAULT
+                               unit = "pt"),               # DEFAULT
+        debug         = FALSE,                             # DEFAULT
+        inherit.blank = FALSE                              # DEFAULT
+      ),
+      title                      = element_text(
+        family        = "",                                # DEFAULT
+        face          = "bold",                            # DEFAULT
+        colour        = "black",                           # DEFAULT
+        size          = rel(1.2),
+        hjust         = 0.5,                               # DEFAULT
+        vjust         = 0.5,                               # DEFAULT
+        angle         = 0,                                 # DEFAULT
+        lineheight    = 0.9,                               # DEFAULT
+        margin        = margin(t = 0,                      # DEFAULT
+                               r = 0,                      # DEFAULT
+                               b = 0,                      # DEFAULT
+                               l = 0,                      # DEFAULT
+                               unit = "pt"),               # DEFAULT
+        debug         = FALSE,                             # DEFAULT
+        inherit.blank = FALSE                              # DEFAULT
+      ),
+      axis.text                  = element_text(
+        family        = NULL,                              # DEFAULT
+        face          = NULL,                              # DEFAULT
+        colour        = "black",
+        size          = rel(0.8),                          # DEFAULT
+        hjust         = NULL,                              # DEFAULT
+        vjust         = NULL,                              # DEFAULT
+        angle         = NULL,                              # DEFAULT
+        lineheight    = NULL,                              # DEFAULT
+        margin        = NULL,                              # DEFAULT
+        debug         = NULL,                              # DEFAULT
+        inherit.blank = TRUE                               # DEFAULT
+      ),
+      plot.title                 = element_text(hjust = 0.5),
+      panel.border               = element_blank(),
+      # axis.ticks.y.left = element_line(),
+      # TODO: CHANGE THIS LATER AS it is not the same for collapse == TRUE.
+      axis.line.y                = element_line(),
+      axis.line.x                = element_line(),
+      # axis.line    = element_line(),
+      panel.background           = element_rect(
+        fill          = NA,
+        colour        = NA,                                # DEFAULT
+        size          = NULL,                              # DEFAULT
+        linetype      = NULL,                              # DEFAULT
+        inherit.blank = TRUE                               # DEFAULT
+      ),
+      legend.key                 = element_rect(fill = NA),
+      # panel.grid.major.x         = element_line(
+      #   color = "grey85"
+      # ),
+      # panel.grid.minor.x         = element_line(
+      #   color = "grey85"
+      # ),
+      # panel.grid.major.y       = element_blank(),
+      strip.background           = element_rect(fill = "white",
+                                                color = NULL),
+      strip.text                 = element_text(color = "black")
+    )
+  
+  return(fig_bias)
+  
+  cli_abort(c(
+    "i" = "SHOULD NOT BE HERE IF RUNNING FUNCTION."
+  ))
+  
+  theme( # theme_grey()
+    line         = element_line(
+      colour        = "black",                           # DEFAULT
+      size          = 0.5,                               # DEFAULT
+      linetype      = 1,                                 # DEFAULT
+      lineend       = "butt",                            # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    rect         = element_rect(
+      fill          = "white",                           # DEFAULT
+      colour        = "black",                           # DEFAULT
+      size          = 0.5,                               # DEFAULT
+      linetype      = 1,                                 # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    text         = element_text(
+      family        = "",                                # DEFAULT
+      face          = "plain",                           # DEFAULT
+      colour        = "black",                           # DEFAULT
+      size          = 11,                                # DEFAULT
+      hjust         = 0.5,                               # DEFAULT
+      vjust         = 0.5,                               # DEFAULT
+      angle         = 0,                                 # DEFAULT
+      lineheight    = 0.9,                               # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = FALSE,                             # DEFAULT
+      inherit.blank = FALSE                              # DEFAULT
+    ),
+    # title        = element_text(),
+    # aspect.ratio = 1, # 1, 3/4, 1/2, 1/4
+    # axis.title                 = element_text(),
+    axis.title.x               = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 2.75,                   # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.title.x.top           = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 0,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 2.75,                   # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.title.x.bottom        = element_text(),
+    axis.title.y               = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = 90,                                # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 2.75,                   # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.title.y.left          = element_text(),
+    axis.title.y.right         = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 0,                                 # DEFAULT
+      angle         = -90,                               # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 2.75,                   # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.text                  = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = "grey30",                          # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.text.x                = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 2.2,                    # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.text.x.top            = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = 0,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 2.2,                    # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.text.x.bottom         = element_text(),
+    axis.text.y                = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 1,                                 # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 2.2,                    # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.text.y.left           = element_text(),
+    axis.text.y.right          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 2.2,                    # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    axis.ticks                 = element_line(
+      colour        = "grey20",                          # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      lineend       = NULL,                              # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # axis.ticks.x               = element_line(),
+    # axis.ticks.x.top           = element_line(),
+    # axis.ticks.x.bottom        = element_line(),
+    # axis.ticks.y               = element_line(),
+    # axis.ticks.y.left          = element_line(),
+    # axis.ticks.y.right         = element_line(),
+    axis.ticks.length          = unit(2.75,              # DEFAULT ?unit
+                                      units = "points"), # DEFAULT
+    # axis.ticks.length.x        = unit(x, units = ),
+    # axis.ticks.length.x.top    = unit(x, units = ),
+    # axis.ticks.length.x.bottom = unit(x, units = ),
+    # axis.ticks.length.y        = unit(x, units = ),
+    # axis.ticks.length.y.left   = unit(x, units = ),
+    # axis.ticks.length.y.right  = unit(x, units = ),
+    axis.line                  = element_blank(),        # DEFAULT
+    # axis.line.x                = element_line(),
+    # axis.line.x.top            = element_line(),
+    # axis.line.x.bottom         = element_line(),
+    # axis.line.y                = element_line(),
+    # axis.line.y.left           = element_line(),
+    # axis.line.y.right          = element_line(),
+    legend.background     = element_rect(
+      fill          = "white",                           # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    legend.margin         = margin(t = 5.5,              # DEFAULT
+                                   r = 5.5,              # DEFAULT
+                                   b = 5.5,              # DEFAULT
+                                   l = 5.5,              # DEFAULT
+                                   unit = "pt"),         # DEFAULT
+    legend.spacing        = unit(11,                     # DEFAULT ?unit
+                                 units = "points"),      # DEFAULT
+    # legend.spacing.x      = unit(x, units = ),
+    # legend.spacing.y      = unit(x, units = ),
+    legend.key            = element_rect(
+      fill          = "grey95",                          # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    legend.key.size       = unit(1.2,                    # DEFAULT ?unit
+                                 units = "lines"),       # DEFAULT
+    # legend.key.height     = unit(x, units = ),
+    # legend.key.width      = unit(x, units = ),
+    legend.text           = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # legend.text.align     = 0, #  (number from 0 (left) to 1 (right))
+    legend.title          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # legend.title.align    = 0, #  (number from 0 (left) to 1 (right))
+    legend.position       = "right", # ("none", "left", "right", "bottom", "top", or two-element numeric vector)
+    # legend.direction      = NULL, #  ("horizontal" or "vertical")
+    legend.justification  = "center", # ("center" or two-element numeric vector)
+    # legend.box            = NULL, #  ("horizontal" or "vertical")
+    # legend.box.just       = NULL, # ("top", "bottom", "left", or "right")
+    legend.box.margin     = margin(t = 0,                # DEFAULT
+                                   r = 0,                # DEFAULT
+                                   b = 0,                # DEFAULT
+                                   l = 0,                # DEFAULT
+                                   unit = "cm"),         # DEFAULT
+    legend.box.background = element_blank(),             # DEFAULT
+    legend.box.spacing    = unit(11,                    # DEFAULT ?unit
+                                 units = "points"),       # DEFAULT
+    panel.background   = element_rect(
+      fill          = "grey92",                          # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    panel.border       = element_blank(),                # DEFAULT
+    panel.spacing      = unit(5.5,                       # DEFAULT ?unit
+                              units = "points"),         # DEFAULT
+    # panel.spacing.x    = unit(x, units = ),
+    # panel.spacing.y    = unit(x, units = ),
+    panel.grid         = element_line(
+      colour        = "white",                           # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      lineend       = NULL,                              # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # panel.grid.major   = element_line(),
+    panel.grid.minor   = element_line(
+      colour        = NULL,                              # DEFAULT
+      size          = rel(0.5),                          # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      lineend       = NULL,                              # DEFAULT
+      arrow         = FALSE,                             # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # panel.grid.major.x = element_line(),
+    # panel.grid.major.y = element_line(),
+    # panel.grid.minor.x = element_line(),
+    # panel.grid.minor.y = element_line(),
+    panel.ontop        = FALSE,                          # DEFAULT
+    plot.background       = element_rect(
+      fill          = NULL,                              # DEFAULT
+      colour        = "white",                           # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.title            = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(1.2),                          # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 5.5,                    # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.title.position   = "panel",                     # DEFAULT "panel", "plot"
+    plot.subtitle         = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = 0,                                 # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 0,                      # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 5.5,                    # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.caption          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = 1,                                 # DEFAULT
+      vjust         = 1,                                 # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 5.5,                    # DEFAULT
+                             r = 0,                      # DEFAULT
+                             b = 0,                      # DEFAULT
+                             l = 0,                      # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.caption.position = "panel",                     # DEFAULT "panel", "plot",
+    plot.tag              = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = rel(1.2),                          # DEFAULT
+      hjust         = 0.5,                               # DEFAULT
+      vjust         = 0.5,                               # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    plot.tag.position     = "topleft",                   # DEFAULT ("topleft", "top", "topright",
+    #          "left", "right", "bottomleft",
+    #          "bottom", "bottomright")
+    plot.margin           = margin(t = 5.5,              # DEFAULT
+                                   r = 5.5,              # DEFAULT
+                                   b = 5.5,              # DEFAULT
+                                   l = 5.5,              # DEFAULT
+                                   unit = "pt"),         # DEFAULT
+    strip.background      = element_rect(
+      fill          = "grey85",                          # DEFAULT
+      colour        = NA,                                # DEFAULT
+      size          = NULL,                              # DEFAULT
+      linetype      = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # strip.background.x    = element_rect(),
+    # strip.background.y    = element_rect(),
+    strip.placement       = "inside",                    # DEFAULT "inside" "outside"
+    strip.text            = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = "grey10",                          # DEFAULT
+      size          = rel(0.8),                          # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = NULL,                              # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = margin(t = 4.4,                    # DEFAULT
+                             r = 4.4,                    # DEFAULT
+                             b = 4.4,                    # DEFAULT
+                             l = 4.4,                    # DEFAULT
+                             unit = "pt"),               # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    # strip.text.x          = element_text(),
+    strip.text.y          = element_text(
+      family        = NULL,                              # DEFAULT
+      face          = NULL,                              # DEFAULT
+      colour        = NULL,                              # DEFAULT
+      size          = NULL,                              # DEFAULT
+      hjust         = NULL,                              # DEFAULT
+      vjust         = NULL,                              # DEFAULT
+      angle         = -90,                               # DEFAULT
+      lineheight    = NULL,                              # DEFAULT
+      margin        = NULL,                              # DEFAULT
+      debug         = NULL,                              # DEFAULT
+      inherit.blank = TRUE                               # DEFAULT
+    ),
+    strip.switch.pad.grid = unit(2.75,                   # DEFAULT ?unit
+                                 units = "points"),      # DEFAULT
+    strip.switch.pad.wrap = unit(2.75,                   # DEFAULT ?unit
+                                 units = "points"),      # DEFAULT
+    complete = FALSE,
+    validate = TRUE
+  )
   
 }
