@@ -1161,6 +1161,8 @@ view_unconverted_videos <- function(path_flv,
 create_oxford_images <- function(fdr_load,
                                  fdr_fake_images,
                                  fdr_img) {
+  
+  ###  VERSION 5  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # -Update to most recent object naming scheme as of 2022 March.
   # -See if I can remove the begin & end arguments since they arent really used anymore.
@@ -1182,17 +1184,17 @@ create_oxford_images <- function(fdr_load,
   #      Don't know if this is needed anymore.
   # ARG: end
   #      Don't know if this is needed anymore.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::  
-  # fdr_load <-
-  #   "./FLAC_AIM3_DATA/images"
-  # fdr_fake_images <- 
-  #   "./OxfordImageBrowser-win32-x64/6_Fake Images"
-  # fdr_img <- 
-  #   "DLW_Pilot_BAY01_2022_03_10"
+  # fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load"
+  # fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images"
+  # fdr_img         = img_set
   
   fdr_load_img <- 
-    fs::path(fdr_load,
-             fdr_img)
+    dir_ls(path = fdr_load,
+           recurse = 1,
+           regexp = fdr_img)
   chk_img_set <- 
     rlang::is_empty(fdr_load_img)
   
