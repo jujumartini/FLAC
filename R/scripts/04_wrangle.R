@@ -345,6 +345,13 @@ process_visit_numbers(
   time_unit        = "mins" # secs, mins, hours
 )
 
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                  FLAC AIM 2                               ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 docomp_beh_buck_key <-
   c(
     "Sports/Exercise"              = 1L,
@@ -467,9 +474,6 @@ lvls_environment <-
     "Occupation",
     "Organizational/Civic/Religiious",
     "Dark/Obscured/OoF")
-
-
-# FLAC - Aim 2 ------------------------------------------------------------
 # RUN this line the first time you open this script
 source("./Scripts/02_functions.R")
 
