@@ -7949,14 +7949,18 @@ summarize_value_distribution <- function() {
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 compute_acc_model_estimates <- function(fdr_read,
                                         fdr_write,
-                                        fdr_project = NULL,
-                                        folder = NULL,
-                                        filter_sub = NULL,
-                                        filter_loc = NULL,
+                                        fdr_project  = NULL,
+                                        folder       = NULL,
+                                        filter_sub   = NULL,
+                                        filter_loc   = NULL,
                                         project_only = FALSE) {
   
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   First version
+  # - Move loading "lyden_2014.RData" and "staudenmayer_2015.RData" to
+  #   outside the function as it doesnt work when kept inside the function.
+  # - Update Marcotte code with github code from ref 
+  #   "ce1f12d5e1f1a9a4bb5d35ee08687364be9cdfdb"
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # -   initiate_wrangle
   # -   get_fpa_read
@@ -7978,29 +7982,18 @@ compute_acc_model_estimates <- function(fdr_read,
   # ARG: project_only
   #      Should merged files only be written to fdr_project?
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "5_AIM1_PROJECTS",
-  #            "AIM1_WRIST_ACC_CHAMBER_COMPARISON_HLTHY")
-  # fdr_project <-
-  #   NULL
-  # folder <-
-  #   c("GT3X_RH_CSV_1SEC",
-  #     "GT3X_RW_CSV_1SEC",
-  #     "GT3X_RW_CSV_RAW")
-  # filter_sub <-
-  #   NULL
-  # filter_loc <-
-  #   NULL
-  # project_only <-
-  #   FALSE
+  # fdr_read     = fdr_shape
+  # fdr_write    = fdr_chaac
+  # fdr_project  = NULL
+  # fdr_project  = NULL
+  # folder       = c("GT3X_RH_CSV_1SEC",
+  #                  "GT3X_RW_CSV_1SEC",
+  #                  "GT3X_RW_CSV_RAW")
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
   source(file = "./R/acc_models/acc_models.R")
-  load(file = "./R/acc_models/lyden_2014.RData")
-  load(file = "./R/acc_models/staudenmayer_2015.RData")
   library(MOCAModelData)
   library(zoo)
   
@@ -8031,7 +8024,6 @@ compute_acc_model_estimates <- function(fdr_read,
     ) %>% 
     keep(.p = ~str_detect(path_file(.x),
                           pattern = filter_sub))
-  # }
   
   if (!is_empty(filter_loc)) {
     
@@ -8188,6 +8180,27 @@ compute_acc_model_estimates <- function(fdr_read,
     message("DONE\n",
             "Marcotte 2021...",
             appendLF = FALSE)
+    
+    
+    # rob marcotte's new method
+    mar.est <-
+      as.character(
+        MOCAfunctions::soj_g(
+          data = 
+            df_rw_raw |> 
+            select(Timestamp = datetime,
+                   AxisX = axis_x,
+                   AxisY = axis_y,
+                   AxisZ = axis_z,
+                   VM    = vector_magnitude),
+          export_format             = "seconds",
+          freq                      = 100,
+          step1_sd_threshold        = 0.00375,
+          step2_nest_length         = 5,
+          step3_nest_length         = 60,
+          step3_orig_soj_length_min = 180
+        )$step3_estimate_intensity
+      )
     # est_marcotte <- 
     #   marcotte_2021_soj_g(
     #     data                      = 
