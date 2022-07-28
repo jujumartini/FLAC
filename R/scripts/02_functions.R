@@ -1809,13 +1809,51 @@ extract_autographer_images <- function(fdr_load,
   cli_alert_success("SUCCESS. Done Extracting")
   
 }
-extract_frames <- function(fdr_video,
-                           fdr_frame,
-                           id_date,
-                           ext_frame) {
+extract_frames <- function(fdr_read,
+                           fdr_write_img  = NULL,
+                           fdr_write_vid  = NULL,
+                           id,
+                           extension      = "jpg",
+                           frame_duration = NULL) {
   
-  # ASSUMES THAT THERE IS AN FFMPEG FOLDER AT THE TOP DIRECTORY OF THE R PROJECT
-  # FILE (IS IN THE SAME FOLDER WITH THE .Rproj)
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - ASSUMES THAT THERE IS AN FFMPEG FOLDER AT THE TOP DIRECTORY OF THE R 
+  # PROJECT FILE (IS IN THE SAME FOLDER WITH THE .Rproj)
+  # - FIRST VERSION
+  # - Creates either an image set or video from brinno files.
+  # - 
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG : fdr_read
+  #   File directory where videos from a Brinno camera will be read from.
+  # ARG : fdr_write_img
+  #   File directory where frames from the video will be saved. This or
+  #   fdr_write_vid must be provided.
+  # ARG : fdr_write_vid
+  #   File name of where video recreated from frames will be saved. This or
+  #   fdr_write_img must be provided.
+  # ARG : id
+  #   Identifier of brinno part videos to extrat frames from. This is typically
+  #   study_subject and whatever else is included with id's such as visit
+  #   number.
+  # ARG : extension
+  #   File type of frames to save them in. So far jpg is the only thing that 
+  #   works for both creating Oxford images and recreated videos.
+  # ARG : frame_duration
+  #   If fdr_write_vid is provided, the duration between frames in recreated
+  #   videos. SO FAR THIS ISNT NEEDED BUT KEEPING IT IN FOR NOW.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read       = "FLAC_AIM3_DATA/PILOT/brinno"
+  # fdr_write_img  = NULL
+  # fdr_write_vid  = "FLAC_AIM3_DATA/PILOT/video"
+  # id             = "DLW_Pilot_MAR01_2022_03_03"
+  # extension      = "jpg"
+  # frame_duration = NULL
+  
   
   # COMMAND LINE ARGUMENTS
   # FFmpeg\bin\ffmpeg.exe -i "fooo\afoo.AVI" "foo\afoo-%04d.png"
@@ -1827,189 +1865,582 @@ extract_frames <- function(fdr_video,
   #              "-hide_banner"))
   # )
   
-  # fdr_video <-
-  #   "FLAC_AIM3_DATA/PILOT/video"
-  # fdr_frame <-
-  #   "FLAC_AIM3_DATA/PILOT/images"
-  # id_date <- 
-  #   "DLW_Pilot_STE01_2022_03_05"
-  # ext_frame <-
-  #   "jpg"
-  
   vct_fpa_video <- 
-    fs::dir_ls(
-      path = fdr_video,
-      regexp = id_date
-    )
-  fdr_video_frame <- 
-    fs::path(fdr_frame,
-             id_date)
+    fs::dir_ls(path   = fdr_read,
+               regexp = id)
   
-  # In case a folder with the video name in the frames folder was not created already.
-  fs::dir_create(fdr_video_frame)
-  
-  # All part videos from the same date will have images be put in the same folder.
-  for (i in seq_along(vct_fpa_video)) {
+  if (rlang::is_null(fdr_write_img) & rlang::is_null(fdr_write_vid)) {
     
-    fpa_video <- 
-      vct_fpa_video[i]
-    
-    part_video <- 
-      fpa_video %>% 
-      fs::path_file() %>% 
-      str_remove(pattern = paste0(id_date, "_")) %>% 
-      fs::path_ext_remove()
-    fpa_video_sys <- 
-      paste0(
-        '"',
-        str_replace_all(fpa_video,
-                        pattern = "\\/",
-                        replacement = "\\\\"),
-        '"'
-      )
-    fpa_frame_sys <- 
-      paste0(
-        '"',
-        str_replace_all(fdr_video_frame,
-                        pattern = "\\/",
-                        replacement = "\\\\"),
-        "\\", part_video, "-images-%05d.",
-        ext_frame,
-        '"'
-      )
-    sys::exec_wait(
-      cmd = "FFmpeg/bin/ffmpeg.exe",
-      args = I(c("-i", fpa_video_sys,
-                 "-qscale:v 2",
-                 fpa_frame_sys,
-                 "-hide_banner"))
-    )
+    cli_abort(c(
+      "X" = "Neither fdr_write_img or fdr_write_vid is provided.",
+      "i" = "Provide one of these arguments and leave the other NULL."
+    ))
     
   }
   
-  cli_alert_success("Frames successfully extracted.")
+  if (!rlang::is_null(fdr_write_img) & !rlang::is_null(fdr_write_vid)) {
+    
+    cli_abort(c(
+      "X" = "Both fdr_write_img and fdr_write_vid are provided.",
+      "i" = "Only one can be provided while the other is kept NULL."
+    ))
+    
+  }
   
-  vct_fpa_frame <- 
-    fdr_video_frame %>% 
-    fs::dir_ls()
-  df_n <- 
-    tibble(
-      fnm = 
-        vct_fpa_frame %>% 
-        fs::path_file() %>% 
+  # if (!rlang::is_null(fdr_write_vid) & rlang::is_null(frame_duration)) {
+  #   
+  #   cli_abort(c(
+  #     "X" = "fdr_write_vid is provided BUT frame_duration is not."
+  #   ))
+  #   
+  # }
+  
+  create_image <- 
+    !rlang::is_null(fdr_write_img) & rlang::is_null(fdr_write_vid)
+  create_video <- 
+    rlang::is_null(fdr_write_img) & !rlang::is_null(fdr_write_vid)
+  
+  if (create_video) {
+    
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                         CREATE VIDEO                       ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    # Create a temporary directory to house frames
+    fdr_temp <- 
+      path(fdr_write_vid,
+           "temp")
+    dir_create(fdr_temp)
+    
+    # Loop through and get frames from part videos.
+    for (i in seq_along(vct_fpa_video)) {
+      
+      fpa_video <- 
+        vct_fpa_video[i]
+      
+      part_video <- 
+        fpa_video |> 
+        fs::path_file() |> 
+        str_remove(pattern = paste0(id, "_")) |> 
         fs::path_ext_remove()
-    ) %>% 
-    tidyr::separate(col = fnm,
-                    into = c("part", "n_frame"),
-                    sep = "-images-",
-                    remove = TRUE) 
-  df_add <- 
-    df_n %>% 
-    group_by(part) %>% 
-    summarise(add = 
-                n_frame %>% 
-                as.integer() %>% 
-                max())
-  df_add$add <- 
-    df_add$add %>% 
-    lag(n = 1,
-        default = 0L) %>% 
-    cumsum()
-  df_n <- 
-    left_join(df_n,
-              df_add,
-              by = "part") %>% 
-    mutate(n_final = 
-             (as.double(n_frame) + add) %>% 
-             sprintf(fmt = "%05d"))
-  
-  progress_format <- 
-    "Reading timestamps & naming images {cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | [{cli::pb_elapsed}] | {cli::pb_eta_str}"
-  
-  # create medium and thumbnail for each image (imager)
-  for (i in cli_progress_along(vct_fpa_frame,
-                               format = progress_format,
-                               clear = FALSE)) {
-    
-    fpa_frame <- 
-      vct_fpa_frame[i]
-    n_img <- 
-      df_n$n_final[i]
-    fnm_frame <- 
-      fpa_frame %>% 
-      fs::path_file()
-    
-    img <- 
-      magick::image_read(fpa_frame)
-    img_timestamp <- 
-      # Plus/minus 17 pixels to the left and right for maximal background.
-      image_crop(img, "297x30+861+1050") %>% 
-      # Turn image to black text to increase accuracy of ocr.
-      image_negate()
-    timestamp <- 
-      magick::image_ocr(img_timestamp,
-                        language = "eng",
-                        HOCR = FALSE) %>% 
-      str_remove(pattern = "\\n") %>% 
-      str_replace(pattern = " ",
-                  replacement = "_") %>% 
-      str_replace_all(pattern = ":|/",
-                      replacement = "")
-    # So it can be recognized by Oxford Image Browser.
-    fnm_frame_new <- 
-      paste0(
-        "00000000000", n_img, "_",
-        timestamp, "A"
-      ) %>% 
-      fs::path_ext_set(ext = ext_frame)
-    fpa_frame_new <- 
-      fs::path(fdr_video_frame,
-               fnm_frame_new)
-    fs::file_move(
-      path = fpa_frame,
-      new_path = fpa_frame_new
-    )
-    # Change Date modified of renamed frame to timestamp.
-    Sys.setFileTime(
-      fpa_frame_new,
-      time = lubridate::ymd_hms(timestamp,
-                                tz = "America/Chicago")
-    )
-    
-  }
-  
-  cli_progress_done()
-  cli_alert_success("SUCCESS. {i} images renamed.")
-  
-  vct_fnm_frame_new <- 
-    fdr_video_frame %>% 
-    fs::dir_ls() %>% 
-    fs::path_file()
-  chk_fnm_frame_new <- 
-    vct_fnm_frame_new %>% 
-    fs::path_ext_remove() %>% 
-    str_remove(pattern = "\\d{16}_") %>% 
-    lubridate::ymd_hms(quiet = TRUE) %>% 
-    is.na() %>% 
-    any()
-  
-  if (chk_fnm_frame_new){
-    
-    # One on the new filenames were not guessed correctly by the 
-    # tesseract OCR.
-    vct_fnm_frame_wrong <- 
-      vct_fnm_frame_new[vct_fnm_frame_new %>% 
-                          fs::path_ext_remove() %>% 
-                          str_remove(pattern = "\\d{16}_") %>% 
-                          lubridate::ymd_hms(quiet = TRUE) %>% 
-                          is.na()]
-    
-    for (i in seq_along(vct_fnm_frame_wrong)) {
-      warning(
-        vct_fnm_frame_wrong[i], ": Timestamp for frame was not guessed correctly.\n",
-        "Manually change filename by looking at image.",
-        call. = FALSE
+      
+      # Create a subfolder to put all frames from a part video in its own folder.
+      path(fdr_temp,
+           part_video) |> 
+        fs::dir_create()
+      
+      # Make file paths for ffmpeg.
+      fpa_video_sys <- 
+        paste0(
+          '"',
+          str_replace_all(
+            fpa_video,
+            pattern = "\\/",
+            replacement = "\\\\"
+          ),
+          '"'
+        )
+      fpa_img_sys <- 
+        paste0(
+          '"',
+          str_replace_all(
+            path(fdr_temp,
+                 part_video),
+            pattern = "\\/",
+            replacement = "\\\\"
+          ),
+          "\\", "image-%05d.", extension,
+          '"'
+        )
+      
+      # Execute ffmpeg arguments.
+      sys::exec_wait(
+        cmd = "FFmpeg/bin/ffmpeg.exe",
+        args = I(c(
+          "-i", fpa_video_sys,
+          "-qscale:v 2", fpa_img_sys,
+          "-hide_banner"
+        ))
       )
+      
+    }
+    
+    # Get duration between images.
+    vct_fdr_img <- 
+      fdr_temp |> 
+      dir_ls(recurse = TRUE,
+             type = "file")
+    vct_timestamp <- 
+      character(length = length(vct_fdr_img))
+    
+    message("Getting duration between frames...",
+            appendLF = TRUE)
+    
+    # # Not enough memory on some devices so use a for loop instead.
+    # vct_timestamp <- 
+    #   fdr_temp |> 
+    #   dir_ls(recurse = TRUE,
+    #          type = "file") |> 
+    #   magick::image_read() |>
+    #   image_crop(geometry = "297x30+861+1050") |>
+    #   # Turn image to black text to increase accuracy of ocr.
+    #   image_negate() |>
+    #   magick::image_ocr(language = "eng",
+    #                     HOCR = FALSE) |>
+    #   str_remove(pattern = "\\n") |>
+    #   str_replace(pattern = " ",
+    #               replacement = "_") |>
+    #   str_replace_all(pattern = ":|/",
+    #                   replacement = "") |>
+    #   lubridate::ymd_hms(tz = "America/Chicago")
+    
+    for (i in seq_along(vct_fdr_img)) {
+
+      fdr_img <-
+        vct_fdr_img[i]
+
+      message(i, " ", appendLF = FALSE)
+      # cli_progress_message(msg = "{i}")
+
+      vct_timestamp[i] <-
+        fdr_img |>
+        magick::image_read() |>
+        image_crop(geometry = "297x30+861+1050") |>
+        # Turn image to black text to increase accuracy of ocr.
+        image_negate() |>
+        magick::image_ocr(language = "eng",
+                          HOCR = FALSE)
+
+    }
+
+    vct_timestamp <-
+      vct_timestamp |>
+      str_remove(pattern = "\\n") |>
+      str_replace(pattern = " ",
+                  replacement = "_") |>
+      str_replace_all(pattern = ":|/",
+                      replacement = "") |> 
+      lubridate::ymd_hms(tz = "America/Chicago",
+                         quiet = TRUE)
+    
+    message("\nDONE",
+            appendLF = TRUE)
+    
+    chk_timestamp <- 
+      vct_timestamp |> 
+      anyNA()
+    
+    if (chk_timestamp) {
+      
+      # One on the new filenames were not guessed correctly by the 
+      # tesseract OCR.
+      vct_timestamp_wrong <- 
+        vct_timestamp[is.na(vct_timestamp)]
+      
+      for (i in seq_along(vct_timestamp_wrong)) {
+        
+        warning(
+          vct_timestamp_wrong[i], ": Timestamp for frame was not guessed correctly.",
+          # "Manually change filename by looking at image.",
+          call. = FALSE
+        )
+        
+      }
+    }
+    
+    # Create text file that lists frames and how long to show each frame based
+    # of its duration. The last image is shown based off the mode of all
+    # durations.
+    dur_timestamp <- 
+      diff.POSIXt(vct_timestamp)
+    tab_timestamp <- 
+      dur_timestamp |> 
+      unique() |> 
+      match(dur_timestamp, table = _) |> 
+      tabulate()
+    dur_timestamp <- 
+      c(
+        dur_timestamp,
+        unique(dur_timestamp)[tab_timestamp == max(tab_timestamp)]
+      )
+    test <- 
+      vct_fdr_img |> 
+      stri_replace_all_regex(pattern = stri_c(fdr_write_vid, "/"),
+                             replacement = "") %>% 
+      stri_c(
+        "file ", "'", ., "'\n",
+        "duration ", dur_timestamp
+      ) %>% 
+      c(
+        .,
+        vct_fdr_img |> 
+          stri_replace_all_regex(pattern = stri_c(fdr_write_vid, "/"),
+                                 replacement = "") |> 
+          chuck(length(vct_fdr_img)) %>% 
+          stri_c("file ", "'", ., "'")
+      ) |> 
+      stri_replace_all_regex(pattern = "\\/",
+                             replacement = "\\\\")
+    # test2 <- 
+    #   c(
+    #     test,
+    #     vct_fdr_img |> 
+    #       stri_replace_all_regex(pattern = stri_c(fdr_write_vid, "/"),
+    #                              replacement = "") |> 
+    #       chuck(length(vct_fdr_img)) %>% 
+    #       stri_c("file ", "'", ., "'")
+    #   ) |> 
+    #   stri_replace_all_regex(pattern = "\\/",
+    #                          replacement = "\\\\")
+    fdr_text <- 
+      path(fdr_write_vid,
+           "temp.txt")
+    writeLines(
+      text = 
+        test,
+      con = fdr_text,
+      sep = "\n"
+    )
+    # Make file paths for ffmpeg.
+    fpa_input_sys <-
+      paste0(
+        '"',
+        str_replace_all(
+          fdr_text,
+          pattern = "\\/",
+          replacement = "\\\\"
+        ),
+        '"'
+      )
+    fpa_output_sys <-
+      paste0(
+        '"',
+        str_replace_all(
+          fdr_write_vid,
+          pattern = "\\/",
+          replacement = "\\\\"
+        ),
+        "\\", id, ".mp4",
+        '"'
+      )
+    
+    # Execute ffmpeg arguments.
+    sys::exec_wait(
+      cmd  = "FFmpeg/bin/ffmpeg.exe",
+      args = 
+        I(c(
+          "-f concat -safe 0",
+          "-i", fpa_input_sys, "-vsync vfr -pix_fmt yuv420p", fpa_output_sys,
+          "-hide_banner"
+        ))
+    )
+    
+    # Delete temp video files and temp text, as well as the images created as they
+    # aren't needed.
+    cli_alert_info(c(
+      "i" = "Deleting temporary files..."
+    ))
+    
+    dir_ls(path = fdr_write_vid,
+           regexp = "temp") |> 
+      fs::file_delete()
+    
+    cli_alert_success(c(
+      "v" = "Temporary files deleted.",
+      "v" = "Video created from temporary frames."
+    ))
+    
+    # # List part folders in temp folder and loop through each folder and re-create
+    # # part videos at correct duration per frame.
+    # vct_fdr_img <- 
+    #   fdr_temp |> 
+    #   fs::dir_ls()
+    # 
+    # for (i in seq_along(vct_fdr_img)) {
+    #   
+    #   fdr_img <- 
+    #     vct_fdr_img[i]
+    #   part_video <- 
+    #     fdr_img |> 
+    #     fs::path_file()
+    #   
+    #   # Make file paths for ffmpeg.
+    #   fpa_img_sys <- 
+    #     paste0(
+    #       '"',
+    #       str_replace_all(
+    #         fdr_img,
+    #         pattern = "\\/",
+    #         replacement = "\\\\"
+    #       ),
+    #       "\\image-%05d.", extension,
+    #       '"'
+    #     )
+    #   fpa_video_sys <-
+    #     paste0(
+    #       '"',
+    #       str_replace_all(
+    #         fdr_write_vid,
+    #         pattern = "\\/",
+    #         replacement = "\\\\"
+    #       ),
+    #       "\\temp_", part_video, ".mp4",
+    #       '"'
+    #     )
+    #   
+    #   # Execute ffmpeg arguments.
+    #   sys::exec_wait(
+    #     cmd = "FFmpeg/bin/ffmpeg.exe",
+    #     args = I(c(
+    #       "-framerate", stri_c("1/", frame_duration),
+    #       "-i", fpa_img_sys,
+    #       fpa_video_sys,
+    #       "-hide_banner"
+    #     ))
+    #   )
+    #   
+    # }
+    # 
+    # # Create text file that lists temporary part videos.
+    # fdr_text <- 
+    #   path(fdr_write_vid,
+    #        "templist.txt")
+    # writeLines(
+    #   text = 
+    #     dir_ls(path   = fdr_write_vid,
+    #            regexp = "temp.*\\.mp4") |> 
+    #     path_file() %>% 
+    #     stri_c("file ", "'", ., "'"),
+    #   con = fdr_text,
+    #   sep = "\n"
+    # )
+    # 
+    # # Make file paths for ffmpeg.
+    # fpa_input_sys <-
+    #   paste0(
+    #     '"',
+    #     str_replace_all(
+    #       fdr_text,
+    #       pattern = "\\/",
+    #       replacement = "\\\\"
+    #     ),
+    #     '"'
+    #   )
+    # fpa_output_sys <-
+    #   paste0(
+    #     '"',
+    #     str_replace_all(
+    #       fdr_write_vid,
+    #       pattern = "\\/",
+    #       replacement = "\\\\"
+    #     ),
+    #     "\\", id, ".mp4",
+    #     '"'
+    #   )
+    # sys::exec_wait(
+    #   cmd = "FFmpeg/bin/ffmpeg.exe",
+    #   args = I(c(
+    #     "-f concat -safe 0",
+    #     "-i",  fpa_input_sys,
+    #     "-c copy", fpa_output_sys,
+    #     "-hide_banner"
+    #   ))
+    # )
+    # 
+    # # Delete temp video files and temp text, as well as the images created as they
+    # # aren't needed.
+    # cli_alert_info(c(
+    #   "i" = "Deleting temporary files..."
+    # ))
+    # 
+    # dir_ls(path = fdr_write_vid,
+    #        regexp = "temp") |> 
+    #   fs::file_delete()
+    # dir_ls(path = fdr_write_img_id)
+    # 
+    # cli_alert_success("Temporary files deleted.")
+    
+  } else if (create_image) {
+    
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                         CREATE IMAGE                       ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    fdr_write_img_id <- 
+      fs::path(fdr_write_img,
+               id)
+    
+    # In case a folder with the video name in the frames folder was not created already.
+    fs::dir_create(fdr_write_img_id)
+    
+    for (i in seq_along(vct_fpa_video)) {
+      
+      fpa_video <- 
+        vct_fpa_video[i]
+      
+      part_video <- 
+        fpa_video |> 
+        fs::path_file() |> 
+        str_remove(pattern = paste0(id, "_")) |> 
+        fs::path_ext_remove()
+      
+      # Make file paths for ffmpeg.
+      fpa_video_sys <- 
+        paste0(
+          '"',
+          str_replace_all(fpa_video,
+                          pattern = "\\/",
+                          replacement = "\\\\"),
+          '"'
+        )
+      fpa_img_sys <- 
+        paste0(
+          '"',
+          str_replace_all(
+            fdr_write_img_id,
+            pattern = "\\/",
+            replacement = "\\\\"
+          ),
+          "\\", part_video, "-image-%05d.", extension,
+          '"'
+        )
+      sys::exec_wait(
+        cmd = "FFmpeg/bin/ffmpeg.exe",
+        args = I(c(
+          "-i", fpa_video_sys,
+          "-qscale:v 2",
+          fpa_img_sys,
+          "-hide_banner"
+        ))
+      )
+      
+    }
+    
+    cli_alert_success("Frames successfully extracted.")
+    
+    # Get df to help aid renaming images for Oxford Image Browser.
+    vct_fpa_img <- 
+      fdr_write_img_id |> 
+      fs::dir_ls()
+    df_n <- 
+      tibble(
+        fnm = 
+          vct_fpa_img |> 
+          fs::path_file() |> 
+          fs::path_ext_remove()
+      ) |> 
+      tidyr::separate(col  = fnm,
+                      into = c("part", "n_frame"),
+                      sep  = "-image-",
+                      remove = TRUE) 
+    df_add <- 
+      df_n |> 
+      group_by(part) |> 
+      summarise(add = 
+                  n_frame |> 
+                  as.integer() |> 
+                  max(),
+                .groups = "drop") |> 
+      mutate(add = 
+               add |> 
+               lag(n = 1,
+                   default = 0L) |> 
+               cumsum())
+    df_n <- 
+      left_join(df_n,
+                df_add,
+                by = "part") |> 
+      mutate(n_final = 
+               (as.double(n_frame) + add) |> 
+               sprintf(fmt = "%05d"))
+    
+    progress_format <- 
+      "Reading timestamps & naming images {cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | [{cli::pb_elapsed}] | {cli::pb_eta_str}"
+    
+    # Rename and change file time of images to correct datetime.
+    for (i in cli_progress_along(vct_fpa_img,
+                                 format = progress_format,
+                                 clear = FALSE)) {
+      
+      fpa_img <- 
+        vct_fpa_img[i]
+      n_img <- 
+        df_n$n_final[i]
+      fnm_img <- 
+        fpa_img |> 
+        fs::path_file()
+      
+      img <- 
+        magick::image_read(fpa_img)
+      img_timestamp <- 
+        # Plus/minus 17 pixels to the left and right for maximal background.
+        image_crop(img, "297x30+861+1050") |> 
+        # Turn image to black text to increase accuracy of ocr.
+        image_negate()
+      timestamp <- 
+        magick::image_ocr(img_timestamp,
+                          language = "eng",
+                          HOCR = FALSE) |> 
+        str_remove(pattern = "\\n") |> 
+        str_replace(pattern = " ",
+                    replacement = "_") |> 
+        str_replace_all(pattern = ":|/",
+                        replacement = "")
+      # So it can be recognized by Oxford Image Browser.
+      fnm_img_new <- 
+        paste0(
+          "00000000000", n_img, "_",
+          timestamp, "A"
+        ) |> 
+        fs::path_ext_set(ext = extension)
+      fpa_img_new <- 
+        fs::path(fdr_write_img_id,
+                 fnm_img_new)
+      fs::file_move(
+        path = fpa_img,
+        new_path = fpa_img_new
+      )
+      # Change Date modified of renamed frame to timestamp.
+      Sys.setFileTime(
+        fpa_img_new,
+        time = lubridate::ymd_hms(timestamp,
+                                  tz = "America/Chicago")
+      )
+      
+    }
+    
+    cli_alert_success("SUCCESS. {i} images renamed.")
+    
+    vct_fnm_img_new <- 
+      fdr_write_img |> 
+      fs::dir_ls() |> 
+      fs::path_file()
+    chk_fnm_img_new <- 
+      vct_fnm_img_new |> 
+      fs::path_ext_remove() |> 
+      str_remove(pattern = "\\d{16}_") |> 
+      lubridate::ymd_hms(quiet = TRUE) |> 
+      is.na() |> 
+      any()
+    
+    if (chk_fnm_img_new){
+      
+      # One on the new filenames were not guessed correctly by the 
+      # tesseract OCR.
+      vct_fnm_img_wrong <- 
+        vct_fnm_img_new[vct_fnm_img_new |> 
+                          fs::path_ext_remove() |> 
+                          str_remove(pattern = "\\d{16}_") |> 
+                          lubridate::ymd_hms(quiet = TRUE) |> 
+                          is.na()]
+      
+      for (i in seq_along(vct_fnm_img_wrong)) {
+        
+        warning(
+          vct_fnm_img_wrong[i], ": Timestamp for frame was not guessed correctly.\n",
+          "Manually change filename by looking at image.",
+          call. = FALSE
+        )
+        
+      }
     }
   }
 }
