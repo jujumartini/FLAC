@@ -1,8 +1,17 @@
 # RUN this line the first time you open this script
 source("./R/Scripts/02_functions.R")
 
-# FLAC AIM 1 --------------------------------------------------------------
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                  FLAC AIM 1                               ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                CHAMBER                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 read_chamber_v1(
   fdr_raw = fs::path("FLAC_AIM1_DATA",
                      "1_AIM1_RAW_DATA"),
@@ -10,123 +19,97 @@ read_chamber_v1(
                          "1_AIM1_RAW_DATA",
                          "AIM1_RAW_CHAMBER_cSV")
 )
-
-# Merge raw(?) chamber data with cleaned RMR data.
-merge_chamber_rmr_v4(
-  fdr_chm_clean = "./FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_Raw_Chamber",
-  fdr_rmr_clean = "./FLAC_AIM1_DATA/2_AIM1_CLEANED_DATA/AIM1_Cleaned_RMR",
-  fdr_merge     = "./FLAC_AIM1_DATA/4_AIM1_MERGED_DATA/AIM1_Merged_Chamber_RMR"
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 NOLDUS                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+copy_and_move_odx_v1(
+  project = "FLAC - Aim 1"
 )
 
-# Wrangle Noldus data.
-beh_domain_key_v2 <-
-  c(
-    "1" = "sport&exercise",
-    "2" = "leisure",
-    "3" = "transportation",
-    "4" = "other",
-    "5" = "caring&grooming",
-    "6" = "household",
-    "7" = "occupation",
-    "8" = "nca",
-    "9" = "uncoded"
-  )
-pos_bucket_key_v2 <- 
-  c(
-    "lying"                            = 1L,
-    "sitting"                          = 1L,
-    "crouching/kneeling/squatting"     = 2L,
-    "standing"                         = 3L,
-    "other - posture"                  = 4L,
-    "intermittent posture"             = 4L,
-    "walking"                          = 5L,
-    "stepping"                         = 5L,
-    "running"                          = 5L,
-    "ascending stairs"                 = 5L,
-    "descending stairs"                = 5L,
-    "crouching/squatting"              = 6L,
-    "cycling"                          = 6L,
-    "other - movement"                 = 7L,
-    "intermittent movement"            = 7L,
-    "intermittent p/m"                 = 8L,
-    "dark/obscured/oof"                = 9L
-  )
-pos_domain_key_v2 <-
-  c(
-    "1" = "sit",
-    "2" = "crouching",
-    "3" = "stand",
-    "4" = "posture other",
-    "5" = "movement",
-    "6" = "movement stationary",
-    "7" = "movement other",
-    "8" = "nca",
-    "9" = "uncoded"
-  )
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                  FLAC AIM 2                               ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
-# Oxford ------------------------------------------------------------------
-
-# Extracting frames from Brinno AVI videos.
-extract_frames_v1(
-  fdr_video = "FLAC_AIM3_DATA/PILOT/video",
-  fdr_frame = "FLAC_AIM3_DATA/PILOT/images",
-  id_date   = "DLW_Pilot_MAR01_2022_03_04",
-  ext_frame = "jpg"
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 NOLDUS                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+copy_and_move_odx_v1(
+  project = "FLAC - Aim 2"
+)
+view_unconverted_videos(
+  path_flv = "./Noldus Observer XT 14/Surface Videos/flv/",
+  path_mp4 = "./Noldus Observer XT 14/Surface Videos/mp4/"
 )
 
-# Extract autographer images from hour folders.
-extract_autographer_images_v4(
-  fdr_load = "FLAC_AIM3_DATA/PILOT/images",
-  id = "DLW_Pilot_BAY01"
+create_videos_list(
+  path_flv  = "./Noldus Observer XT 14/Surface Videos/flv/",
+  path_mp4  = "./Noldus Observer XT 14/Surface Videos/mp4/",
+  path_part = "./Noldus Observer XT 14/7_Merging Part Videos/"
 )
 
-# Create medium and thumbnail images ---
-
-# put name of folder you want to create images for in between the quotation marks
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 OXFORD                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####  Create medium and thumbnail images  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Put name of folder you want to create images for in between the quotation marks
 # EXAMPLE: PPAQ_49_2_2014_12_14
 img_set <- ""
 
-# create images
 create_oxford_images(
   fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
   fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
   fdr_img         = img_set
 )
 
-
-
-# Other ---
-
-# some Oxford IMGs are flipped when created. This corrects them
-# make sure IMG set is in respective PPAQ_##/Tri #/ folder
+#### Other ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Some Oxford IMGs may be flipped due to being worn incorrectly. This unflips
+# them.
 img_set <- ""
-
 unflip_oxford_imgs(folder_day = img_set)
 
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                  FLAC AIM 3                               ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-# Noldus ------------------------------------------------------------------
-
-copy_and_move_odx_v1(
-  project = "FLAC - Aim 1"
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 OXFORD                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Extract autographer images from hour folders.
+extract_autographer_images_v4(
+  fdr_load = "FLAC_AIM3_DATA/PILOT/images",
+  id       = "DLW_Pilot_BAY01"
 )
-copy_and_move_odx_v1(
-  project = "FLAC - Aim 2"
+
+###  Create medium and thumbnail images  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Put name of folder you want to create images for in between the quotation marks
+# EXAMPLE: PPAQ_49_2_2014_12_14
+img_set <- ""
+create_oxford_images(
+  fdr_load        = "./OxfordImageBrowser-win32-x64/1_Image Sets to Load",
+  fdr_fake_images = "./OxfordImageBrowser-win32-x64/5_Fake Images",
+  fdr_img         = img_set
 )
 
-view_unconverted_videos(path_flv = "./Noldus Observer XT 14/Surface Videos/flv/",
-                        path_mp4 = "./Noldus Observer XT 14/Surface Videos/mp4/")
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                     BATCH                                 ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-create_videos_list(path_flv = "./Noldus Observer XT 14/Surface Videos/flv/",
-                   path_mp4 = "./Noldus Observer XT 14/Surface Videos/mp4/",
-                   path_part = "./Noldus Observer XT 14/7_Merging Part Videos/")
-
-
-
-
-# BATCH -------------------------------------------------------------------
-
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                          create_oxford_images                          ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 # EXAMPLE: PPAQ_49_2_2014_12_14
 img_set <- ""
 create_oxford_images(
