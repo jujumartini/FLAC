@@ -352,6 +352,53 @@ process_visit_numbers(
 ####                                                                        %%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+# Wrangle Noldus data.
+beh_domain_key_v2 <-
+  c(
+    "1" = "sport&exercise",
+    "2" = "leisure",
+    "3" = "transportation",
+    "4" = "other",
+    "5" = "caring&grooming",
+    "6" = "household",
+    "7" = "occupation",
+    "8" = "nca",
+    "9" = "uncoded"
+  )
+pos_bucket_key_v2 <- 
+  c(
+    "lying"                            = 1L,
+    "sitting"                          = 1L,
+    "crouching/kneeling/squatting"     = 2L,
+    "standing"                         = 3L,
+    "other - posture"                  = 4L,
+    "intermittent posture"             = 4L,
+    "walking"                          = 5L,
+    "stepping"                         = 5L,
+    "running"                          = 5L,
+    "ascending stairs"                 = 5L,
+    "descending stairs"                = 5L,
+    "crouching/squatting"              = 6L,
+    "cycling"                          = 6L,
+    "other - movement"                 = 7L,
+    "intermittent movement"            = 7L,
+    "intermittent p/m"                 = 8L,
+    "dark/obscured/oof"                = 9L
+  )
+pos_domain_key_v2 <-
+  c(
+    "1" = "sit",
+    "2" = "crouching",
+    "3" = "stand",
+    "4" = "posture other",
+    "5" = "movement",
+    "6" = "movement stationary",
+    "7" = "movement other",
+    "8" = "nca",
+    "9" = "uncoded"
+  )
+
 docomp_beh_buck_key <-
   c(
     "Sports/Exercise"              = 1L,
