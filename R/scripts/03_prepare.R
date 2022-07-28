@@ -79,6 +79,20 @@ unflip_oxford_imgs(folder_day = img_set)
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 BRINNO                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Example: study_subject_date <- "DLW_1111_2022_03_04" DONT INCLUDE THE PART.
+study_subject_date <- "DLW_Pilot_MAR01_2022_03_04"
+# Extracting frames from Brinno AVI videos.
+create_brinno_media(
+  fdr_read       = "FLAC_AIM3_DATA/PILOT/brinno",
+  fdr_write_img  = "FLAC_AIM3_DATA/PILOT/image",
+  fdr_write_vid  = "FLAC_AIM3_DATA/PILOT/video",
+  id             = study_subject_date,
+  extension      = "jpg",
+  timezone       = "America/Chicago"
+)
 
 ####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ####                                 OXFORD                                 ----
