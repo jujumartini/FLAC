@@ -40,6 +40,13 @@ shape_rmr(
 ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ##                                   CHAMBER                                ----
 ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+read_chamber(
+  fdr_raw_tsv = "FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_RAW_CHAMBER_TSV",
+  fdr_raw_csv = "FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_RAW_CHAMBER_CSV"
+)
+
+# CHAMBER FILES ARE CLEANED MANUALLY.
+
 shape_chamber(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
@@ -66,8 +73,8 @@ clean_noldus(
   fdr_read     = fdr_raw,
   fdr_write    = fdr_clean,
   fdr_project  = NULL,
-  fld_act      = "NOLDUS_ACTIVITY",
-  fld_pos      = "NOLDUS_POSTURE",
+  fld_src_1    = "NOLDUS_ACTIVITY",
+  fld_src_2    = "NOLDUS_POSTURE",
   filter_sub   = NULL,
   project_only = FALSE
 )
@@ -75,8 +82,8 @@ shape_noldus(
   fdr_read     = fdr_clean,
   fdr_write    = fdr_shape,
   fdr_project  = NULL,
-  fld_act      = "NOLDUS_ACTIVITY",
-  fld_pos      = "NOLDUS_POSTURE",
+  fld_src_1    = "NOLDUS_ACTIVITY",
+  fld_src_2    = "NOLDUS_POSTURE",
   filter_sub   = NULL,
   project_only = FALSE
 )
@@ -84,8 +91,8 @@ merge_noldus(
   fdr_read     = fdr_shape,
   fdr_write    = fdr_merge,
   fdr_project  = NULL,
-  fld_act      = "NOLDUS_ACTIVITY",
-  fld_pos      = "NOLDUS_POSTURE",
+  fld_src_1    = "NOLDUS_ACTIVITY",
+  fld_src_2    = "NOLDUS_POSTURE",
   fld_merge    = "NOLDUS_ACTIVITY_POSTURE",
   filter_sub   = NULL,
   project_only = FALSE
@@ -94,8 +101,8 @@ merge_noldus_chamber_rmr(
   fdr_read     = fdr_merge,
   fdr_write    = fdr_merge,
   fdr_project  = NULL,
-  fld_nld      = "NOLDUS_ACTIVITY_POSTURE",
-  fld_chm      = "CHAMBER_RMR",
+  fld_src_1    = "NOLDUS_ACTIVITY_POSTURE",
+  fld_src_2    = "CHAMBER_RMR",
   fld_merge    = "NOLDUS_CHAMBER_RMR",
   filter_sub   = NULL,
   project_only = FALSE
@@ -189,43 +196,217 @@ compute_acc_model_estimates(
   project_only = FALSE
 )
 
-##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-##                            PROJECT: 2022_ICAMPAM                         ----
-##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-process_duration_files(
-  vct_variable = c("posture",
-                 "behavior",
-                 "intensity"),
-  vct_source   = c("noldus",
-                 "rmr",
-                 "standard"),
-  fdr_read     = fdr_merge,
-  fdr_write    = path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
-                      "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-                      "3_data", "4_processed"),
-  fld_mer      = "NOLDUS_CHAMBER_RMR",
-  fnm_mer      = "CO_ALL_NOLDUS_CHAMBER_RMR.feather",
-  ge_than      = NULL
-  # ge_than      = list("behavior", "noldus", 60)
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                     DOINT                                 ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+source("./R/Scripts/02_functions.R")
+fdr_raw <- 
+  fs::path("FLAC_AIM1_DATA",
+           "1_AIM1_RAW_DATA")
+fdr_clean <- 
+  fs::path("FLAC_AIM1_DATA",
+           "2_AIM1_CLEANED_DATA")
+fdr_shape <-
+  fs::path("FLAC_AIM1_DATA",
+           "3_AIM1_SHAPED_DATA")
+fdr_merge <- 
+  fs::path("FLAC_AIM1_DATA",
+           "4_AIM1_MERGED_DATA")
+fdr_doint_clean <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOINT", "3_data", "1_cleaned"
+  )
+fdr_doint_shape <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOINT", "3_data", "2_shaped"
+  )
+fdr_doint_merge <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOINT", "3_data", "3_merged"
+  )
+fdr_doint_process <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOINT", "3_data", "4_processed"
+  )
+
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                   RMR                                  ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+shape_rmr(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = fdr_doint_shape,
+  folder       = "RMR",
+  filter_sub   = c(1001, 1002, 1003, 1004, 1005, 1007, 1008, 1009, 1010, 1011,
+                   1025, 1031, 1063, 1067, 1069, 1070, 1072, 1073, 1074, 1075,
+                   1076, 1077, 1078, 1079),
+  filter_loc   = NULL,
+  project_only = FALSE
 )
-process_visit_numbers(
-  fdr_read         = 
-    path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
-         "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-         "3_data", "4_processed"),
-  fdr_write        = 
-    path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
-         "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-         "3_data", "4_processed"),
-  fnm_dur          = "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather",
-  summary_function = "sum",
-  time_unit        = "mins" # secs, mins, hours
-  
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 CHAMBER                                ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+read_chamber(
+  fdr_raw_tsv = "FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_RAW_CHAMBER_TSV",
+  fdr_raw_csv = "FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_RAW_CHAMBER_CSV"
 )
 
-##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-##                               PROJECT: CHAAC                             ----
-##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# CHAMBER FILES ARE CLEANED MANUALLY.
+
+shape_chamber(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = fdr_doint_shape,
+  folder       = "CHAMBER",
+  filter_sub   = c(1001, 1002, 1003, 1004, 1005, 1007, 1008, 1009, 1010, 1011,
+                   1025, 1031, 1063, 1067, 1069, 1070, 1072, 1073, 1074, 1075,
+                   1076, 1077, 1078, 1079),
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+merge_chamber_rmr(
+  fdr_read     = fdr_shape,
+  fdr_write    = fdr_merge,
+  fdr_project  = fdr_doint_merge,
+  fld_chm      = "CHAMBER",
+  fld_rmr      = "RMR",
+  fld_merge    = "CHAMBER_RMR",
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 NOLDUS                                 ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+clean_noldus(
+  fdr_read     = fdr_raw,
+  fdr_write    = fdr_clean,
+  fdr_project  = fdr_doint_clean,
+  fld_src_1    = "NOLDUS_ACTIVITY",
+  fld_src_2    = "NOLDUS_POSTURE",
+  filter_sub   = c(1001, 1002, 1003, 1004, 1005, 1007, 1008, 1009, 1010, 1011,
+                   1025, 1031, 1063, 1067, 1069, 1070, 1072, 1073, 1074, 1075,
+                   1076, 1077, 1078, 1079),
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+shape_noldus(
+  fdr_read     = fdr_clean,
+  fdr_write    = fdr_shape,
+  fdr_project  = fdr_doint_shape,
+  fld_src_1    = "NOLDUS_ACTIVITY",
+  fld_src_2    = "NOLDUS_POSTURE",
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+merge_noldus(
+  fdr_read     = fdr_shape,
+  fdr_write    = fdr_merge,
+  fdr_project  = fdr_doint_merge,
+  fld_src_1    = "NOLDUS_ACTIVITY",
+  fld_src_2    = "NOLDUS_POSTURE",
+  fld_merge    = "NOLDUS_ACTIVITY_POSTURE",
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+merge_noldus_chamber_rmr(
+  fdr_read     = fdr_merge,
+  fdr_write    = fdr_merge,
+  fdr_project  = fdr_doint_merge,
+  fld_src_1    = "NOLDUS_ACTIVITY_POSTURE",
+  fld_src_2    = "CHAMBER_RMR",
+  fld_merge    = "NOLDUS_CHAMBER_RMR",
+  filter_sub   = NULL,
+  filter_loc   = NULL,
+  project_only = FALSE
+)
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+####                                 PROCESS                                ----
+####::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+# LEFT OFF HERE -----------------------------------------------------------
+
+# Loop through and do a 1 minute, 10 minutes, and 30 minutes for both process
+# duration files.Then do analysis AND FINSIH UP MANUSCRIPT.
+walk(
+  .x = 
+    list(
+      list("behavior", "noldus", 60),
+      list("behavior", "noldus", 600),
+      list("behavior", "noldus", 1800)
+    ),
+  .f = 
+    ~process_duration_files(
+      fdr_read     = fdr_doint_merge,
+      fdr_write    = fdr_doint_process,
+      fld_merge    = "NOLDUS_CHAMBER_RMR",
+      fnm_merge    = "CO_ALL_NOLDUS_CHAMBER_RMR.feather",
+      vct_variable = c("posture",
+                       "behavior",
+                       "intensity",
+                       "inactive"),
+      vct_source   = c("noldus",
+                       "rmr",
+                       "standard"),
+      ge_than      = .x
+    )
+)
+walk(
+  .x = 
+    c(
+      "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather",
+      "CO_ALL_DUR_BEH_NOL_GE_600_NOLDUS_CHAMBER_RMR.feather",
+      "CO_ALL_DUR_BEH_NOL_GE_1800_NOLDUS_CHAMBER_RMR.feather"
+    ),
+  .f = 
+    ~process_visit_numbers(
+      fdr_read         = fdr_doint_process,
+      fdr_write        = fdr_doint_process,
+      fnm_dur          = .x,
+      summary_function = "sum",
+      time_unit        = "mins" # secs, mins, hours
+    )
+)
+
+process_duration_files(
+  fdr_read     = fdr_doint_merge,
+  fdr_write    = fdr_doint_process,
+  fld_merge    = "NOLDUS_CHAMBER_RMR",
+  fnm_merge    = "CO_ALL_NOLDUS_CHAMBER_RMR.feather",
+  vct_variable = c("posture",
+                   "behavior",
+                   "intensity",
+                   "inactive"),
+  vct_source   = c("noldus",
+                   "rmr",
+                   "standard"),
+  ge_than      = NULL
+)
+process_visit_numbers(
+  fdr_read         = fdr_doint_process,
+  fdr_write        = fdr_doint_process,
+  fnm_dur          = "CO_ALL_DURATION_NOLDUS_CHAMBER_RMR.feather",
+  summary_function = "sum",
+  time_unit        = "mins" # secs, mins, hours
+)
+
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                     CHAAC                                 ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 merge_chamber_ag_model_estimates(
   fdr_read     = fdr_shape,
   fdr_write    = fdr_merge,
@@ -615,3 +796,43 @@ readr::write_rds(
   compress = "none"
 )
 
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####                                                                        %%%%
+#                                    DOWC-F                                 ----
+####                                                                        %%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+source("./R/Scripts/02_functions.R")
+fdr_raw <- 
+  fs::path("FLAC_AIM2_DATA",
+           "1_AIM2_RAW_DATA")
+fdr_clean <- 
+  fs::path("FLAC_AIM2_DATA",
+           "2_AIM2_CLEANED_DATA")
+fdr_shape <-
+  fs::path("FLAC_AIM2_DATA",
+           "3_AIM2_SHAPED_DATA")
+fdr_merge <- 
+  fs::path("FLAC_AIM2_DATA",
+           "4_AIM2_MERGED_DATA")
+fdr_dowcf_clean <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOWC-F", "3_data", "1_cleaned"
+  )
+fdr_dowcf_shape <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOWC-F", "3_data", "2_shaped"
+  )
+fdr_dowcf_merge <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOWC-F", "3_data", "3_merged"
+  )
+fdr_dowcf_process <- 
+  fs::path(
+    "S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
+    "MARTINEZ", "1_Publication Work", "DOWC-F", "3_data", "4_processed"
+  )
