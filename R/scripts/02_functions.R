@@ -5,6 +5,261 @@
 ####                                                                         %%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+factorize_flac <- function(vct,
+                           .source         = 
+                             c(
+                               "ACC",
+                               "CHAMBER",
+                               "NOLDUS",
+                               "OXFORD",
+                               "RMR",     # DOINT
+                               "STANDARD" # DOINT
+                             ),
+                           .variable       =
+                             c(
+                               "ACTIVITY",
+                               "ENVIRONMENT",
+                               "INACTIVE",
+                               "INTENSITY",
+                               "POSTURE"
+                             ),
+                           lvl_environment =
+                             c(
+                               "domestic",
+                               "non-domestic",
+                               "errands/shopping",
+                               "occupation",
+                               "organizational/civic/religious",
+                               "social/leisure"
+                             ),
+                           lvl_inactive    =
+                             c(
+                               "inactive",
+                               "light",
+                               "mvpa",
+                               "dark/obscured/oof"
+                             ),
+                           lvl_intensity   = 
+                             c(
+                               "sedentary",
+                               "light",
+                               "mvpa",
+                               "dark/obscured/oof"
+                             ),
+                           lvl_nld_act     = 
+                             c(
+                               "sports/exercise",
+                               "eating/drinking",
+                               "transportation",
+                               "electronics",
+                               "other - manipulating objects",
+                               "other - carrying load w/ ue",
+                               "other - pushing cart",
+                               "talking - person",
+                               "talking - phone",
+                               "caring/grooming - adult",
+                               "caring/grooming - animal/pet",
+                               "caring/grooming - child",
+                               "caring/grooming - self",
+                               "cleaning",
+                               "c/f/r/m",
+                               "cooking/meal preparation",
+                               "laundry" ,
+                               "lawn&garden",
+                               "leisure based",
+                               "only [p/m] code",
+                               "talking - researchers",
+                               "intermittent activity",
+                               "dark/obscured/oof"
+                             ),
+                           lvl_nld_pos     = 
+                             c(
+                               "lying",
+                               "sitting",
+                               "crouching/kneeling/squatting",
+                               "standing",
+                               "other - posture",
+                               "walking",
+                               "stepping",
+                               "running",
+                               "ascending stairs",
+                               "descending stairs",
+                               "crouching/squatting",
+                               "cycling",
+                               "other - movement",
+                               "intermittent movement",
+                               "dark/obscured/oof"
+                             ),
+                           lvl_oxf_act     = c(""),
+                           lvl_oxf_pos     = c("")) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - First version.
+  # - Created to consistently factorize FLAC variables.
+  # - 
+  # - 
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: vct
+  #   Character vector.
+  # ARG: .source
+  #   File source,
+  # ARG: .variable
+  #   Type of variable.
+  # ARG: lvl_environment
+  #   Character vector of levels for all .source_environmnet combos.
+  # ARG: lvl_intensity
+  #   Character vector of levels for all .source_intensity combos.
+  # ARG: lvl_nld_act
+  #   Character vector of levels for "NOLDUS_ACTIVITY" variable_source combo.
+  # ARG: lvl_nld_pos
+  #   Character vector of levels for "NOLDUS_POSTURE" variable_source combo.
+  # ARG: lvl_oxf_act
+  #   Character vector of levels for "OXFORD_ACTIVITY" variable_source combo.
+  # ARG: lvl_oxf_pos
+  #   Character vector of levels for "OXFORD_POSTURE" variable_source combo.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Make levels for oxford variables
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # vct           = df_shp$behavior
+  # .source       = "NOLDUS"
+  # .variable     = "ACTIVITY"
+  # lvl_environment =
+  #   c(
+  #     "domestic",
+  #     "non-domestic",
+  #     "errands/shopping",
+  #     "occupation",
+  #     "organizational/civic/religious",
+  #     "social/leisure"
+  #   )
+  # lvl_intensity = 
+  #   c(
+  #     "sedentary",
+  #     "light",
+  #     "mvpa",
+  #     "dark/obscured/oof"
+  #   )
+  # lvl_nld_act   = 
+  #   c(
+  #     "sports/exercise",
+  #     "eating/drinking",
+  #     "transportation",
+  #     "electronics",
+  #     "other - manipulating objects",
+  #     "other - carrying load w/ ue",
+  #     "other - pushing cart",
+  #     "talking - person",
+  #     "talking - phone",
+  #     "caring/grooming - adult",
+  #     "caring/grooming - animal/pet",
+  #     "caring/grooming - child",
+  #     "caring/grooming - self",
+  #     "cleaning",
+  #     "c/f/r/m",
+  #     "cooking/meal preparation",
+  #     "laundry" ,
+  #     "lawn&garden",
+  #     "leisure based",
+  #     "only [p/m] code",
+  #     "talking - researchers",
+  #     "intermittent activity",
+  #     "dark/obscured/oof"
+  #   )
+  # lvl_nld_pos   = 
+  #   c(
+  #     "lying",
+  #     "sitting",
+  #     "crouching/kneeling/squatting",
+  #     "standing",
+  #     "other - posture",
+  #     "walking",
+  #     "stepping",
+  #     "running",
+  #     "ascending stairs",
+  #     "descending stairs",
+  #     "crouching/squatting",
+  #     "cycling",
+  #     "other - movement",
+  #     "intermittent movement",
+  #     "dark/obscured/oof"
+  #   )
+  # lvl_oxf_act   = c("")
+  # lvl_oxf_pos   = c("")
+  
+  # expand_grid(
+  #   source   = c(
+  #     "ACC",
+  #     "CHAMBER",
+  #     "NOLDUS",
+  #     "OXFORD",
+  #     "RMR",     # DOINT
+  #     "STANDARD" # DOINT
+  #   ),
+  #   variable = c(
+  #     "ACTIVITY",
+  #     "ENVIRONMENT",
+  #     "INACTIVE",
+  #     "INTENSITY",
+  #     "POSTURE"
+  #   )
+  # ) |>
+  #   unite(col    = "variable_source",
+  #         source, variable,
+  #         sep    = "_",
+  #         remove = TRUE) |>
+  #   pull(variable_source)
+  
+  .source <- 
+    stri_trans_toupper(.source)
+  .variable <- 
+    stri_trans_toupper(.variable)
+  
+  var_src <- 
+    stri_c(.source, "_", .variable)
+  lvl <- 
+    switch(
+      EXPR = var_src,
+      "ACC_ACTIVITY"         = "",
+      "ACC_ENVIRONMENT"      = "",
+      "ACC_INACTIVE"         = lvl_inactive,
+      "ACC_INTENSITY"        = lvl_intensity,
+      "ACC_POSTURE"          = "",
+      "CHAMBER_ACTIVITY"     = "",
+      "CHAMBER_ENVIRONMENT"  = "",
+      "CHAMBER_INACTIVE"     = lvl_inactive,
+      "CHAMBER_INTENSITY"    = lvl_intensity,
+      "CHAMBER_POSTURE"      = "",
+      "NOLDUS_ACTIVITY"      = lvl_nld_act,
+      "NOLDUS_ENVIRONMENT"   = lvl_environment,
+      "NOLDUS_INACTIVE"      = lvl_inactive,
+      "NOLDUS_INTENSITY"     = lvl_intensity,
+      "NOLDUS_POSTURE"       = lvl_nld_pos,
+      "OXFORD_ACTIVITY"      = lvl_oxf_act,
+      "OXFORD_ENVIRONMENT"   = "",
+      "OXFORD_INACTIVE"      = lvl_inactive,
+      "OXFORD_INTENSITY"     = lvl_intensity,
+      "OXFORD_POSTURE"       = lvl_oxf_pos,
+      "RMR_ACTIVITY"         = "",
+      "RMR_ENVIRONMENT"      = "",
+      "RMR_INACTIVE"         = lvl_inactive,
+      "RMR_INTENSITY"        = lvl_intensity,
+      "RMR_POSTURE"          = "",
+      "STANDARD_ACTIVITY"    = "",
+      "STANDARD_ENVIRONMENT" = "",
+      "STANDARD_INACTIVE"    = lvl_inactive,
+      "STANDARD_INTENSITY"   = lvl_intensity,
+      "STANDARD_POSTURE"     = ""
+    )
+  fct <- 
+    factor(vct,
+           levels = lvl)
+  
+  return(fct)
+  
+}
 get_mode <- function(vec) {
   # Statistical mode. If more than one, gives you all values.
   ux <- unique(vec)
@@ -321,111 +576,468 @@ get_duration <- function(tib,
 }
 get_fpa_read <- function(fdr_read,
                          fdr_write,
+                         fdr_project   = NULL,
                          name_source_1,
                          name_source_2 = NULL,
-                         name_merged = NULL,
-                         filter_sub) {
-  # name_source_1 <- 
-  #   fld_chm
-  # name_source_2 <- 
-  #   fld_rmr
-  # name_merged <- 
-  #   "CHAMBER_RMR"
-  # filter_sub <- 
-  #   NULL
+                         name_merged   = NULL,
+                         filter_sub,
+                         filter_loc) {
+  
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Update beginning of function to include CHANGES, FUNCTIONS,
+  #   ARGUMENTS, TODO, and TESTING.
+  # - Add filter_loc argument.
+  # - Add fdr_project argument to also check if a folder was created in 
+  #   fdr_project.
+  # - Change to R's native pipe operator.
+  # - Change to stringi functions instead stringr functions.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - 
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: fdr_read
+  #   File directory of read-in files.
+  # ARG: fdr_write
+  #   File directory of wrangled files.
+  # ARG: fdr_project
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: name_source_1
+  #   Character string that is within the name of the folder being read in.
+  # ARG: name_source_2
+  #   Character string that is within the name of the folder being read in to
+  #   be merged with name_source_1.
+  # ARG: name_merged
+  #   Character string that is within the name of the folder where the 
+  #   merged data will be written to.
+  # ARG: filter_sub
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # # # # # # # # # # # # # # NORMAL
+  # fdr_read
+  # fdr_write
+  # fdr_project
+  # name_source_1 = folder
+  # name_source_2 = NULL
+  # name_merged   = NULL
+  # filter_sub
+  # filter_loc
+  # # # # # # # # # # # # # # NOLDUS
+  # fdr_read
+  # fdr_write
+  # fdr_project
+  # name_source_1 = fld_src_1
+  # name_source_2 = fld_src_2
+  # name_merged   = NULL
+  # filter_sub
+  # filter_loc
+  # # # # # # # # # # # # # # MERGE
+  # fdr_read
+  # fdr_write
+  # fdr_project
+  # name_source_1 = fld_src_1
+  # name_source_2 = fld_src_2
+  # name_merged   = "CHAMBER_RMR"
+  # filter_sub
+  # filter_loc
+  # # # # # # # # # # # # # # MERGE NOLDUS_CHAMBER_RMR
+  # fdr_read      = fdr_read
+  # fdr_write     = fdr_write
+  # fdr_project   = fdr_project
+  # name_source_1 = fld_src_1
+  # name_source_2 = fld_src_2
+  # name_merged   = fld_merge
+  # filter_sub    = filter_sub
+  # filter_loc    = filter_loc
   
   vct_fdr_write <- 
     fs::dir_ls(
       path        = fdr_write,
-      recurse     = FALSE,
       all         = TRUE,
+      recurse     = FALSE,
       type        = "directory",
+      glob        = NULL, 
       regexp      = NULL,
       invert      = FALSE,
       fail        = TRUE,
       ignore.case = TRUE
-    ) %>% 
-    fs::path_file() # Actually just gets the base of the path.
+    ) |> 
+    fs::path_file()
+  vct_fdr_project <- 
+    fs::dir_ls(
+      path        = fdr_project,
+      all         = TRUE,
+      recurse     = FALSE,
+      type        = "directory",
+      glob        = NULL, 
+      regexp      = NULL,
+      invert      = FALSE,
+      fail        = TRUE,
+      ignore.case = TRUE
+    ) |> 
+    fs::path_file()
   
   if (!is_null(name_merged)) {
-    chk_merged <- 
-      !any(
-        str_detect(vct_fdr_write,
-                   pattern = regex(name_merged,
-                                   ignore_case = TRUE))
-      )
     
-    if (chk_merged) {
-      cli_inform(
-        message = 
-          c("!" = 'No sub directory with phrase "{name_merged}" found in WRITE directory.',
-            "i" = 'Creating sub directory "{name_merged}" to house activity files.')
-      )
-      fs::dir_create(path = fs::path(fdr_write,
-                                     name_merged))
-    }
-    
-    if (is.null(name_source_2)) {
+    # Wrangle is to merge two file sources.
+    if (is_null(name_source_2)) {
+      
       cli_abort(c(
         "A merged file folder was supplied but no source_2 was supplied."
       ))
+      
     }
     
-    vct_fpa_read <- 
-      fs::dir_ls(
-        path        = fdr_read,
-        recurse     = FALSE,
-        all         = TRUE,
-        type        = "directory",
-        regexp      = paste(name_source_1, name_source_2, sep = "|"),
-        invert      = FALSE,
-        fail        = TRUE,
-        ignore.case = TRUE
-      ) %>% 
-      fs::dir_ls(
-        type = "file",
-        regexp = "\\.feather$"
-      ) %>% 
-      keep(.p = ~str_detect(path_file(.x),
-                            pattern = filter_sub))
-  } else {
-    chk_source <- 
+    chk_merged <- 
       !any(
-        str_detect(vct_fdr_write,
-                   pattern = regex(name_source_1,
-                                   ignore_case = TRUE))
+        stri_detect_regex(vct_fdr_write,
+                          pattern          = name_merged,
+                          case_insensitive = TRUE)
       )
     
-    if (chk_source) {
-      cli::cli_inform(
-        message = 
-          c("!" = 'No sub directory with phrase "{name_source_1}" found in WRITE directory.',
-            "i" = 'Creating sub directory "{name_source_1}" to house activity files.')
-      )
+    if (chk_merged) {
+      
+      cli_inform(c(
+        "!" = 'No sub directory with phrase "{name_merged}" found in WRITE directory.',
+        "i" = 'Creating sub directory "{name_merged}" to house merged files.'
+      ))
       fs::dir_create(path = fs::path(fdr_write,
-                                     name_source_1))
+                                     name_merged))
+      
     }
     
-    vct_fpa_read <- 
+    if (!is_null(fdr_project)) {
+      
+      # Also check in vct_fdr_project.
+      chk_merged <- 
+        !any(
+          stri_detect_regex(vct_fdr_project,
+                            pattern          = name_merged,
+                            case_insensitive = TRUE)
+        )
+      
+      if (chk_merged) {
+        
+        cli_inform(c(
+          "!" = 'No sub directory with phrase "{name_merged}" found in PROJECT directory.',
+          "i" = 'Creating sub directory "{name_merged}" to house merged files.'
+        ))
+        fs::dir_create(path = fs::path(fdr_project,
+                                       name_merged))
+        
+      }
+    }
+    
+    vct_fpa_read_1 <- 
       fs::dir_ls(
         path        = fdr_read,
-        recurse     = FALSE,
         all         = TRUE,
+        recurse     = FALSE,
         type        = "directory",
+        glob        = NULL, 
         regexp      = name_source_1,
         invert      = FALSE,
         fail        = TRUE,
         ignore.case = TRUE
-      ) %>% 
+      ) |> 
+      # If the wrangle function is to merge files, get the shortest folder path
+      # as it will be the correct one (in the event the merged files get re-
+      # merged with other files in the future, the re-merged files will have
+      # longer folder names.)
+      vec_slice(
+        fs::dir_ls(path        = fdr_read,
+                   type        = "directory",
+                   regexp      = name_source_2,
+                   ignore.case = TRUE) |> 
+          stri_length() |> 
+          which.min()
+      ) |> 
+      fs::dir_ls(
+        type = "file",
+        regexp = "\\.feather$"
+      ) |> 
+      # Remove "ALL" files.
+      path_filter(regexp = "ALL",
+                  invert = TRUE)
+    vct_fpa_read_2 <- 
+      fs::dir_ls(
+        path        = fdr_read,
+        all         = TRUE,
+        recurse     = FALSE,
+        type        = "directory",
+        glob        = NULL, 
+        regexp      = name_source_2,
+        invert      = FALSE,
+        fail        = TRUE,
+        ignore.case = TRUE
+      ) |> 
+      # If the wrangle function is to merge files, get the shortest folder path
+      # as it will be the correct one (in the event the merged files get re-
+      # merged with other files in the future, the re-merged files will have
+      # longer folder names.)
+      vec_slice(
+        fs::dir_ls(path        = fdr_read,
+                   type        = "directory",
+                   regexp      = name_source_2,
+                   ignore.case = TRUE) |> 
+          stri_length() |> 
+          which.min()
+      ) |> 
+      fs::dir_ls(
+        type = "file",
+        regexp = "\\.feather$"
+      ) |> 
+      # Remove "ALL" files.
+      path_filter(regexp = "ALL",
+                  invert = TRUE)
+    
+    if (!filter_sub == "") {
+      
+      vct_fpa_read_1 <- 
+        vct_fpa_read_1 |> 
+        stri_subset(regex = filter_sub)
+      vct_fpa_read_2 <- 
+        vct_fpa_read_2 |> 
+        stri_subset(regex = filter_sub)
+      
+    } else if (!is_empty(filter_loc)) {
+      
+      vct_fpa_read_1 <- 
+        vct_fpa_read_1[filter_loc]
+      vct_fpa_read_2 <- 
+        vct_fpa_read_2[filter_loc]
+      
+    }
+    
+    return(list(vct_fpa_read_1,
+                vct_fpa_read_2))
+    
+  } else if (!is.null(name_source_2)) {
+    
+    # Wrangle is to clean or shape noldus files.
+    chk_src_1 <- 
+      !any(
+        stri_detect_regex(vct_fdr_write,
+                          pattern          = name_source_1,
+                          case_insensitive = TRUE)
+      )
+    
+    if (chk_src_1) {
+      
+      cli::cli_inform(c(
+        "!" = 'No sub directory with phrase "{name_source_1}" found in WRITE directory.',
+        "i" = 'Creating sub directory "{name_source_1}" to house files.'
+      ))
+      fs::dir_create(path = fs::path(fdr_write,
+                                     name_source_1))
+      
+    }
+    
+    chk_src_2 <- 
+      !any(
+        stri_detect_regex(vct_fdr_write,
+                          pattern          = name_source_2,
+                          case_insensitive = TRUE)
+      )
+    
+    if (chk_src_2) {
+      
+      cli::cli_inform(c(
+        "!" = 'No sub directory with phrase "{name_source_2}" found in WRITE directory.',
+        "i" = 'Creating sub directory "{name_source_2}" to house files.'
+      ))
+      fs::dir_create(path = fs::path(fdr_write,
+                                     name_source_2))
+      
+    }
+    
+    if (!is_null(fdr_project)) {
+      
+      # Also check in vct_fdr_project.
+      chk_src_1 <- 
+        !any(
+          stri_detect_regex(vct_fdr_project,
+                            pattern          = name_source_1,
+                            case_insensitive = TRUE)
+        )
+      
+      if (chk_src_1) {
+        
+        cli::cli_inform(c(
+          "!" = 'No sub directory with phrase "{name_source_1}" found in PROJECT directory.',
+          "i" = 'Creating sub directory "{name_source_1}" to house files.'
+        ))
+        fs::dir_create(path = fs::path(fdr_project,
+                                       name_source_1))
+        
+      }
+      
+      chk_src_2 <- 
+        !any(
+          stri_detect_regex(vct_fdr_project,
+                            pattern          = name_source_2,
+                            case_insensitive = TRUE)
+        )
+      
+      if (chk_src_2) {
+        
+        cli::cli_inform(c(
+          "!" = 'No sub directory with phrase "{name_source_2}" found in PROJECT directory.',
+          "i" = 'Creating sub directory "{name_source_2}" to house files.'
+        ))
+        fs::dir_create(path = fs::path(fdr_project,
+                                       name_source_2))
+        
+      }
+    }
+    
+    vct_fpa_read_1 <- 
+      fs::dir_ls(
+        path        = fdr_read,
+        all         = TRUE,
+        recurse     = FALSE,
+        type        = "directory",
+        glob        = NULL, 
+        regexp      = name_source_1,
+        invert      = FALSE,
+        fail        = TRUE,
+        ignore.case = TRUE
+      ) |> 
       fs::dir_ls(
         type = "file",
         regexp = "\\.csv$|\\.xlsx$"
-      ) %>% 
-      keep(.p = ~str_detect(path_file(.x),
-                            pattern = filter_sub))
+      ) |> 
+      # Remove "ALL" files.
+      path_filter(regexp = "ALL",
+                  invert = TRUE)
+    vct_fpa_read_2 <- 
+      fs::dir_ls(
+        path        = fdr_read,
+        all         = TRUE,
+        recurse     = FALSE,
+        type        = "directory",
+        glob        = NULL, 
+        regexp      = name_source_2,
+        invert      = FALSE,
+        fail        = TRUE,
+        ignore.case = TRUE
+      ) |> 
+      fs::dir_ls(
+        type = "file",
+        regexp = "\\.csv$|\\.xlsx$"
+      ) |> 
+      # Remove "ALL" files.
+      path_filter(regexp = "ALL",
+                  invert = TRUE)
+    
+    if (!filter_sub == "") {
+      
+      vct_fpa_read_1 <- 
+        vct_fpa_read_1 |> 
+        stri_subset(regex = filter_sub)
+      vct_fpa_read_2 <- 
+        vct_fpa_read_2 |> 
+        stri_subset(regex = filter_sub)
+      
+    } else if (!is_empty(filter_loc)) {
+      
+      vct_fpa_read_1 <- 
+        vct_fpa_read_1[filter_loc]
+      vct_fpa_read_2 <- 
+        vct_fpa_read_2[filter_loc]
+      
+    }
+    
+    return(list(vct_fpa_read_1,
+                vct_fpa_read_2))
+    
+  } else {
+    
+    # Wrangle is to clean or shape one file source.
+    chk_source <- 
+      !any(
+        stri_detect_regex(vct_fdr_write,
+                          pattern          = name_source_1,
+                          case_insensitive = TRUE)
+      )
+    
+    if (chk_source) {
+      
+      cli::cli_inform(
+        message = 
+          c("!" = 'No sub directory with phrase "{name_source_1}" found in WRITE directory.',
+            "i" = 'Creating sub directory "{name_source_1}" to house files.')
+      )
+      fs::dir_create(path = fs::path(fdr_write,
+                                     name_source_1))
+      
+    }
+    
+    if (!is_null(fdr_project)) {
+      
+      # Also check in vct_fdr_project.
+      chk_source <- 
+        !any(
+          stri_detect_regex(vct_fdr_project,
+                            pattern          = name_source_1,
+                            case_insensitive = TRUE)
+        )
+      
+      if (chk_source) {
+        
+        cli::cli_inform(
+          message = 
+            c("!" = 'No sub directory with phrase "{name_source_1}" found in PROJECT directory.',
+              "i" = 'Creating sub directory "{name_source_1}" to house files.')
+        )
+        fs::dir_create(path = fs::path(fdr_project,
+                                       name_source_1))
+        
+      }
+    }
+    
+    vct_fpa_read <- 
+      fs::dir_ls(
+        path        = fdr_read,
+        all         = TRUE,
+        recurse     = FALSE,
+        type        = "directory",
+        glob        = NULL, 
+        regexp      = name_source_1,
+        invert      = FALSE,
+        fail        = TRUE,
+        ignore.case = TRUE
+      ) |> 
+      fs::dir_ls(
+        type = "file",
+        regexp = "\\.csv$|\\.xlsx$"
+      ) |> 
+      # Remove "ALL" files.
+      path_filter(regexp = "ALL",
+                  invert = TRUE)
+    
+    if (!filter_sub == "") {
+      
+      vct_fpa_read <- 
+        vct_fpa_read |> 
+        stri_subset(regex = filter_sub)
+      
+      
+    } else if (!is_empty(filter_loc)) {
+      
+      vct_fpa_read <- 
+        vct_fpa_read[filter_loc]
+      
+    }
+    
+    return(vct_fpa_read)
+    
   }
-  
-  return(vct_fpa_read)
 }
 get_fpa_read_noldus <- function(fdr_read,
                                 fdr_write,
@@ -446,6 +1058,7 @@ get_fpa_read_noldus <- function(fdr_read,
       recurse     = FALSE,
       all         = TRUE,
       type        = "directory",
+      glob        = NULL, 
       regexp      = NULL,
       invert      = FALSE,
       fail        = TRUE,
@@ -477,6 +1090,7 @@ get_fpa_read_noldus <- function(fdr_read,
         recurse     = FALSE,
         all         = TRUE,
         type        = "directory",
+        glob        = NULL, 
         regexp      = paste(name_activity, name_posture, sep = "|"),
         invert      = FALSE,
         fail        = TRUE,
@@ -528,6 +1142,7 @@ get_fpa_read_noldus <- function(fdr_read,
         recurse     = FALSE,
         all         = TRUE,
         type        = "directory",
+        glob        = NULL, 
         regexp      = paste(name_activity, name_posture, sep = "|"),
         invert      = FALSE,
         fail        = TRUE,
@@ -542,6 +1157,7 @@ get_fpa_read_noldus <- function(fdr_read,
   }
   
   return(vct_fpa_read)
+  
 }
 seq_events <- function(vec) {
   # Repeat the index of values by the duration of each value in vec.
@@ -596,69 +1212,126 @@ initiate_wrangle <- function(fdr_read,
                              project_only,
                              type,
                              file_source) {
-  # type <- 
-  #   "Clean"
-  # file_source <- 
-  #   "NOLDUS"
+
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Update beginning of function to include CHANGES, FUNCTIONS,
+  #   ARGUMENTS, TODO, and TESTING.
+  # - Have it return a list that is deparsed using zeallot package
+  #   in wrangle function.
+  # - Change to R's native pipe operator.
+  # - Make sure that only one of the filters are provided.
+  # - 
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - 
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: fdr_read
+  #   File directory of folders that contains a folder with the 
+  #   file_source in the name of it.
+  # ARG: fdr_project
+  #   File directory of folders that contains a folder with the
+  #   file source in the name of it to save wrangled files to.
+  # ARG: filter_sub
+  #   Character vector of subjects to filter files from fdr_read.
+  # ARG: filter_loc
+  #   Numeric vector of locations to filter files from fdr_read.
+  # ARG: project_only
+  #   Logical to determine if wrangled files are only being saved to project
+  #   folder.
+  # ARG: type
+  #   Character of "clean", "shap", "merg" or "process". The letters "ing" and 
+  #   "ed" are added to the end during messages to the user.
+  # ARG: file_source
+  #   The character string that is common in the name of the fdr_read folder
+  #   and the fdr_project folder.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_read
+  # fdr_project
+  # filter_sub
+  # filter_loc  = NULL
+  # project_only
+  # type        = "Shap"
+  # file_source = folder
   
   fdr_project <-
     fs::as_fs_path(fdr_project)
+  
+  if (!is_null(filter_sub) & !is_null(filter_loc)) {
+   
+    cli_abort(c(
+      "x" = "Both {.arg filter_sub} and {.arg filter_loc} were provided.",
+      "i" = "Only provide one"
+    )) 
+    
+  }
+  
   filter_sub <-
-    paste0(filter_sub,
+    stri_c(filter_sub,
            collapse = "|")
   filter_loc <- 
     as.integer(filter_loc)
   
   if(!is.logical(project_only)) {
+    
     cli_abort(c(
       "x" = "{.arg project_only} is not a logical.",
       "i" = "Class of {.arg project only} supplied is {class(project_only)}"
     ))
+    
   }
   
   if(project_only & is_empty(fdr_project)) {
+    
     cli_abort(c(
       "x" = "{.arg project_only} set to TRUE but {.arg fdr_project} not specified.",
       "i" = "Make sure {.arg fdr_project} is not NULL."
     ))
+    
   }
   
-  if (!is_empty(fdr_project)) {
-    # Just in case.
-    fs::dir_create(path = fs::path(fdr_project,
-                                   fld_act))
-    fs::dir_create(path = fs::path(fdr_project,
-                                   fld_pos))
-  }
+  # if (!is_empty(fdr_project)) {
+  #   
+  #   if (file_source == "NOLDUS") {
+  #     
+  #     fs::dir_create(path = fs::path(fdr_project,
+  #                                    "NOLDUS_ACTIVITY"))
+  #     fs::dir_create(path = fs::path(fdr_project,
+  #                                    "NOLDUS_POSTURE"))
+  #     
+  #     
+  #   }
+  #   
+  #   # Just in case.
+  #   fs::dir_create(path = fs::path(fdr_project,
+  #                                  file_source))
+  #   
+  # }
   
-  assign("fnm_read",
-         value = "",
-         envir = parent.frame())
-  assign("fdr_project",
-         value = fdr_project,
-         envir = parent.frame())
-  assign("filter_sub",
-         value = filter_sub,
-         envir = parent.frame())
-  assign("info_flac_aim",
-         value = fdr_read %>%
-           fs::path_dir() %>%
-           str_extract(pattern = "AIM\\d{1}"),
-         envir = parent.frame())
-  assign("info_function",
-         value = type,
-         envir = parent.frame())
-  assign("info_source",
-         value = file_source,
-         envir = parent.frame())
-  assign("cnt",
-         value = 0,
-         envir = parent.frame())
-  assign("progress_format",
-         # value =  "{info_function}ing... | {cli::pb_current}/{cli::pb_total} | [{cli::pb_elapsed}]",
-         # value =  "{info_function}ing {str_to_title(info_source)} file {fnm_read} | {cli::pb_current}/{cli::pb_total} | [{cli::pb_elapsed}] | {cli::pb_eta_str}",
-         value =  "{info_function}ing {str_to_title(info_source)} file {fnm_read} | {cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | [{cli::pb_elapsed}] | {cli::pb_eta_str}",
-         envir = parent.frame())
+  return(
+    list(
+      fnm_read        = "",
+      fdr_project     = fdr_project,
+      filter_sub      = filter_sub,
+      filter_loc      = filter_loc,
+      info_flac_aim   =
+        fdr_read |> 
+        path_dir() |> 
+        stri_extract(regex = "AIM\\d{1}"),
+      info_function   = type,
+      info_source     = file_source,
+      cnt             = 0,
+      progress_format =
+        stri_c(
+          "{info_function}ing {str_to_title(info_source)} file {fnm_read}",
+          "| {cli::pb_current}/{cli::pb_total} ({cli::pb_percent})",
+          "| [{cli::pb_elapsed}] | {cli::pb_eta_str}",
+          sep = " "
+        )
+    )
+  )
+  
 }
 initiate_analysis <- function(fdr_result = "./4_results") {
   
@@ -740,7 +1413,225 @@ initiate_analysis <- function(fdr_result = "./4_results") {
   ))
   
 }
-
+complete_wrangle <- function(df_write,
+                             fdr_write,
+                             fdr_project,
+                             fnm_write,
+                             folder,
+                             file_type = "both",
+                             project_only) {
+  
+  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - FIRST VERSION
+  # - Keeps end of wrangle functions consistent.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - 
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG: df_write
+  #   Data frame to write after all wrangling is done.
+  # ARG: fdr_write
+  #   File directory of wrangled files.
+  # ARG: fdr_project
+  #   File directory to where all the wrangled data resides in the project.
+  # ARG: fnm_write
+  #   Character string for the file name of the wrangled file.
+  # ARG: folder
+  #   Folder name of read files to save wrangled files to.
+  # ARG: file_type
+  #   Character string dictating to write a "csv", a "feather" or "both".
+  # ARG: project_only
+  #   Should merged files only be written to fdr_project and not to both
+  #   fdr_write and fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # # # # # # # # # # # # # # NORMAL
+  # df_write   = df_shp
+  # fdr_write
+  # fdr_project
+  # fnm_write
+  # folder
+  # file_type  = "both"
+  # project_only
+  # # # # # # # # # # # # # # PROCESS DURATION (no folder)
+  # df_write     = df_ge_than
+  # fdr_write    = fdr_read
+  # fdr_project  = character()
+  # fnm_write    = fnm_ge_than
+  # folder       = ""
+  # file_type    = "both"
+  # project_only = FALSE
+  
+  if (!file_type %in% c("both", "csv", "feather")) {
+    
+    cli_abort(c(
+      "x" = "{.arg file_type} is not one of the following strings:",
+      " " = '"both" "csv" "feather"'
+    ))
+    
+  }
+  
+  # PROJECT ONLY.
+  if (project_only) {
+    
+    fpa_project <- 
+      fs::path(
+        dir_ls(fdr_project,
+               type   = "directory",
+               regexp = folder) |> 
+          # If the wrangle function is to merge files, get the shortest folder path
+          # as it will be the correct one (in the event the merged files get re-
+          # merged with other files in the future, the re-merged files will have
+          # longer folder names.)
+          vec_slice(
+            dir_ls(fdr_project,
+                   type   = "directory",
+                   regexp = folder) |> 
+              stri_length() |> 
+              which.min()
+          ),
+        fnm_write
+      )
+    switch(
+      EXPR = file_type,
+      "both"    = {
+        data.table::fwrite(
+          df_write,
+          file = fpa_project,
+          sep  = ","
+        )
+        arrow::write_feather(
+          df_write,
+          sink = fs::path_ext_set(path = fpa_project,
+                                  ext  = "feather")
+        )
+      },
+      "csv"     = {
+        data.table::fwrite(
+          df_write,
+          file = fpa_project,
+          sep  = ","
+        )
+      },
+      "feather" = {
+        arrow::write_feather(
+          df_write,
+          sink = fs::path_ext_set(path = fpa_project,
+                                  ext  = "feather")
+        )
+      }
+    )
+    
+    return(invisible())
+    
+  }
+  
+  # NORMAL.
+  fpa_write <- 
+    fs::path(
+      dir_ls(fdr_write,
+             type   = "directory",
+             regexp = folder) |> 
+        # If the wrangle function is to merge files, get the shortest folder path
+        # as it will be the correct one (in the event the merged files get re-
+        # merged with other files in the future, the re-merged files will have
+        # longer folder names.)
+        vec_slice(
+          dir_ls(fdr_write,
+                 type   = "directory",
+                 regexp = folder) |> 
+            stri_length() |> 
+            which.min()
+        ),
+      fnm_write
+    )
+  switch(
+    EXPR = file_type,
+    "both"    = {
+      data.table::fwrite(
+        df_write,
+        file = fpa_write,
+        sep  = ","
+      )
+      arrow::write_feather(
+        df_write,
+        sink = fs::path_ext_set(path = fpa_write,
+                                ext  = "feather")
+      )
+    },
+    "csv"     = {
+      data.table::fwrite(
+        df_write,
+        file = fpa_write,
+        sep  = ","
+      )
+    },
+    "feather" = {
+      arrow::write_feather(
+        df_write,
+        sink = fs::path_ext_set(path = fpa_write,
+                                ext  = "feather")
+      )
+    }
+  )
+  
+  # PROJECT FOLDER.
+  if(!is_empty(fdr_project)) {
+    
+    fpa_project <- 
+      fs::path(
+        dir_ls(fdr_project,
+               type   = "directory",
+               regexp = folder) |> 
+          # If the wrangle function is to merge files, get the shortest folder path
+          # as it will be the correct one (in the event the merged files get re-
+          # merged with other files in the future, the re-merged files will have
+          # longer folder names.)
+          vec_slice(
+            dir_ls(fdr_project,
+                   type   = "directory",
+                   regexp = folder) |> 
+              stri_length() |> 
+              which.min()
+          ),
+        fnm_write
+      )
+    switch(
+      EXPR = file_type,
+      "both"    = {
+        data.table::fwrite(
+          df_write,
+          file = fpa_project,
+          sep  = ","
+        )
+        arrow::write_feather(
+          df_write,
+          sink = fs::path_ext_set(path = fpa_project,
+                                  ext  = "feather")
+        )
+      },
+      "csv"     = {
+        data.table::fwrite(
+          df_write,
+          file = fpa_project,
+          sep  = ","
+        )
+      },
+      "feather" = {
+        arrow::write_feather(
+          df_write,
+          sink = fs::path_ext_set(path = fpa_project,
+                                  ext  = "feather")
+        )
+      }
+    )
+    
+  }
+  
+  return(invisible())
+  
+}
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####                                                                         %%%%
@@ -1531,28 +2422,21 @@ create_oxford_images <- function(fdr_load,
                                  fdr_fake_images,
                                  fdr_img) {
   
-  ###  VERSION 5  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 6  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -Update to most recent object naming scheme as of 2022 March.
-  # -See if I can remove the begin & end arguments since they arent really used anymore.
-  # -Left the fake images code alone so if it is needed then an error will pop
-  #  up which will force me to update it. As of now I don't think it needs to be.
-  # -Change to using magick package as it is 0.3 seconds faster and meshes with
-  #  other packages pretty well.
-  # -Force Brinno images (1920x1080) to match Oxford medium/thumbnail sizes.
+  # - Update code to address image sets that have a "Thumbs.db" file in it
+  #   and remove it.
+  # - Use R's native pipe operator.
+  # - Rename tib to df.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -NULL
+  # - NA
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_load
-  #      File directory where image set to load are located.
+  #   File directory where image set to load are located.
   # ARG: fdr_fake_images
-  #      Don't know if this is needed anymore.
+  #   Don't know if this is needed anymore.
   # ARG: fnm_img_set
-  #      Name of the image set folder.
-  # ARG: begin
-  #      Don't know if this is needed anymore.
-  # ARG: end
-  #      Don't know if this is needed anymore.
+  #   Name of the image set folder.
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
   # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::  
@@ -1561,14 +2445,16 @@ create_oxford_images <- function(fdr_load,
   # fdr_img         = img_set
   
   fdr_load_img <- 
-    dir_ls(path = fdr_load,
+    dir_ls(path    = fdr_load,
            recurse = 1,
-           regexp = fdr_img)
+           regexp  = fdr_img)
   chk_img_set <- 
     rlang::is_empty(fdr_load_img)
   
   if (chk_img_set) {
+    
     stop("IMG SET FOLDER NOT FOUND.")
+    
   }
   
   # create medium and thumbnail folders
@@ -1584,88 +2470,64 @@ create_oxford_images <- function(fdr_load,
   # list images
   vct_fpa_img <- 
     fs::dir_ls(
-      path = fdr_load_img,
+      path    = fdr_load_img,
       recurse = TRUE,
-      type = "file"
+      type    = "file"
     )
   
   create_img <- function(fpt,
-                         tib_fake_images) {
+                         df_fake_images) {
     
     fpt <-
       vct_fpa_img[i]
     ext <- 
       fs::path_ext(fpt)
     fnm <- 
-      fpt %>% 
-      fs::path_file() %>% 
-      fs::path_ext_set(ext = stringr::str_to_lower(ext))
+      fpt |> 
+      fs::path_file() |> 
+      fs::path_ext_set(ext = stri_trans_tolower(ext))
     
     # Autographer files are initially 2592x1936. Brinno is 1920x1080.
     img_original <- 
       magick::image_read(path = fpt)
     
     # Medium image. EITHER:
-    img_original %>% 
+    img_original |> 
       # Force resize even if original ratio is lost ("864x645!") OR
-      # magick::image_resize(geometry = "864x645!") %>%
-      # Fill with empty pixels (image_resize() %>% image_extent()). 
-      magick::image_resize(geometry = "864x645") %>%
+      # magick::image_resize(geometry = "864x645!") |>
+      # Fill with empty pixels (image_resize() |> image_extent()). 
+      magick::image_resize(geometry = "864x645") |>
       magick::image_extent(geometry = "864x645",
-                           gravity = "center",
-                           color = "none") %>% 
+                           gravity  = "center",
+                           color    = "none") |> 
       magick::image_write(
         path = fs::path(fdr_load_img,
                         "medium",
                         fnm)
       )
     # Thumbnail image. EITHER:
-    img_original %>% 
+    img_original |> 
       # Force resize even if original ratio is lost ("100x87!") OR
-      # magick::image_resize(geometry = "100x87!") %>%
-      # Fill with empty pixels (image_resize() %>% image_extent()). 
-      magick::image_resize(geometry = "100x87") %>%
+      # magick::image_resize(geometry = "100x87!") |>
+      # Fill with empty pixels (image_resize() |> image_extent()). 
+      magick::image_resize(geometry = "100x87") |>
       magick::image_extent(geometry = "100x87",
-                           gravity = "center",
-                           color = "none") %>% 
+                           gravity  = "center",
+                           color    = "none") |> 
       magick::image_write(
         path = fs::path(fdr_load_img,
                         "thumbnail",
                         fnm)
       )
     
-    # dir_create(fdr_img,
-    #            "test")
-    # bench <- 
-    # microbenchmark::microbenchmark(
-    #   magick = 
-    #     magick::image_read(fpt) %>% 
-    #     magick::image_resize(geometry = "864x645") %>% 
-    #     magick::image_resize(geometry = "100x87") %>% 
-    #     magick::image_write(path = fs::path(fdr_img,
-    #                                         "test",
-    #                                         fs::path_file(fpt))),
-    #   imager = 
-    #     imager::load.image(fpt) %>% 
-    #     imager::resize(size_x = 864,
-    #                    size_y = 645) %>% 
-    #     imager::resize(size_x = 100,
-    #                    size_y = 87) %>% 
-    #     imager::save.image(fs::path(fdr_img,
-    #                                 "test",
-    #                                 fs::path_file(fpt))),
-    #   times = 100,
-    #   unit = "secs"
-    # )
-    
-    return(tib_fake_images)
+    return(invisible(df_fake_images))
     
   }
   
-  tib_fake_images <- 
+  df_fake_images <- 
     tibble(
       img_number = integer(),
-      img_name = character()
+      img_name   = character()
     )
   
   # cli_alert_info("Creating Oxford images ")
@@ -1675,21 +2537,21 @@ create_oxford_images <- function(fdr_load,
   # create medium and thumbnail for each image (imager)
   for (i in cli_progress_along(vct_fpa_img,
                                format = progress_format,
-                               clear = FALSE)) {
+                               clear  = FALSE)) {
     
     fpa_img <-
       vct_fpa_img[i]
     
-    tib_fake_images <- 
+    df_fake_images <- 
       tryCatch(
-        expr = create_img(fpt = fpa_img,
-                          tib_fake_images = tib_fake_images),
+        expr = create_img(fpt             = fpa_img,
+                          df_fake_images  = df_fake_images),
         error = function(cnd) {
-          tib_fake_images <<-
-            tib_fake_images %>%
+          df_fake_images <<-
+            df_fake_images |>
             dplyr::add_row(img_number = i,
                            img_name   = fs::path_file(fpa_img))
-          return(tib_fake_images)
+          return(df_fake_images)
         }
       )
     
@@ -1699,7 +2561,21 @@ create_oxford_images <- function(fdr_load,
   
   cli_progress_done()
   
-  if (length(tib_fake_images$img_number) == 0) {
+  if (any(df_fake_images$img_name == "Thumbs.db")) {
+    
+    # Remove Thumbs.db file and remove the row from df_fake_images.
+    file_delete(path(
+      fdr_load_img,
+      "Thumbs.db"
+    ))
+    
+    df_fake_images <- 
+      df_fake_images |> 
+      filter(img_name != "Thumbs.db")
+    
+  }
+  
+  if (length(df_fake_images$img_number) == 0) {
     
     message(
       "\n",
@@ -1714,44 +2590,39 @@ create_oxford_images <- function(fdr_load,
   }
   
   # Remove fake images from image_set.
-  for (i in seq_along(tib_fake_images$img_name)) {
+  for (i in seq_along(df_fake_images$img_name)) {
     
-    fnm_img_fake <- tib_fake_images$img_name[i]
-    
-    fs::file_delete(
-      path = paste(fdr_loader_img_set,
-                   fnm_img_fake,
-                   sep = "/")
-    ) 
+    fs::file_delete(path(
+      fdr_load_img,
+      df_fake_images$img_name[i]
+    ))
     
   }
   
   fnm_img_fake <- 
-    paste0(
+    stri_c(
       "fake_images_",
-      fnm_img_set,
+      fdr_img,
       ".csv"
     )
-  vroom_write(
-    tib_fake_images,
-    path = paste(fdr_fake_images,
-                 fnm_img_fake,
-                 sep = "/"),
-    delim = ",",
-    progress = FALSE
+  fwrite(
+    df_fake_images,
+    file  = path(fdr_fake_images,
+                 fnm_img_fake),
+    sep   = ","
   )
   
   # Determine if there are sequences.
-  tib_fake_images$datetime <- 
-    tib_fake_images$img_name %>% 
-    str_sub(start = 18,
-            end = 32) %>% 
+  df_fake_images$datetime <- 
+    df_fake_images$img_name |> 
+    stri_sub(from = 18,
+             to   = 32)
     lubridate::ymd_hms()
   
   lgl_fake_before <- 
-    tib_fake_images$img_number %in% (tib_fake_images$img_number - 1)
+    df_fake_images$img_number %in% (df_fake_images$img_number - 1)
   lgl_fake_after <- 
-    tib_fake_images$img_number %in% (tib_fake_images$img_number + 1)
+    df_fake_images$img_number %in% (df_fake_images$img_number + 1)
   lgl_fake_seq <- 
     lgl_fake_before | lgl_fake_after
   
@@ -1781,9 +2652,9 @@ create_oxford_images <- function(fdr_load,
     # anchors that do not include the gap (this gap would not be included while
     # coding anyways as coders would put a break in the code line).
     ind_fake_gap <- suppressWarnings(
-      which(c(diff.POSIXt(tib_fake_images$datetime,
+      which(c(diff.POSIXt(df_fake_images$datetime,
                           lag = 1,
-                          differences = 1), 1) %>% 
+                          differences = 1), 1) |> 
               as.numeric(units = "mins") >=
               15)
     )
@@ -1794,7 +2665,7 @@ create_oxford_images <- function(fdr_load,
         c(1,
           ind_fake_gap,
           ind_fake_gap + 1,
-          length(tib_fake_images$datetime)) %>% 
+          length(df_fake_images$datetime)) |> 
         sort()
       ind_fake_seq_beg <- 
         ind_fake_seq_anchors[seq_along(ind_fake_seq_anchors) %% 2 == 1]
@@ -1802,17 +2673,17 @@ create_oxford_images <- function(fdr_load,
         ind_fake_seq_anchors[seq_along(ind_fake_seq_anchors) %% 2 == 0]
       
       diff_img_seq <- 
-        difftime( time1 = tib_fake_images$datetime[ind_fake_seq_end],
-                  time2 = tib_fake_images$datetime[ind_fake_seq_beg],
-                  units = "mins") %>% 
+        difftime( time1 = df_fake_images$datetime[ind_fake_seq_end],
+                  time2 = df_fake_images$datetime[ind_fake_seq_beg],
+                  units = "mins") |> 
         round(digits = 2)
-      tib_fake_time <- 
+      df_fake_time <- 
         tibble(
-          image_sequence        = paste(tib_fake_images$img_number[ind_fake_seq_beg],
-                                        tib_fake_images$img_number[ind_fake_seq_end],
-                                        sep = " -- "),
-          time_loss_minutes     = diff_img_seq,
-          .rows = length(diff_img_seq)
+          image_sequence    = stri_c(df_fake_images$img_number[ind_fake_seq_beg],
+                                     df_fake_images$img_number[ind_fake_seq_end],
+                                     sep = " -- "),
+          time_loss_minutes = diff_img_seq,
+          .rows             = length(diff_img_seq)
         ) 
       
       for (i in seq_along(diff_img_seq)) {
@@ -1826,17 +2697,17 @@ create_oxford_images <- function(fdr_load,
     } else {
       
       diff_img_seq <- 
-        difftime(time1 = tib_fake_images$datetime[length(tib_fake_images$datetime)],
-                 time2 = tib_fake_images$datetime[1],
-                 units = "mins") %>% 
+        difftime(time1 = df_fake_images$datetime[length(df_fake_images$datetime)],
+                 time2 = df_fake_images$datetime[1],
+                 units = "mins") |> 
         round(digits = 2)
-      tib_fake_time <- 
+      df_fake_time <- 
         tibble(
-          image_sequence        = paste(tib_fake_images$img_number[1],
-                                        tib_fake_images$img_number[nrow(tib_fake_images)],
-                                        sep = " - "),
-          time_loss_minutes     = diff_img_seq,
-          .rows = length(diff_img_seq)
+          image_sequence    = stri_c(df_fake_images$img_number[1],
+                                     df_fake_images$img_number[nrow(df_fake_images)],
+                                     sep = " - "),
+          time_loss_minutes = diff_img_seq,
+          .rows             = length(diff_img_seq)
         )
       
       warning(
@@ -1847,18 +2718,16 @@ create_oxford_images <- function(fdr_load,
     }
     
     fnm_fake_time <- 
-      paste0(
+      stri_c(
         "time_loss_",
         fnm_img_set,
         ".csv"
       )
-    vroom_write(
-      tib_fake_time,
-      path = paste(fdr_fake_images,
-                   fnm_fake_time,
-                   sep = "/"),
-      delim = ",",
-      progress = FALSE
+    fwrite(
+      df_fake_images,
+      file  = path(fdr_fake_images,
+                   fnm_fake_time),
+      sep   = ","
     )
     
   } else {
@@ -1932,7 +2801,8 @@ create_oxford_images <- function(fdr_load,
             ind_fake_seq_anchors <- 
               c(ind_fake_non_seq[ind_fake_non_seq_anchors[i]] + 1, 
                 ind_fake_non_seq[ind_fake_non_seq_anchors[i] + 1] - 1)
-            lst_seq_anchors[[i]] <- ind_fake_seq_anchors
+            lst_seq_anchors[[i]] <- 
+              ind_fake_seq_anchors
             
           }
         }
@@ -1960,14 +2830,14 @@ create_oxford_images <- function(fdr_load,
     # anchors that do not include the gap (this gap would not be included while
     # coding anyways as coders would put a break in the code line).
     ind_fake_gap <- suppressWarnings(
-      which(c(diff.POSIXt(tib_fake_images$datetime,
+      which(c(diff.POSIXt(df_fake_images$datetime,
                           lag = 1,
-                          differences = 1), 1) %>% 
+                          differences = 1), 1) |> 
               as.numeric(units = "mins") >=
-              15) %>% 
-        as_tibble() %>% 
+              15) |> 
+        as_tibble() |> 
         filter(value > ind_fake_seq_beg &
-                 value < ind_fake_seq_end) %>% 
+                 value < ind_fake_seq_end) |> 
         unlist(use.names = FALSE)
     )
     
@@ -1976,7 +2846,7 @@ create_oxford_images <- function(fdr_load,
       ind_fake_seq_anchors_2 <- 
         c(ind_fake_seq_anchors,
           ind_fake_gap,
-          ind_fake_gap + 1) %>% 
+          ind_fake_gap + 1) |> 
         sort()
       ind_fake_seq_beg_2 <- 
         ind_fake_seq_anchors_2[seq_along(ind_fake_seq_anchors_2) %% 2 == 1]
@@ -1984,50 +2854,48 @@ create_oxford_images <- function(fdr_load,
         ind_fake_seq_anchors_2[seq_along(ind_fake_seq_anchors_2) %% 2 == 0]
       
       diff_img_seq <- 
-        difftime( time1 = tib_fake_images$datetime[ind_fake_seq_end_2],
-                  time2 = tib_fake_images$datetime[ind_fake_seq_beg_2],
-                  units = "mins") %>% 
+        difftime(time1 = df_fake_images$datetime[ind_fake_seq_end_2],
+                 time2 = df_fake_images$datetime[ind_fake_seq_beg_2],
+                 units = "mins") |> 
         round(digits = 2)
-      tib_fake_time <- 
+      df_fake_time <- 
         tibble(
-          image_sequence        = paste(tib_fake_images$img_number[ind_fake_seq_beg_2],
-                                        tib_fake_images$img_number[ind_fake_seq_end_2],
-                                        sep = " -- "),
-          time_loss_minutes     = diff_img_seq,
-          .rows = length(diff_img_seq)
+          image_sequence    = stri_c(df_fake_images$img_number[ind_fake_seq_beg_2],
+                                     df_fake_images$img_number[ind_fake_seq_end_2],
+                                     sep = " -- "),
+          time_loss_minutes = diff_img_seq,
+          .rows             = length(diff_img_seq)
         ) 
       
     } else {
       
       diff_img_seq <- 
-        difftime( time1 = tib_fake_images$datetime[ind_fake_seq_end],
-                  time2 = tib_fake_images$datetime[ind_fake_seq_beg],
-                  units = "mins") %>% 
+        difftime(time1 = df_fake_images$datetime[ind_fake_seq_end],
+                 time2 = df_fake_images$datetime[ind_fake_seq_beg],
+                 units = "mins") |> 
         round(digits = 2)
-      tib_fake_time <- 
+      df_fake_time <- 
         tibble(
-          image_sequence        = paste(tib_fake_images$img_number[ind_fake_seq_beg],
-                                        tib_fake_images$img_number[ind_fake_seq_end],
-                                        sep = " -- "),
-          time_loss_minutes     = diff_img_seq,
-          .rows = length(diff_img_seq)
+          image_sequence    = stri_c(df_fake_images$img_number[ind_fake_seq_beg],
+                                     df_fake_images$img_number[ind_fake_seq_end],
+                                     sep = " -- "),
+          time_loss_minutes = diff_img_seq,
+          .rows             = length(diff_img_seq)
         ) 
       
     }
     
     fnm_fake_time <- 
-      paste0(
+      stri_c(
         "time_loss_",
         fnm_img_set,
         ".csv"
       )
-    vroom_write(
-      tib_fake_time,
-      path = paste(fdr_fake_images,
-                   fnm_fake_time,
-                   sep = "/"),
-      delim = ",",
-      progress = FALSE
+    fwrite(
+      df_fake_images,
+      file  = path(fdr_fake_images,
+                   fnm_fake_time),
+      sep = ","
     )
     
     for (i in seq_along(diff_img_seq)) {
@@ -2043,7 +2911,7 @@ create_oxford_images <- function(fdr_load,
   message(
     "\n",
     "---------------------------------CREATING DONE--------------------------------\n",
-    "            Oxford Images for ",fnm_img_set," have been created.\n",
+    "            Oxford Images for ",fdr_img," have been created.\n",
     "\n",
     "Fake images have been found! They have been deleted from the image set.\n",
     "Reference warnings, fake_images.csv and time_loss.csv in:\n", 
@@ -2185,77 +3053,58 @@ extract_autographer_images <- function(fdr_load,
 ####                                                                        %%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-read_chamber <- function(fdr_raw,
+read_chamber <- function(fdr_raw_tsv,
                          fdr_raw_csv) {
   
-  # # CHANGES:
-  
-  # -Literally just to change files from tsv to csv format as tsv files are inconsistent.
-  
-  # # FUNCTIONS & ARGUMENTS:
-  
-  # FUNCTION: NONE
-  # ARG: fdr_raw_tsv
-  #      File directory of clean chamber files.
-  # ARG: fdr_raw_csv
-  #      File directory of clean rmr files.
-  # ARG: fdr_merge
-  #      File directory of merged files.
-  
-  # # TESTING
-  fdr_raw <- 
-    fs::path("FLAC_AIM1_DATA",
-             "1_AIM1_RAW_DATA")
-  fdr_raw_csv <- 
-    fs::path("FLAC_AIM1_DATA",
-             "1_AIM1_RAW_DATA",
-             "AIM1_RAW_CHAMBER_cSV")
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - Update beginning of function to include CHANGES, FUNCTIONS,
+  #   ARGUMENTS, TODO, and TESTING.
+  # - This is a function to just change chamber tsv files to csv.
+  # - Switch to native R pipe operator.
+  # - Rearrange if statements that converts tsv to csv.
+  ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
+  ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
+  # ARG : fdr_raw_tsv
+  #   File directory of raw chamber files in tsv format.
+  # ARG : fdr_raw_csv
+  #   File directory of raw chamber file to save in csv format.
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # -
+  ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
+  # fdr_raw_tsv = "FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_RAW_CHAMBER_TSV"
+  # fdr_raw_csv = "FLAC_AIM1_DATA/1_AIM1_RAW_DATA/AIM1_RAW_CHAMBER_CSV"
   
   vct_fpa_tsv <- 
     fs::dir_ls(
-      path = fdr_raw,
-      all = TRUE,
-      recurse = TRUE,
-      type = "file",
-      glob = NULL,
-      regexp = str_to_upper("chamber"),
-      invert = FALSE,
-      fail = TRUE
-    ) %>% 
-    fs::path_filter(glob = "*.txt")
-  fnm_tsv <- 
-    ""
-  cli_progress_step(
-    msg = "Converting file {fnm_tsv} from tsv to csv",
-    msg_done = "SUCCESS"
-  )
+      path    = fdr_raw_tsv,
+      type    = "file",
+      glob    = NULL,
+      regexp  = "\\.txt$",
+      fail    = TRUE
+    )
+  progress_format <- 
+    stri_c(
+      "Changing from TSV to CSV",
+      "{cli::pb_current}/{cli::pb_total}",
+      "({cli::pb_percent}) | [{cli::pb_elapsed}] | {cli::pb_eta_str}",
+      sep = " "
+    )
   
-  for (i in seq_along(vct_fpa_tsv)) {
+  for (i in cli_progress_along(vct_fpa_tsv,
+                               format = progress_format,
+                               clear  = FALSE)) {
     
     fpa_tsv <- 
       vct_fpa_tsv[i]
-    fnm_tsv <- 
-      fpa_tsv %>% 
-      fs::path_file()
-    
-    cli_progress_update()
-    
     fnm_csv <- 
-      fnm_tsv %>%
+      fpa_tsv |> 
+      fs::path_file() |> 
       fs::path_ext_set(ext = "csv")
     fpa_csv <- 
       fs::path(
-        fs::dir_ls(
-          path = fdr_raw,
-          all = TRUE,
-          recurse = TRUE,
-          type = "directory",
-          glob = NULL,
-          regexp = str_to_upper("chamber"),
-          invert = FALSE,
-          fail = TRUE
-        ) %>% 
-          fs::path_filter(regexp = str_to_upper("csv")),
+        fdr_raw_csv,
         fnm_csv
       )
     
@@ -2272,39 +3121,41 @@ read_chamber <- function(fdr_raw,
     
     chk_delimited <- 
       !(df_tsv[[1]][1] == "datetime")
+    
+    # Check to see if first entry in last column is NA.
     chk_dtm_split <- 
       is.na(df_tsv[[ncol(df_tsv)]][1])
     
-    if (chk_dtm_split) {
-      
-      # Weird later file that has datetime in two separate columns.
-      df_csv <- 
-        df_tsv[-1, ] %>% 
-        unite(col = "datetime",
-              V1, V2,
-              sep = " ",
-              remove = TRUE) %>% 
-        rlang::set_names(nm =
-                           readLines(fpa_tsv, 
-                                     n = 1) %>% 
-                           str_split(pattern = "\t") %>% 
-                           unlist() %>% 
-                           str_subset(pattern = ""))
-      
-    } else if (chk_delimited) {
+    if (chk_delimited) {
       
       # It is one of the weird early files. Remove extra column and assign
       # names from readLines.
       df_csv <- 
-        df_tsv %>% 
-        as_tibble() %>%
-        select(!where(is.logical)) %>% 
+        df_tsv |> 
+        as_tibble() |>
+        select(!where(is.logical)) |> 
         rlang::set_names(nm = 
                            readLines(fpa_tsv, 
-                                     n = 1) %>% 
-                           str_split(pattern = "\t") %>% 
-                           unlist()) %>% 
+                                     n = 1) |> 
+                           str_split(pattern = "\t") |> 
+                           unlist()) |> 
         as.data.table()
+      
+    } else if (chk_dtm_split) {
+      
+      # Weird later file that has datetime in two separate columns.
+      df_csv <- 
+        df_tsv[-1, ] |> 
+        unite(col = "datetime",
+              V1, V2,
+              sep = " ",
+              remove = TRUE) |> 
+        rlang::set_names(nm =
+                           readLines(fpa_tsv, 
+                                     n = 1) |> 
+                           str_split(pattern = "\t") |> 
+                           unlist() |> 
+                           str_subset(pattern = ""))
       
     } else {
       
@@ -2321,7 +3172,9 @@ read_chamber <- function(fdr_raw,
     
     # For later files that have SFR1 & SFR2 for consistency.
     if (any(c("SFR1", "SFR2") %in% colnames(df_csv))) {
+      
       df_csv[, `:=`(SFR1 = NULL, SFR2 = NULL)]
+      
     }
     
     # FINAL CHECK.
@@ -2331,9 +3184,11 @@ read_chamber <- function(fdr_raw,
           c("datetime", "O21", "O22", "CO21", "CO22", "WVP1", "WVP2",
             "FR","Deg_C", "RH", "VO2", "VCO2", "RQ", "kcal_min")
       ) | ncol(df_csv) != 14L
-    colnames(df_csv)
+    
     if (chk_final) {
-      cli_abort("{fnm_tsv} STAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHPPPPPPPPPPPP")
+      
+      cli_abort("{fnm_csv} STAAAAAAAAAAAAAAAAAAAHHHHHHHHHHHPPPPPPPPPPPP")
+      
     }
     
     data.table::fwrite(
@@ -2343,6 +3198,10 @@ read_chamber <- function(fdr_raw,
     )
     
   }
+  
+  cli_progress_done()
+  cli_alert_success("SUCCESS")
+  
 }
 read_img_irr <- function(fls_pos,
                          fls_act,
@@ -2579,61 +3438,87 @@ read_img_timestamps <- function(fdr_timestamps,
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clean_noldus <- function(fdr_read,
                          fdr_write,
-                         fdr_project = NULL,
-                         fld_act = "NOLDUS_ACTIVITY",
-                         fld_pos = "NOLDUS_POSTURE",
-                         filter_sub = NULL,
+                         fdr_project  = NULL,
+                         fld_src_1    = "NOLDUS_ACTIVITY",
+                         fld_src_2    = "NOLDUS_POSTURE",
+                         filter_sub   = NULL,
+                         filter_loc   = NULL,
                          project_only = FALSE) {
   
-  ###  VERSION 4  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 5  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - Updated errors to appropriate warnings
+  # - Seeing if this works with project fdr and filter_sub.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Change from stringr to stringi functions.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # - initiate_wrangle
-  # - get_fpa_read_noldus
+  # - get_fpa_read
+  # - complete_wrangle
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of clean noldus files.
+  #   File directory of raw files.
   # ARG: fdr_write
-  #      File directory of shaped noldus files.
+  #   File directory of clean files.
   # ARG: fdr_project
-  #      File directory to where all the shaped data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
-  #      Unless project only is TRUE.
-  # ARG: fld_act
-  #      Folder name of shaped noldus activity files.
-  # ARG: fld_pos
-  #      Folder name of shaped noldus posture files.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: fld_src_1
+  #   Folder name of noldus activity files. Should be in the name of both 
+  #   clean and shape folders.
+  # ARG: fld_src_2
+  #   Folder name of noldus posture files. Should be in the name of both 
+  #   clean and shape folders.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should shaped files only be written to fdr_project?
+  #   Should shaped files only be written to fdr_project?
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
   # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
   # fdr_read     = fdr_raw
   # fdr_write    = fdr_clean
-  # fdr_project  = NULL
-  # fld_act      = "NOLDUS_ACTIVITY"
-  # fld_pos      = "NOLDUS_POSTURE"
+  # fdr_project  = fdr_doint_clean
+  # fld_src_1      = "NOLDUS_ACTIVITY"
+  # fld_src_2      = "NOLDUS_POSTURE"
   # filter_sub   = NULL
+  # filter_loc   = NULL
   # project_only = FALSE
   
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Clean",
-                   file_source  = "NOLDUS")
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Clean",
+      file_source  = "NOLDUS"
+    )
   vct_fpa_read <- 
-    get_fpa_read_noldus(
+    get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
-      name_activity = fld_act,
-      name_posture  = fld_pos,
+      fdr_project   = fdr_project,
+      name_source_1 = fld_src_1,
+      name_source_2 = fld_src_2,
       name_merged   = NULL,
-      filter_sub    = filter_sub
-    )
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
+    ) |> 
+    vec_unchop()
   
   for (i in cli_progress_along(vct_fpa_read,
                                format = progress_format,
@@ -2644,55 +3529,60 @@ clean_noldus <- function(fdr_read,
     fnm_read <- 
       fs::path_file(fpa_read)
     
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    ##                             READ                           ----
+    ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_info <-
-      fnm_read %>%
-      fs::path_ext_remove() %>%
-      str_split(pattern =  "_| - ") %>%
-      vec_unchop() %>%
-      vec_slice(1:4) %>%
-      str_to_upper() %>%
-      vec_chop() %>%
-      as.data.table() %>% 
+      fnm_read |>
+      fs::path_ext_remove() |>
+      stri_split(regex = "_| - ") |> 
+      chuck(1) |> 
+      vec_slice(1:4) |>
+      stri_trans_toupper() |> 
+      vec_chop() |>
+      as.data.table() |> 
       rlang::set_names(nm = c("schema",
                               "study",
                               "sbj_vst",
-                              "coder_initials")) %>% 
-      as_tibble() %>%
+                              "coder_initials")) |> 
+      as_tibble() |>
       mutate(
-        flac_aim = info_flac_aim,
+        flac_aim    = info_flac_aim,
         file_source = info_source,
-        subject =
+        subject     =
           fifelse(info_flac_aim == "AIM1",
-                  yes = as.integer(sbj_vst),
+                  yes = suppressWarnings(as.integer(sbj_vst)), # DIFFERENT ----
                   no  = 
-                    sbj_vst %>% 
-                    str_extract("(?:(?!v|V|d).)*") %>% 
+                    sbj_vst |> 
+                    str_extract("(?:(?!v|V|d).)*") |> 
                     as.integer(),
                   na  = NA_integer_),
-        visit = 
+        visit       = 
           fifelse(info_flac_aim == "AIM1",
                   yes = 1L,
                   no  = 
-                    sbj_vst %>% 
-                    str_extract("([^v|V|d]*)$") %>% 
+                    sbj_vst |> 
+                    str_extract("([^v|V|d]*)$") |> 
                     as.integer(),
                   na  = NA_integer_)
-      ) %>% 
+      ) |> 
       as.data.table()
     
     df_raw <- 
       readxl::read_xlsx(path = fpa_read,
-                        progress = FALSE) %>% 
+                        progress = FALSE) |> 
       as.data.table()
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    ##                    CLEAN #1: CONSISTENCY                  ----
+    ##                            CLEAN                         ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    colnames(df_raw) <- 
-      colnames(df_raw) %>% 
-      str_to_lower()
+    # Consistency.
+    setnames(
+      df_raw,
+      new = stri_trans_tolower
+    )
     df_cln <- 
-      df_raw %>% 
+      df_raw |> 
       filter(
         !(event_type == "State stop" |
             behavior == "*General Placeholder*" |
@@ -2703,7 +3593,7 @@ clean_noldus <- function(fdr_read,
             behavior == "*No UEM*" |
             behavior == "*Yes UEM*" |
             is.na(behavior))
-      ) %>% 
+      ) |> 
       # Make Posture Uncoded codes the same as Activity.
       mutate(
         behavior = 
@@ -2727,30 +3617,31 @@ clean_noldus <- function(fdr_read,
             "[HQ] Caring Grooming - Self"   = "[HQ] Caring/Grooming - Self",
             "[HQ] Cooking/Meal Preperation" = "[HQ] Cooking/Meal Preparation"
           )
-      ) %>% 
+      ) |> 
       as.data.table()
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                CHECK #1: START & STOP APPLIED              ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     # Change start/stop to corresponding time zone during shaping.
-    df_info$start <- suppressWarnings(
-      df_cln$comment[df_cln$behavior == "[U] Start Time"] %>% 
-        lubridate::mdy_hms(tz = "UTC")
-    )
-    df_info$stop <- suppressWarnings(
-      df_cln$comment[df_cln$behavior == "[U] Stop Time"] %>% 
-        lubridate::mdy_hms(tz = "UTC")
-    )
+    df_info$start <- 
+      df_cln$comment[df_cln$behavior == "[U] Start Time"] |> 
+      lubridate::mdy_hms(tz    = "UTC",
+                         quiet = TRUE)
+    df_info$stop <- 
+      df_cln$comment[df_cln$behavior == "[U] Stop Time"] |> 
+      lubridate::mdy_hms(tz    = "UTC",
+                         quiet = TRUE)
     
     # See if start and stop was entered by coder.
-    if ((df_cln$behavior == "[U] Start/Stop") %>% 
+    if ((df_cln$behavior == "[U] Start/Stop") |> 
         sum() != 2) {
       
       cli_warn(c(
         "File #{i}: {fnm_read}",
         "!" = "[U] Start/Stop was applied more than twice or only once."
       ))
+      
       next()
       
     } else if (is.na(df_info$start)) {
@@ -2759,6 +3650,7 @@ clean_noldus <- function(fdr_read,
         "File #{i}: {fnm_read}",
         "!" = "Start Time is not in MM-DD-YYYY hh:mm:ss"
       ))
+      
       next()
       
     } else if (is.na(df_info$stop)) {
@@ -2767,6 +3659,7 @@ clean_noldus <- function(fdr_read,
         "File #{i}: {fnm_read}",
         "!" = "Stop Time is not in MM-DD-YYYY hh:mm:ss"
       ))
+      
       next()
       
     }
@@ -2787,12 +3680,12 @@ clean_noldus <- function(fdr_read,
     
     # Remove "[U] Start/Stop" codes and State Points.
     df_chk <- 
-      df_cln %>% 
+      df_cln |> 
       filter(
         !(behavior == "[U] Start/Stop" |
             behavior == "[U] Start Time" |
             behavior == "[U] Stop Time")
-      ) %>% 
+      ) |> 
       as.data.table()
     
     chk_start <- 
@@ -2801,10 +3694,10 @@ clean_noldus <- function(fdr_read,
       !dplyr::near(
         x = 
           (df_chk$time_relative_hmsf[nrow(df_chk)] 
-           + df_chk$duration_sf[nrow(df_chk)]) %>% 
+           + df_chk$duration_sf[nrow(df_chk)]) |> 
           seconds(),
         y = 
-          dtm_relative_hmsf_end %>% 
+          dtm_relative_hmsf_end |> 
           seconds(),
         tol = .01
       )
@@ -2830,6 +3723,7 @@ clean_noldus <- function(fdr_read,
         "File #{i}: {fnm_read}",
         "!" = "First code does not align with start time."
       ))
+      
       next()
       
     } else if (chk_end) {
@@ -2840,13 +3734,14 @@ clean_noldus <- function(fdr_read,
         "File #{i}: {fnm_read}",
         "!" = "Stop time does not match last code timestamp + its duration."
       ))
+      
       next()
       
     } else if (chk_abs_vs_rel) {
       
       t1 <- 
-        difftime(time1 = dtm_vid_stop,
-                 time2 = dtm_vid_start,
+        difftime(time1 = df_info$stop, # DFFERENT 
+                 time2 = df_info$start,
                  units = "secs")
       t2 <- 
         difftime(time1 = dtm_relative_hms_stop,
@@ -2859,6 +3754,7 @@ clean_noldus <- function(fdr_read,
         "!" = "Difference between absolute and relative times are not < 5 seconds",
         "i" = "Difference = {diff_abs_rel} seconds" 
       ))
+      
       next()
       
     }
@@ -2873,7 +3769,7 @@ clean_noldus <- function(fdr_read,
                     units = "secs"),
         difftime(time1 = dtm_relative_hms_stop,
                  time2 = df_chk$time_relative_hms[nrw_chk],
-                 units = "secs")) %>% 
+                 units = "secs")) |> 
       as.integer()
     
     if (anyNA(int_duration)) {
@@ -2890,80 +3786,22 @@ clean_noldus <- function(fdr_read,
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::    
     fnm_write <- 
-      df_info %>% 
+      df_info |> 
       unite(col = "file_name",
-            study, subject, visit, file_source, schema, coder_initials) %>% 
-      pull(file_name) %>% 
+            study, subject, visit, file_source, schema, coder_initials) |> 
+      pull(file_name) |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dplyr::case_when(
-            df_info$schema == "ACTIVITY" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_act,
-                                         ignore_case = TRUE)),
-            df_info$schema == "POSTURE" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_pos,
-                                         ignore_case = TRUE))
-          ),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_cln,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
-      cnt <-
-        cnt + 1
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dplyr::case_when(
-          df_info$schema == "ACTIVITY" ~ dir_ls(fdr_write,
-                                                type = "directory",
-                                                regexp = fld_act),
-          df_info$schema == "POSTURE" ~ dir_ls(fdr_write,
-                                               type = "directory",
-                                               regexp = fld_pos)
-        ),
-        fnm_write
-      )
-    data.table::fwrite(
-      df_cln,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
+    complete_wrangle(
+      df_write     = df_cln,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = switch(df_info$schema,
+                            "ACTIVITY" = fld_src_1,
+                            "POSTURE"  = fld_src_2),
+      file_type    = "csv",
+      project_only = project_only
     )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dplyr::case_when(
-            df_info$schema == "ACTIVITY" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_act,
-                                         ignore_case = TRUE)),
-            df_info$schema == "POSTURE" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_pos,
-                                         ignore_case = TRUE))
-          ),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_cln,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
-    }
-    
     cnt <- 
       cnt + 1
     
@@ -4118,63 +4956,81 @@ shape_chamber <- function(fdr_read,
                           fdr_project = NULL,
                           folder = "CHAMBER",
                           filter_sub = NULL,
+                          filter_loc = NULL,
                           project_only = FALSE) {
   
   # Move getting intensity and second by second into DOINT specific stuff.
   # Match format to how Dr. Strath would like it.
   
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Incorporate get_fpa_read as it is the same for non Noldus/Oxford.
-  # -   Incorporate filter_sub code.
-  # -   Incorporate project code.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
+  # - Seeing if this works with project fdr and filter_sub.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Change from stringr to stringi functions.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read
+  # - initiate_wrangle
+  # - get_fpa_read
+  # - complete_wrangle
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of cleaned chamber files.
+  #   File directory of cleaned files.
   # ARG: fdr_write
-  #      File directory of shaped chamber files.
-  # ARG: folder
-  #      Folder name of shaped chamber files.
+  #   File directory of shaped files.
   # ARG: fdr_project
-  #      File directory to where all the merged data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: folder
+  #   Folder name of chamber files. Should be in the name of both 
+  #   clean and shape folders.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should merged files only be written to fdr_project?
+  #   Should merged files only be written to fdr_project and not to both
+  #   fdr_write and fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "2_AIM1_CLEANED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_project <-
-  #   NULL
-  # folder <-
-  #   "CHAMBER"
-  # filter_sub <-
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_clean
+  # fdr_write    = fdr_shape
+  # fdr_project  = fdr_doint_shape
+  # folder       = "CHAMBER"
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Shap",
-                   file_source  = "CHAMBER")
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Shap",
+      file_source  = "CHAMBER"
+    )
   vct_fpa_read <- 
     get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
+      fdr_project   = fdr_project,
       name_source_1 = folder,
-      filter_sub    = filter_sub
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
     )
   
-  # for(i in seq_along(vct_fpa_read)) {
   for (i in cli_progress_along(vct_fpa_read,
                                format = progress_format,
                                clear = FALSE)) {
@@ -4183,28 +5039,26 @@ shape_chamber <- function(fdr_read,
       vct_fpa_read[i]
     fnm_read <- 
       fs::path_file(fpa_read)
-    
+
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                             READ                           ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_info <- 
-      fnm_read %>%
-      fs::path_ext_remove() %>% 
-      str_split(pattern = "_") %>% 
-      vec_unchop() %>% 
-      vec_slice(1) %>% 
-      as.data.table() %>% 
-      rlang::set_names(nm = "stu_sbj") %>% 
-      as_tibble() %>% 
-      mutate(study = str_extract(stu_sbj,
-                                 pattern = "\\w{2}"),
-             subject =
-               stu_sbj %>% 
-               str_extract(pattern = "\\d{4}") %>% 
+      fnm_read |>
+      fs::path_ext_remove() |> 
+      stri_split(regex = "_") |> 
+      chuck(1, 1) |> 
+      data.table(stu_sbj = _) |> 
+      as_tibble() |> 
+      mutate(study       = stri_extract(stu_sbj,
+                                        regex = "\\w{2}"),
+             subject     =
+               stu_sbj |> 
+               stri_extract(regex = "\\d{4}") |> 
                as.integer(),
-             visit = 1L,
+             visit       = 1L,
              file_source = info_source,
-             flac_aim = info_flac_aim) %>% 
+             flac_aim    = info_flac_aim) |> 
       as.data.table()
     
     df_cln <- 
@@ -4212,9 +5066,9 @@ shape_chamber <- function(fdr_read,
         input = fpa_read,
         sep = ",",
         header = TRUE
-      ) %>% 
+      ) |> 
       rename_with(.cols = everything(),
-                  .fn = str_to_lower) %>% 
+                  .fn = stri_trans_tolower) |> 
       as.data.table()
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -4222,100 +5076,47 @@ shape_chamber <- function(fdr_read,
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_shp <- 
       bind_cols(df_info[, .(study, subject, visit)],
-                df_cln) %>% 
+                df_cln) |> 
       transmute(
         study, subject, visit,
-        datetime = lubridate::mdy_hms(datetime,
-                                      tz = "America/Denver"),
-        date = lubridate::date(datetime),
-        time = format(datetime,
-                      "%H:%M:%S"),
-        datetime = lubridate::with_tz(datetime,
-                                      tzone = "UTC"),
-        vo2_ml_min = vo2 * 1000,
+        # `time` should always be "America/Denver".
+        datetime    = lubridate::mdy_hms(datetime,
+                                         tz = "America/Denver"),
+        date        = lubridate::date(datetime),
+        time        = format(datetime,
+                             "%H:%M:%S"),
+        datetime    = lubridate::with_tz(datetime,
+                                         tzone = "UTC"),
+        vo2_ml_min  = vo2 * 1000,
         vco2_ml_min = vco2 * 1000,
         rq,
         kcal_min
-      ) %>% 
+      ) |> 
       rename_with(.cols = !study:time,
-                  .fn = ~paste(str_to_lower(df_info$file_source),
+                  .fn = ~paste(stri_trans_tolower(df_info$file_source),
                                .x,
-                               sep = "_")) %>% 
+                               sep = "_")) |> 
       as.data.table()
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fnm_write <- 
-      df_info %>% 
+      df_info |> 
       unite(col = "file_name",
-            study, subject, visit, file_source) %>% 
-      pull(file_name) %>% 
+            study, subject, visit, file_source) |> 
+      pull(file_name) |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = folder),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ","
-      )
-      arrow::write_feather(
-        df_shp,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-      cnt <-
-        cnt + 1
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dir_ls(fdr_write,
-               type = "directory",
-               regexp = folder),
-        fnm_write
-      )
-    data.table::fwrite(
-      df_shp,
-      file = fpa_write,
-      sep = ","
+    complete_wrangle(
+      df_write     = df_shp,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = folder,
+      file_type    = "both",
+      project_only = project_only
     )
-    arrow::write_feather(
-      df_shp,
-      sink = fs::path_ext_set(path = fpa_write,
-                              ext = "feather")
-    )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = folder),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ","
-      )
-      arrow::write_feather(
-        df_shp,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-    }
-    
-    # message(i, fnm_read)
-    cnt <- 
+    cnt <-
       cnt + 1
     
   }
@@ -4554,79 +5355,98 @@ shape_img_irr <- function(fdr_irr,
 }
 shape_noldus <- function(fdr_read,
                          fdr_write,
-                         fdr_project = NULL,
-                         fld_act = "NOLDUS_ACTIVITY",
-                         fld_pos = "NOLDUS_POSTURE",
-                         filter_sub = NULL,
+                         fdr_project  = NULL,
+                         fld_src_1    = "NOLDUS_ACTIVITY",
+                         fld_src_2    = "NOLDUS_POSTURE",
+                         filter_sub   = NULL,
+                         filter_loc   = NULL,
                          project_only = FALSE) {
   
-  ###  VERSION 12  ::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 13  ::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Include code for fdr_project
-  # -   Include code for filter_sub
-  # -   Include code for exporting start and stop times as we are using noldus
-  #     as the criterion.
-  # -   Make subject and visit integers.
-  # -   Change "fli" to "df_info" to make it easier to access.
-  # -   Incorporate get_fpa_read_noldus as it is the same across all functions.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
+  # - Seeing if this works with project fdr and filter_sub.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Add in factorize_flac function
+  # - Change from stringr to stringi functions.
+  # - Make output variables into factors.
+  # - Make intensity and environment dark/obscurred/oof when posture/behavior
+  #   is dark/obscurred/oof (it is currently NA/"").				
+  # - Remove calculating duration since its incorrect and it is done later.
+  # - For some reason, POSIXct vector created from seq.POSIXt cannot
+  #   be written to feather even though this possible before??? So convert
+  #   it to character and then back to POSIXct.
+  # - Add check here to make sure start/stop times from paired activity/posture
+  #   files are the same.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read_noldus
+  # - initiate_wrangle
+  # - get_fpa_read
+  # - complete_wrangle
+  # - factorize_flac
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of clean noldus files.
+  #   File directory of clean files.
   # ARG: fdr_write
-  #      File directory of shaped noldus files.
+  #   File directory of shaped files.
   # ARG: fdr_project
-  #      File directory to where all the shaped data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
-  #      Unless project only is TRUE.
-  # ARG: fld_act
-  #      Folder name of shaped noldus activity files.
-  # ARG: fld_pos
-  #      Folder name of shaped noldus posture files.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: fld_src_1
+  #   Folder name of noldus activity files. Should be in the name of both 
+  #   clean and shape folders.
+  # ARG: fld_src_2
+  #   Folder name of noldus posture files. Should be in the name of both 
+  #   clean and shape folders.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should shaped files only be written to fdr_project?
+  #   Should shaped files only be written to fdr_project?
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - Remove calculating duration since its incorrect and it is done later.
-  # - Make intensity and environment dark/obscurred/oof when posture/behavior
-  #   is dark/obscurred/oof (it is currently NA/"").
-  # - Make output variables into factors.
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "2_AIM1_CLEANED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_project <-
-  #   NULL
-  # fld_act <-
-  #   "NOLDUS_ACTIVITY"
-  # fld_pos <-
-  #   "NOLDUS_POSTURE"
-  # filter_sub <-
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_clean
+  # fdr_write    = fdr_shape
+  # fdr_project  = fdr_doint_shape
+  # fld_src_1    = "NOLDUS_ACTIVITY"
+  # fld_src_2    = "NOLDUS_POSTURE"
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Shap",
-                   file_source  = "NOLDUS")
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Shap",
+      file_source  = "NOLDUS"
+    )
   vct_fpa_read <- 
-    get_fpa_read_noldus(
+    get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
-      name_activity = fld_act,
-      name_posture  = fld_pos,
+      fdr_project   = fdr_project,
+      name_source_1 = fld_src_1,
+      name_source_2 = fld_src_2,
       name_merged   = NULL,
-      filter_sub    = filter_sub
-    )
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
+    ) |> 
+    vec_unchop()
   lst_start_stop <- 
     list()
   
@@ -4634,46 +5454,42 @@ shape_noldus <- function(fdr_read,
                                format = progress_format,
                                clear = FALSE)) {
     
+    fpa_read <-
+      vct_fpa_read[i]
+    fnm_read <- 
+      fs::path_file(fpa_read)
+    
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                             READ                           ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    fpa_read <-
-      vct_fpa_read[i]
-    
-    fnm_read <- 
-      fpa_read %>% 
-      fs::path_file()
-    
     df_info <- 
-      fnm_read %>%
-      fs::path_ext_remove() %>% 
-      str_split(pattern = "_") %>% 
-      vec_unchop() %>% 
-      vec_chop() %>%
-      as.data.table() %>% 
+      fnm_read |>
+      fs::path_ext_remove() |> 
+      stri_split(regex = "_") |> 
+      chuck(1) |> 
+      vec_chop() |>
+      as.data.table() |> 
       rlang::set_names(nm = c("study",
                               "subject",
                               "visit",
                               "file_source",
                               "schema",
-                              "coder_initials")) %>% 
-      mutate(subject = as.integer(subject),
-             visit   = as.integer(visit),
-             flac_aim = info_flac_aim,
+                              "coder_initials")) |> 
+      mutate(subject   = as.integer(subject),
+             visit     = as.integer(visit),
+             flac_aim  = info_flac_aim,
              time_zone = fcase(info_flac_aim == "AIM1", "America/Denver",
-                               info_flac_aim == "AIM2", "America/Chicago")) %>% 
+                               info_flac_aim == "AIM2", "America/Chicago")) |> 
       as.data.table()
     switch(
       df_info$schema,
       "ACTIVITY" = {
-        df_info$col_duration <- "duration_behavior"
         df_info$col_annotation <- "behavior"
         df_info$col_mod_1 <- "environment"
         df_info$col_mod_2 <- "activity"
         df_info$col_comment <- "comment_behavior"
       },
       "POSTURE" = {
-        df_info$col_duration <- "duration_posture"
         df_info$col_annotation <- "posture"
         df_info$col_mod_1 <- "intensity"
         df_info$col_comment <- "comment_posture"
@@ -4682,57 +5498,56 @@ shape_noldus <- function(fdr_read,
     
     df_cln <- 
       data.table::fread(
-        input = fpa_read,
-        sep = ",",
+        input  = fpa_read,
+        sep    = ",",
         header = TRUE
       )
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                    SHAPE #1: START & STOP                  ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    df_info$start <- suppressWarnings(
-      df_cln$comment[df_cln$behavior == "[U] Start Time"] %>% 
-        lubridate::mdy_hms(tz = df_info$time_zone)
-    )
-    df_info$stop <- suppressWarnings(
-      df_cln$comment[df_cln$behavior == "[U] Stop Time"] %>% 
-        lubridate::mdy_hms(tz = df_info$time_zone)
-    )
-    
+    df_info$start <- 
+      df_cln$comment[df_cln$behavior == "[U] Start Time"] |> 
+        lubridate::mdy_hms(tz    = df_info$time_zone,
+                           quiet = TRUE)
+    df_info$stop <-
+      df_cln$comment[df_cln$behavior == "[U] Stop Time"] |> 
+        lubridate::mdy_hms(tz    = df_info$time_zone,
+                           quiet = TRUE)
     dtm_relative_hms_stop <- 
       df_cln$time_relative_hms[df_cln$behavior == "[U] Stop Time"]
     
     # Remove "[U] Start/Stop" codes and State Points.
     df_cln <- 
-      df_cln %>% 
+      df_cln |> 
       filter(
         !(behavior == "[U] Start/Stop" |
             behavior == "[U] Start Time" |
             behavior == "[U] Stop Time")
-      ) %>% 
+      ) |> 
       as.data.table()
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                SHAPE #2: VARIABLE CONSISTENCY              ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-    # So the unite function does not combine the environment column when cleaning
-    # an activity file.
+    # So the unite function does not combine the environment column when 
+    # cleaning an activity file.
     colnames(df_cln)[colnames(df_cln) == "modifier_1"] <- 
       "mod_1"
     
     if ("modifier_2" %in% colnames(df_cln)) {
       
       df_cln <-
-        df_cln %>%
-        unite(col = "mod_2",
+        df_cln |>
+        unite(col    = "mod_2",
               contains("modifier",
                        ignore.case = FALSE,
-                       vars = NULL),
-              sep = "",
+                       vars        = NULL),
+              sep    = "",
               remove = TRUE,
-              na.rm = TRUE) %>% 
+              na.rm  = TRUE) |> 
         mutate(mod_2 = na_if(mod_2,
-                             "")) %>% 
+                             "")) |> 
         as.data.table()
       
     } else {
@@ -4743,20 +5558,22 @@ shape_noldus <- function(fdr_read,
     }
     
     # Remove category "[P/M/G/LQ]" from behavior, make values lowercase,
-    # fill NA's and place NA's.
+    # fill NA's, place NA's.
     df_cln <- 
-      df_cln %>% 
+      df_cln |> 
       mutate(
         behavior = 
-          behavior %>% 
-          str_remove(pattern = "\\[[A-Z]{1,2}\\] ") %>% 
-          str_to_lower(),
-        mod_2    = str_to_lower(mod_2),
-        mod_1    = str_to_lower(mod_1),
+          behavior |> 
+          stri_replace(regex = "\\[[A-Z]{1,2}\\] ",
+                       replacement = "") |> 
+          # str_remove(pattern = "\\[[A-Z]{1,2}\\] ") |> 
+          stri_trans_tolower(),
+        mod_2    = stri_trans_tolower(mod_2),
+        mod_1    = stri_trans_tolower(mod_1),
         comment  = na_if(comment,
                          "")
-      ) %>% 
-      replace_na(replace = list(mod_1 = "dark/obscured/oof")) %>% 
+      ) |> 
+      replace_na(replace = list(mod_1 = "dark/obscured/oof")) |> 
       as.data.table()
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -4772,6 +5589,7 @@ shape_noldus <- function(fdr_read,
             digits = 0)
     
     if (wrn_duration_last) {
+      
       diff_duration_sf <- 
         round(df_cln$duration_sf[nrw_cln],
               digits = 0) -
@@ -4784,6 +5602,7 @@ shape_noldus <- function(fdr_read,
         "!" = "Duration_sf is {diff_duration_sf} off.",
         "i" = "Using difference between the stop time and last code time."
       ))
+      
     }
     
     vct_duration <- 
@@ -4798,33 +5617,51 @@ shape_noldus <- function(fdr_read,
     # start time. We leave the start time in the data frame only as an anchor.
     vct_run <-
       c(vct_duration[1] + 1,
-        vct_duration[-1]) %>%
+        vct_duration[-1]) |>
       as.integer()
     vct_run_seq <- 
-      vct_run %>% 
-      seq_along() %>% 
+      vct_run |> 
+      seq_along() |> 
       rep(times = vct_run)
     df_shp <- 
       tibble(
         study    = df_info$study,
         subject  = df_info$subject,
         visit    = df_info$visit,
-        datetime = seq.POSIXt(from = df_info$start,
-                              by = 1,
+        datetime = seq.POSIXt(from       = df_info$start,
+                              by         = 1,
                               length.out = length(vct_run_seq)),
         date     = lubridate::as_date(datetime),
         time     = format(datetime,
                           "%H:%M:%S"),
         map_dfc(
-          .x = df_cln[, .(duration = vct_duration,
-                          behavior,
+          .x = df_cln[, .(behavior,
                           mod_1,
                           mod_2,
                           comment)],
           .f = ~rep(.x,
                     times = vct_run)
         )
-      ) %>% 
+      ) |> 
+      # Make datetime in UTC timezone, make mod_1 "dark/obscured/oof"
+      # when behavior is "dark/obscured/oof".
+      mutate(
+        datetime = 
+          datetime |> 
+          with_tz(tzone = "UTC") |> 
+          # For some reason, POSIXct vector created from seq.POSIXt cannot
+          # be written to feather even though this possible before??? So convert
+          # it to character and then back to POSIXct.
+          as.character() |> 
+          ymd_hms(tz = "UTC"),
+        mod_1    = 
+          fifelse(
+            behavior == "dark/obscured/oof",
+            yes = "dark/obscured/oof",
+            no  = mod_1,
+            na  = NA_character_
+          )
+      ) |> 
       as.data.table()
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -4833,48 +5670,64 @@ shape_noldus <- function(fdr_read,
     if (df_info$schema == "ACTIVITY") {
       
       df_shp <- 
-        df_shp %>% 
-        rename("{df_info$col_duration}"   := duration,
-               "{df_info$col_annotation}" := behavior,
+        df_shp |> 
+        rename("{df_info$col_annotation}" := behavior,
                "{df_info$col_mod_1}"      := mod_1,
                "{df_info$col_mod_2}"      := mod_2,
-               "{df_info$col_comment}"    := comment) %>% 
+               "{df_info$col_comment}"    := comment) |> 
         mutate(
           # Fix spelling.
-          environment = 
+          environment                 = 
             dplyr::recode(
               environment,
               "organizational/civic/religiious" = "organizational/civic/religious"
-            )
-        ) %>% 
+            ),
+          # Factorize.
+          "{df_info$col_annotation}" := 
+            .data[[df_info$col_annotation]] |> 
+            factorize_flac(.source   = df_info$file_source,
+                           .variable = df_info$schema),
+          "{df_info$col_mod_1}"      := 
+            .data[[df_info$col_mod_1]] |> 
+            factorize_flac(.source   = df_info$file_source,
+                           .variable = "ENVIRONMENT")
+        ) |> 
         rename_with(
           .cols = !study:time,
-          .fn = ~paste(.x,
-                       str_to_lower(df_info$file_source),
-                       sep = "_")
-        ) %>% 
+          .fn   = ~stri_c(.x,
+                          stri_trans_tolower(df_info$file_source),
+                          sep = "_")
+        ) |> 
         as.data.table()
       
     } else if (df_info$schema == "POSTURE") {
       
       df_shp <- 
-        df_shp %>% 
-        rename("{df_info$col_duration}"   := duration,
-               "{df_info$col_annotation}" := behavior,
+        df_shp |> 
+        rename("{df_info$col_annotation}" := behavior,
                "{df_info$col_mod_1}"      := mod_1,
-               "{df_info$col_comment}"    := comment) %>% 
+               "{df_info$col_comment}"    := comment) |> 
         mutate(
           # Change mod-vig to mvpa.
           intensity = dplyr::recode(intensity,
                                     "mod-vig" = "mvpa"),
-          mod_2 = NULL
-        ) %>% 
+          # Factorize.
+          "{df_info$col_annotation}" := 
+            .data[[df_info$col_annotation]] |> 
+            factorize_flac(.source   = df_info$file_source,
+                           .variable = df_info$schema),
+          "{df_info$col_mod_1}"      := 
+            .data[[df_info$col_mod_1]] |> 
+            factorize_flac(.source   = df_info$file_source,
+                           .variable = "INTENSITY")
+        ) |> 
+        select(-mod_2) |> 
         rename_with(
           .cols = !study:time,
-          .fn = ~paste(.x,
-                       str_to_lower(df_info$file_source),
-                       sep = "_")
-        ) %>% 
+          .fn   = ~stri_c(.x,
+                          stri_trans_tolower(df_info$file_source),
+                          sep = "_")
+        ) |> 
         as.data.table()
       
     }
@@ -4884,123 +5737,53 @@ shape_noldus <- function(fdr_read,
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     if (df_info$flac_aim == "AIM1") {
       
-      # FOR SOME REASON IT IS ALWAYS ONE HOUR AHEAD WHEN CHANGING TO UTC.
-      df_shp$datetime <-
-        df_shp$datetime - 3600
       lst_start_stop[[i]] <- 
-        df_info %>% 
-        select(study, subject, visit, start, stop) %>% 
+        df_info |> 
+        select(schema, study, subject, visit, start, stop) |>
         as.data.table()
+      
       if (df_info$schema == "Activity") {
         
-        df_shp$environment <- 
-          "non-domestic"
+        df_shp <- 
+          df_shp |> 
+          mutate(across(
+            .cols = starts_with(df_info$col_mod_1),
+            .fns  = \(.x) factorize_flac("non-domestic",
+                                         .source   = df_info$file_source,
+                                         .variable = "ENVIRONMENT")
+          )) |> 
+          as.data.table()
         
       }
     } else if (df_info$flac_aim == "AIM2") {
+      
       lst_start_stop[[i]] <-
-        df_info %>%
-        select(study, subject, visit, start, stop) %>%
+        df_info |>
+        select(schema, study, subject, visit, start, stop) |>
         as.data.table()
+      
     }
-    
-    df_shp$datetime <- 
-      with_tz(df_shp$datetime,
-              tzone = "UTC")
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fnm_write <- 
-      df_info %>% 
+      df_info |> 
       unite(col = "file_name",
-            study, subject, visit, file_source, schema, coder_initials) %>% 
-      pull(file_name) %>% 
+            study, subject, visit, file_source, schema, coder_initials) |> 
+      pull(file_name) |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dplyr::case_when(
-            df_info$schema == "ACTIVITY" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_act,
-                                         ignore_case = TRUE)),
-            df_info$schema == "POSTURE" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_pos,
-                                         ignore_case = TRUE))
-          ),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
-      arrow::write_feather(
-        df_shp,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-      cnt <-
-        cnt + 1
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dplyr::case_when(
-          df_info$schema == "ACTIVITY" ~ dir_ls(fdr_write,
-                                                type = "directory",
-                                                regexp = fld_act),
-          df_info$schema == "POSTURE" ~ dir_ls(fdr_write,
-                                               type = "directory",
-                                               regexp = fld_pos)
-        ),
-        fnm_write
-      )
-    data.table::fwrite(
-      df_shp,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
+    complete_wrangle(
+      df_write     = df_shp,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = switch(df_info$schema,
+                            "ACTIVITY" = fld_src_1,
+                            "POSTURE"  = fld_src_2),
+      file_type    = "both",
+      project_only = project_only
     )
-    arrow::write_feather(
-      df_shp,
-      sink = fs::path_ext_set(path = fpa_write,
-                              ext = "feather")
-    )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dplyr::case_when(
-            df_info$schema == "ACTIVITY" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_act,
-                                         ignore_case = TRUE)),
-            df_info$schema == "POSTURE" ~ 
-              str_subset(dir_ls(fdr_project),
-                         pattern = regex(fld_pos,
-                                         ignore_case = TRUE))
-          ),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
-      arrow::write_feather(
-        df_shp,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-    }
-    
     cnt <- 
       cnt + 1
     
@@ -5008,50 +5791,99 @@ shape_noldus <- function(fdr_read,
   
   cli_progress_done()
   df_start_stop <- 
-    bind_rows(lst_start_stop)
-  
-  if (project_only) {
-    fwrite(
-      df_start_stop,
-      file = path(fdr_project,
-                  "df_start_stop.csv"),
-      sep = ",",
-      showProgress = FALSE
-    )
-    arrow::write_feather(
-      df_start_stop,
-      sink = path(fdr_project,
-                  "df_start_stop.feather")
-    )
-    return()
-  }
-  fwrite(
-    df_start_stop,
-    file = path(fdr_write,
-                "df_start_stop.csv"),
-    sep = ",",
-    showProgress = FALSE
+    rbindlist(lst_start_stop)
+  c(df_srt_stp_act, df_srt_stp_pos) %<-% (
+    df_start_stop |> 
+      split.data.frame(f = ~ df_start_stop$schema) |> 
+      map(.f = 
+            ~.x |> 
+            select(-schema) |> 
+            as.data.table())
   )
-  arrow::write_feather(
-    df_start_stop,
-    sink = path(fdr_write,
-                "df_start_stop.feather")
-  )
-  if (!is_empty(fdr_project)) {
-    fwrite(
-      df_start_stop,
-      file = path(fdr_project,
-                  "df_start_stop.csv"),
-      sep = ",",
-      showProgress = FALSE
-    )
-    arrow::write_feather(
-      df_start_stop,
-      sink = path(fdr_project,
-                  "df_start_stop.feather")
-    )
+  
+  if (!all(df_srt_stp_act == df_srt_stp_pos)) {
+    
+    # Activity and posture start and/or stop times do not match. Throw a warning
+    # and state that cleaning and shaping has to be done again.
+    df_warning <- 
+      left_join(
+        # setnames(
+        #   df_srt_stp_act,
+        #   old = c("start", "stop"),
+        #   new = 
+        # )
+        df_srt_stp_act |> 
+          rename_with(.cols = !study:visit,
+                      .fn   = \(.x) stri_c(.x,
+                                           "_",
+                                           "act")) |> 
+          as.data.table(),
+        df_srt_stp_pos |> 
+          rename_with(.cols = !study:visit,
+                      .fn   = \(.x) stri_c(.x,
+                                           "_",
+                                           "pos")) |> 
+          as.data.table(),
+        by = c("study", "subject", "visit")
+      ) |> 
+      as.data.table() |> 
+      unite(col = "stu_sbj_vst",
+            study, subject, visit,
+            sep = "_",
+            remove = TRUE)
+    df_wrn_srt <- 
+      df_warning |> 
+      filter(start_act != start_pos) |> 
+      select(-starts_with("stop")) |> 
+      as.data.table()
+    df_wrn_stp <- 
+      df_warning |> 
+      filter(stop_act != stop_pos) |> 
+      select(-starts_with("start")) |> 
+      as.data.table()
+    
+    if (!(df_wrn_srt |> 
+          vec_seq_along() |> 
+          is_empty())) {
+      
+      for (i in vec_seq_along(df_wrn_srt)) {
+        
+        cli_warn(c(
+          "!" = "Start times from activty and posture files for
+                 {df_wrn_srt$stu_sbj_vst[i]} are not equal.",
+          "i" = "Activity start time: {df_wrn_srt$start_act[i]}",
+          "i" = "Posture start time: {df_wrn_srt$start_pos[i]}"
+        ))
+        
+      }
+    }
+    
+    if (!(df_wrn_stp |> 
+          vec_seq_along() |> 
+          is_empty())) {
+      
+      for (i in vec_seq_along(df_wrn_stp)) {
+        
+      cli_warn(c(
+        "!" = "Stop times from activty and posture files for
+                 {df_wrn_stp$stu_sbj_vst[i]} are not equal.",
+        "i" = "Activity stop time: {df_wrn_stp$stop_act[i]}",
+        "i" = "Posture stop time: {df_wrn_stp$stop_pos[i]}"
+      ))
+      
+      }
+    }
   }
   
+  complete_wrangle(
+    df_write     = df_srt_stp_act,
+    fdr_write    = fdr_write,
+    fdr_project  = fdr_project,
+    fnm_write    = "df_start_stop.csv",
+    folder       = "",
+    file_type    = "both",
+    project_only = project_only
+  )
   cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
   
 }
@@ -5414,60 +6246,79 @@ shape_oxford <- function(type,
 }
 shape_rmr <- function(fdr_read,
                       fdr_write,
-                      fdr_project = NULL,
-                      folder = "RMR",
-                      filter_sub = NULL,
+                      fdr_project  = NULL,
+                      folder       = "RMR",
+                      filter_sub   = NULL,
+                      filter_loc   = NULL,
                       project_only = FALSE) {
   
+  ###  VERSION 3  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Incorporate get_fpa_read as it is the same for non Noldus/Oxford.
-  # -   Incorporate filter_sub code.
-  # -   Incorporate project code.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
+  # - Seeing if this works with project fdr and filter_sub.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Change from stringr to stringi functions.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read
+  # - initiate_wrangle
+  # - get_fpa_read
+  # - complete_wrangle
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of cleaned rmr files.
+  #   File directory of cleaned files.
   # ARG: fdr_write
-  #      File directory of shaped rmr files.
-  # ARG: folder
-  #      Folder name of shaped rmr files.
+  #   File directory of shaped files.
   # ARG: fdr_project
-  #      File directory to where all the merged data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: folder
+  #   Folder name of rmr files. Should be in the name of both 
+  #   clean and shape folders.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should merged files only be written to fdr_project?
+  #   Should merged files only be written to fdr_project and not to both
+  #   fdr_write and fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "2_AIM1_CLEANED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_project <-
-  #   NULL
-  # folder <-
-  #   "RMR"
-  # filter_sub <-
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_clean
+  # fdr_write    = fdr_shape
+  # fdr_project  = fdr_doint_shape
+  # folder       = "RMR"
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Shap",
-                   file_source  = "RMR")
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Shap",
+      file_source  = "RMR"
+    )
   vct_fpa_read <- 
     get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
+      fdr_project   = fdr_project,
       name_source_1 = folder,
-      filter_sub    = filter_sub
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
     )
   
   for (i in cli_progress_along(vct_fpa_read,
@@ -5483,23 +6334,21 @@ shape_rmr <- function(fdr_read,
     ##                             READ                           ----
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_info <- 
-      fnm_read %>%
-      fs::path_ext_remove() %>% 
-      str_split(pattern = "_") %>% 
-      vec_unchop() %>% 
-      vec_slice(1) %>% 
-      as.data.table() %>% 
-      rlang::set_names(nm = "stu_sbj") %>% 
-      as_tibble() %>% 
-      mutate(study = str_extract(stu_sbj,
-                                 pattern = "\\w{2}"),
-             subject =
-               stu_sbj %>% 
-               str_extract(pattern = "\\d{4}") %>% 
+      fnm_read |>
+      fs::path_ext_remove() |> 
+      stri_split(regex = "_") |> 
+      chuck(1, 1) |> 
+      data.table(stu_sbj = _) |> 
+      as_tibble() |> 
+      mutate(study       = stri_extract(stu_sbj,
+                                        regex = "\\w{2}"),
+             subject     =
+               stu_sbj |> 
+               stri_extract(regex = "\\d{4}") |> 
                as.integer(),
-             visit = 1L,
+             visit       = 1L,
              file_source = info_source,
-             flac_aim = info_flac_aim) %>% 
+             flac_aim    = info_flac_aim) |> 
       as.data.table()
     
     df_cln <- 
@@ -5508,21 +6357,21 @@ shape_rmr <- function(fdr_read,
         sheet = 2,
         range = "G1:H3",
         progress = FALSE
-      ) %>% 
+      ) |> 
       rename_with(.cols = everything(),
-                  .fn = str_to_lower)
+                  .fn = stri_trans_tolower)
     
     ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            CHECKS                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: 
     chk_wt_kg <- 
-      df_cln$wt_kg[1] %>% 
+      df_cln$wt_kg[1] |> 
       is.na()
     chk_vo2_l_min <- 
-      df_cln$vo2_l_min[1] %>% 
+      df_cln$vo2_l_min[1] |> 
       is.na()
     chk_vo2_ml_kg_min <- 
-      df_cln$vo2_l_min[2] %>% 
+      df_cln$vo2_l_min[2] |> 
       is.na()
     
     if (rlang::is_empty(df_cln) |
@@ -5540,111 +6389,42 @@ shape_rmr <- function(fdr_read,
       next()
       
     } else if (chk_vo2_ml_kg_min) {
+      
       # Cleaned file does not have vo2 ml/kg/min calculated. Do so now.
       df_cln$vo2_l_min[2] <- 
         (df_cln$vo2_l_min[1] * 1000) / df_cln$wt_kg[1]
+      
     }
-    # chk_value <- 
-    #   !near(df_cln$vo2_l_min[2],
-    #         ((df_cln$vo2_l_min[1] * 1000) / df_cln$wt_kg[1]),
-    #         tol = 0.0001)
-    # if(chk_value) {
-    #   difference <- 
-    #     df_cln$vo2_l_min[2] - (df_cln$vo2_l_min[1] * 1000) / df_cln$wt_kg[1]
-    #   cli_warn(c(
-    #     "!" = "File {i}: {fnm_read}",
-    #     "!" = "vo2_ml_kg_min from file does not = vo2_l_min * 1000 / wt_kg",
-    #     "i" = "File vo2_ml_kg_min is {difference} from calculated.",
-    #     "i" =  "Using calculated instead of file's value."
-    #   ))
-    #   df_cln$vo2_l_min[2] <- 
-    #     (df_cln$vo2_l_min[1] * 1000) / df_cln$wt_kg[1]
-    # }
-    
+
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            SHAPE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_shp <- 
-      df_cln %>% 
+      df_cln |> 
       summarise(rmr_mass_kg       = as.double(wt_kg[1]),
                 rmr_vo2_l_min     = as.double(vo2_l_min[1]),
                 rmr_vo2_ml_kg_min = as.double(vo2_l_min[2])) %>% 
       bind_cols(df_info[, .(study, subject, visit)],
                 .)
+    
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fnm_write <- 
-      df_info %>% 
+      df_info |> 
       unite(col = "file_name",
-            study, subject, visit, file_source) %>% 
-      pull(file_name) %>% 
+            study, subject, visit, file_source) |> 
+      pull(file_name) |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = folder),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
-      arrow::write_feather(
-        df_shp,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-      cnt <-
-        cnt + 1
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dir_ls(fdr_write,
-               type = "directory",
-               regexp = folder),
-        fnm_write
-      )
-    data.table::fwrite(
-      df_shp,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
+    complete_wrangle(
+      df_write     = df_shp,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = folder,
+      file_type    = "both",
+      project_only = project_only
     )
-    arrow::write_feather(
-      df_shp,
-      sink = fs::path_ext_set(path = fpa_write,
-                              ext = "feather")
-    )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = folder),
-          fnm_write
-        )
-      data.table::fwrite(
-        df_shp,
-        file = fpa_project,
-        sep = ",",
-        showProgress = FALSE
-      )
-      arrow::write_feather(
-        df_shp,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-    }
-    
     cnt <- 
       cnt + 1
     
@@ -5663,119 +6443,124 @@ shape_rmr <- function(fdr_read,
 ####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 merge_chamber_rmr <- function(fdr_read,
                               fdr_write,
-                              fdr_project = NULL,
-                              fld_chm = "CHAMBER",
-                              fld_rmr = "RMR",
-                              fld_merge = paste(fld_chm,
-                                                fld_rmr,
-                                                sep = "_"),
-                              filter_sub = NULL,
+                              fdr_project  = NULL,
+                              fld_src_1    = "CHAMBER",
+                              fld_src_2    = "RMR",
+                              fld_merge    = stri_c(fld_src_1,
+                                                    fld_src_2,
+                                                    sep = "_"),
+                              filter_sub   = NULL,
+                              filter_loc   = NULL,
                               project_only = FALSE) {
   
+  ###  VERSION 7  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Go back to naming function merge_noldus instead of merge_data.
-  # -   Incorporate filter_sub code.
-  # -   Incorporate project code.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Change from stringr to stringi functions.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read_noldus
+  # - initiate_wrangle
+  # - get_fpa_read
+  # - complete_wrangle
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of shaped noldus files.
+  #   File directory of shaped files.
   # ARG: fdr_write
-  #      File directory of merged noldus files.
-  # ARG: fld_chm
-  #      Folder name of shaped chamber activity files.
-  # ARG: fld_rmr
-  #      Folder name of shaped rmr posture files.
-  # ARG: fld_merge
-  #      Folder name to save merged chamber/rmr files to.
+  #   File directory of merged files.
   # ARG: fdr_project
-  #      File directory to where all the merged data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: fld_src_1
+  #   Folder name of chamber files.
+  # ARG: fld_src_2
+  #   Folder name of rmr files.
+  # ARG: fld_merge
+  #   Folder name to save merged files to.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should merged files only be written to fdr_project?
+  #   Should merged files only be written to fdr_project and not to both
+  #   fdr_write and fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "4_AIM1_MERGED_DATA")
-  # fdr_project <-
-  #   NULL
-  # fld_chm <-
-  #   "CHAMBER"
-  # fld_rmr <-
-  #   "RMR"
-  # fld_merge <-
-  #   paste(fld_chm,
-  #         fld_rmr,
-  #         sep = "_")
-  # filter_sub <-
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_shape
+  # fdr_write    = fdr_merge
+  # fdr_project  = fdr_doint_merge
+  # fld_src_1    = "CHAMBER"
+  # fld_src_2    = "RMR"
+  # fld_merge    = "CHAMBER_RMR"
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Merg",
-                   file_source  = "CHAMBER & RMR")
-  lst_all <- 
-    list()
-  vct_fpa_read <- 
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Merg",
+      file_source  = "CHAMBER_RMR"
+    )
+  c(vct_fpa_read_1,
+    vct_fpa_read_2) %<-%
     get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
-      name_source_1 = fld_chm,
-      name_source_2 = fld_rmr,
+      fdr_project   = fdr_project,
+      name_source_1 = fld_src_1,
+      name_source_2 = fld_src_2,
       name_merged   = fld_merge,
-      filter_sub    = filter_sub
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
     )
+  lst_all <- 
+    list()
   
-  vct_fpa_chm <- 
-    vct_fpa_read %>% 
-    fs::path_filter(glob = paste0("*/*", fld_chm, "/*"))
-  vct_fpa_rmr <- 
-    vct_fpa_read %>% 
-    fs::path_filter(glob = paste0("*/*", fld_rmr, "/*"))
-  info_study <- 
-    vct_fpa_read %>% 
-    fs::path_file() %>% 
-    str_split(pattern = "_") %>% 
-    pluck(1, 1)
-  
-  for (i in cli_progress_along(vct_fpa_chm,
+  for (i in cli_progress_along(vct_fpa_read_1,
                                format = progress_format,
                                clear = FALSE)) {
     
-    fpa_read <- 
-      vct_fpa_chm[i]
-    fnm_read <- 
-      fs::path_file(fpa_read)
-    fpa_rmr <- 
-      fnm_read %>% 
-      fs::path_ext_remove() %>% 
-      str_replace(pattern = fld_chm,
-                  replacement = fld_rmr) %>% 
-      str_subset(vct_fpa_rmr,
-                 pattern = .)
+    fpa_read_1 <- 
+      vct_fpa_read_1[i]
+    fpa_read_2 <- 
+      vct_fpa_read_2[i]
     
-    if(is_empty(fpa_rmr)) {
+    if (fpa_read_1 |> 
+        fs::path_file() |> 
+        stri_replace(regex = stri_c(fld_src_1, ".*"),
+                     replacement = "") !=
+        fpa_read_2 |> 
+        fs::path_file() |> 
+        stri_replace(regex = stri_c(fld_src_2, ".*"),
+                     replacement = "")) {
+      
       cli_warn(c(
         "File #{i}: {fnm_read}",
-        "!" = "No accompanying posture file found.",
-        "i" = 'No merge file for {fnm_read %>% 
-                                  str_split(pattern = "_") %>% 
-                                  vec_unchop() %>% 
-                                  vec_slice(c(1, 2, 3)) %>% 
-                                  paste0(collapse = "_")}'
+        "!" = "No accompanying file from source 2 found.",
+        "i" = 'No merge file written for {fpa_read_1 |> 
+                                         path_file() |> 
+                                         path_ext_remove() |> 
+                                         stri_replace(regex = fld_src_1,
+                                                      replacement = "")}'
       ))
+      
       next()
+      
     }
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -5783,108 +6568,47 @@ merge_chamber_rmr <- function(fdr_read,
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_mer <- 
       left_join(
-        arrow::read_feather(fpa_read,
+        arrow::read_feather(fpa_read_1,
                             col_select = c(study:time,
                                            chamber_vo2_ml_min)),
-        arrow::read_feather(fpa_rmr,
+        arrow::read_feather(fpa_read_2,
                             col_select = c(study:rmr_mass_kg, 
                                            rmr_vo2_ml_kg_min)),
         by = c("study", "subject", "visit")
-      ) %>% 
-      mutate(chamber_vo2_ml_kg_min = chamber_vo2_ml_min / rmr_mass_kg,
-             mets_rmr = chamber_vo2_ml_kg_min / rmr_vo2_ml_kg_min,
-             mets_standard = chamber_vo2_ml_kg_min / 3.5) %>% 
+      ) |> 
+      mutate(
+        chamber_vo2_ml_kg_min = chamber_vo2_ml_min / rmr_mass_kg,
+        mets_rmr              = chamber_vo2_ml_kg_min / rmr_vo2_ml_kg_min,
+        mets_standard         = chamber_vo2_ml_kg_min / 3.5
+      ) |> 
       select(study:time,
              chamber_vo2_ml_kg_min,
-             rmr_vo2_ml_kg_min:last_col()) %>% 
+             rmr_vo2_ml_kg_min:last_col()) |> 
       as.data.table()
-    
-    lst_all[[i]] <- 
-      df_mer
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fnm_write <- 
-      fnm_read %>% 
-      str_split(pattern = "_") %>% 
-      vec_unchop() %>% 
-      vec_slice(c(1, 2, 3)) %>% 
-      paste0(collapse = "_") %>% 
-      paste(., fld_merge, sep = "_") %>% 
+      fpa_read_1 |> 
+      fs::path_file() |> 
+      stri_split(regex = "_") |> 
+      vec_unchop() |> 
+      vec_slice(c(1, 2, 3)) |> 
+      stri_c(collapse = "_") |> 
+      stri_c(fld_merge, sep = "_") |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = fld_merge)[
-                   which.min(
-                     dir_ls(fdr_project,
-                            type = "directory",
-                            regexp = fld_merge) %>% 
-                       str_length()
-                   )
-                 ],
-          fnm_write
-        )
-      arrow::write_feather(
-        df_mer,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dir_ls(fdr_write,
-               type = "directory",
-               regexp = fld_merge)[
-                 which.min(
-                   dir_ls(fdr_write,
-                          type = "directory",
-                          regexp = fld_merge) %>% 
-                     str_length()
-                 )
-               ],
-        fnm_write
-      )
-    data.table::fwrite(
-      df_mer,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
+    complete_wrangle(
+      df_write     = df_mer,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = fld_merge,
+      file_type    = "both",
+      project_only = project_only
     )
-    arrow::write_feather(
-      df_mer,
-      sink = fs::path_ext_set(path = fpa_write,
-                              ext = "feather")
-    )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = fld_merge)[
-                   which.min(
-                     dir_ls(fdr_project,
-                            type = "directory",
-                            regexp = fld_merge) %>% 
-                       str_length()
-                   )
-                 ],
-          fnm_write
-        )
-      arrow::write_feather(
-        df_mer,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-    }
-    
+    lst_all[[i]] <- 
+      df_mer
     cnt <- 
       cnt + 1
     
@@ -5892,87 +6616,27 @@ merge_chamber_rmr <- function(fdr_read,
   
   cli_progress_done()
   df_all <- 
-    bind_rows(lst_all)
+    rbindlist(lst_all)
   fnm_all <- 
-    paste(
-      info_study,
+    stri_c(
+      vct_fpa_read_1 |>
+        fs::path_file() |>
+        str_split(pattern = "_") |>
+        chuck(1, 1),
       "ALL",
       fld_merge,
       sep = "_"
-    ) %>% 
+    ) |> 
     fs::path_ext_set(ext = "csv")
-  
-  if (project_only) {
-    fpa_project <- 
-      fs::path(
-        dir_ls(fdr_project,
-               type = "directory",
-               regexp = fld_merge)[
-                 which.min(
-                   dir_ls(fdr_project,
-                          type = "directory",
-                          regexp = fld_merge) %>% 
-                     str_length()
-                 )
-               ],
-        fnm_all
-      )
-    arrow::write_feather(
-      df_all,
-      sink = fs::path_ext_set(path = fpa_project,
-                              ext = "feather")
-    )
-    return()
-  }
-  
-  fpa_write <- 
-    fs::path(
-      dir_ls(fdr_write,
-             type = "directory",
-             regexp = fld_merge)[
-               which.min(
-                 dir_ls(fdr_write,
-                        type = "directory",
-                        regexp = fld_merge) %>% 
-                   str_length()
-               )
-             ],
-      fnm_all
-    )
-  data.table::fwrite(
-    df_all,
-    file = fpa_write,
-    sep = ",",
-    showProgress = FALSE
+  complete_wrangle(
+    df_write     = df_all,
+    fdr_write    = fdr_write,
+    fdr_project  = fdr_project,
+    fnm_write    = fnm_all,
+    folder       = fld_merge,
+    file_type    = "both",
+    project_only = project_only
   )
-  arrow::write_feather(
-    df_all,
-    sink = fs::path_ext_set(path = fpa_write,
-                            ext = "feather")
-  )
-  
-  if (!is_empty(fdr_project)) {
-    fpa_project <- 
-      fs::path(
-        dir_ls(fdr_project,
-               type = "directory",
-               regexp = fld_merge)[
-                 which.min(
-                   dir_ls(fdr_project,
-                          type = "directory",
-                          regexp = fld_merge) %>% 
-                     str_length()
-                 )
-               ],
-        fnm_all
-      )
-    arrow::write_feather(
-      df_all,
-      sink = fs::path_ext_set(path = fpa_project,
-                              ext = "feather")
-    )
-  }
-  
   cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
   
 }
@@ -6172,124 +6836,136 @@ merge_chamber_ag_model_estimates <- function(fdr_read,
 }
 merge_noldus <- function(fdr_read,
                          fdr_write,
-                         fdr_project = NULL,
-                         fld_act = "NOLDUS_ACTIVITY",
-                         fld_pos = "NOLDUS_POSTURE",
-                         fld_merge = "NOLDUS_ACTIVITY_POSTURE",
-                         filter_sub = NULL,
+                         fdr_project  = NULL,
+                         fld_src_1    = "NOLDUS_ACTIVITY",
+                         fld_src_2    = "NOLDUS_POSTURE",
+                         fld_merge    = stri_c(fld_src_1,
+                                               fld_src_2,
+                                               sep = "_"),
+                         filter_sub   = NULL,
+                         filter_loc   = NULL,
                          project_only = FALSE) {
   
+  ###  VERSION 9  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Go back to naming function merge_noldus instead of merge_data.
-  # -   Incorporate filter_sub code.
-  # -   Incorporate project code.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
-  # -   Have project specific stuff happen in a separate function.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Add in factorize_flac for fixing transportation whoopsie.
+  # - Change from stringr to stringi functions.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read_noldus
+  # - initiate_wrangle
+  # - get_fpa_read
+  # - complete_wrangle
+  # - factorize_flac
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of shaped noldus files.
+  #   File directory of shaped files.
   # ARG: fdr_write
-  #      File directory of merged noldus files.
-  # ARG: fld_act
-  #      Folder name of shaped noldus activity files.
-  # ARG: fld_pos
-  #      Folder name of shaped noldus posture files.
-  # ARG: fld_merge
-  #      Folder name to save merged activity/posture files to.
+  #   File directory of merged files.
   # ARG: fdr_project
-  #      File directory to where all the merged data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: fld_src_1
+  #   Folder name of noldus activity files. Should be in the name of shape 
+  #   folder.
+  # ARG: fld_src_2
+  #   Folder name of noldus posture files. Should be in the name of shape 
+  #   folder.
+  # ARG: fld_merge
+  #   Folder name to save merged activity/posture files to.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should merged files only be written to fdr_project?
+  #   Should shaped files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "3_AIM1_SHAPED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "4_AIM1_MERGED_DATA")
-  # fdr_project <-
-  #   NULL
-  # fld_act <-
-  #   "NOLDUS_ACTIVITY"
-  # fld_pos <-
-  #   "NOLDUS_POSTURE"
-  # fld_merge <-
-  #   "NOLDUS_ACTIVITY_POSTURE"
-  # filter_sub <-
-  #   NULL
-  # project_only <- FALSE
-  
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Merg",
-                   file_source  = "NOLDUS")
-  lst_all <- 
-    list()
-  vct_fpa_read <- 
-    get_fpa_read_noldus(
+  # fdr_read     = fdr_shape
+  # fdr_write    = fdr_merge
+  # fdr_project  = fdr_doint_merge
+  # fld_src_1    = "NOLDUS_ACTIVITY"
+  # fld_src_2    = "NOLDUS_POSTURE"
+  # fld_merge    = "NOLDUS_ACTIVITY_POSTURE"
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
+
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Merg",
+      file_source  = fld_merge
+    )
+  c(vct_fpa_read_1,
+    vct_fpa_read_2) %<-%
+    get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
-      name_activity = fld_act,
-      name_posture  = fld_pos,
+      fdr_project   = fdr_project,
+      name_source_1 = fld_src_1,
+      name_source_2 = fld_src_2,
       name_merged   = fld_merge,
-      filter_sub    = filter_sub
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
     )
-  vct_fpa_act <- 
-    vct_fpa_read %>% 
-    fs::path_filter(glob = paste0("*/*", fld_act, "/*"))
-  vct_fpa_pos <- 
-    vct_fpa_read %>% 
-    fs::path_filter(glob = paste0("*/*", fld_pos, "/*"))
-  info_study <- 
-    vct_fpa_read %>% 
-    fs::path_file() %>% 
-    str_split(pattern = "_") %>% 
-    pluck(1, 1)
+  lst_all <- 
+    list()
   
-  for (i in cli_progress_along(vct_fpa_act,
+  for (i in cli_progress_along(vct_fpa_read_1,
                                format = progress_format,
                                clear = FALSE)) {
     
-    fpa_read <- 
-      vct_fpa_act[i]
-    fnm_read <- 
-      fs::path_file(fpa_read)
-    fpa_pos <- 
-      fnm_read %>% 
-      str_remove(pattern = "_(?!.*_).*") %>% 
-      str_replace(pattern = "ACTIVITY",
-                  replacement = "POSTURE") %>% 
-      str_subset(vct_fpa_pos,
-                 pattern = .)
+    fpa_read_1 <- 
+      vct_fpa_read_1[i]
+    fpa_read_2 <- 
+      vct_fpa_read_2[i]
     
-    if(is_empty(fpa_pos)) {
+    if (fpa_read_1 |> 
+        fs::path_file() |> 
+        stri_replace(regex = stri_c(fld_src_1, ".*"),
+                     replacement = "") !=
+        fpa_read_2 |> 
+        fs::path_file() |> 
+        stri_replace(regex = stri_c(fld_src_2, ".*"),
+                     replacement = "")) {
+      
       cli_warn(c(
         "File #{i}: {fnm_read}",
-        "!" = "No accompanying posture file found.",
-        "i" = 'No merge file for {fnm_read %>% 
-                                  str_split(pattern = "_") %>% 
-                                  vec_unchop() %>% 
-                                  vec_slice(c(1, 2, 3)) %>% 
-                                  paste0(collapse = "_")}'
+        "!" = "No accompanying file from source 2 found.",
+        "i" = 'No merge file written for {fpa_read_1 |> 
+                                         path_file() |> 
+                                         path_ext_remove() |> 
+                                         stri_replace(regex = fld_src_1,
+                                                      replacement = "")}'
       ))
+      
       next()
+      
     }
-    
+
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            MERGE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     df_mer <- 
       left_join(
-        arrow::read_feather(fpa_read),
-        arrow::read_feather(fpa_pos),
+        arrow::read_feather(fpa_read_1),
+        arrow::read_feather(fpa_read_2),
         by = c("study", "subject", "visit", "datetime", "date", "time")
       ) %>% 
       select(study:time,
@@ -6298,7 +6974,6 @@ merge_noldus <- function(fdr_read,
              starts_with("posture"),
              starts_with("intensity"),
              starts_with("environment"),
-             starts_with("duration"),
              starts_with("comment")) %>% 
       # Fix driving whoopsie-daisy of calling it light.
       mutate(
@@ -6307,356 +6982,282 @@ merge_noldus <- function(fdr_read,
             test = 
               behavior_noldus == "transportation" &
               activity_noldus == "driving automobile",
-            yes  = "sedentary",
+            yes  = factorize_flac("sedentary",
+                                  .source   = "NOLDUS",
+                                  .variable = "INTENSITY"),
             no   = intensity_noldus,
-            na   = NA_character_
+            na   = factorize_flac(NA,
+                                  .source   = "NOLDUS",
+                                  .variable = "INTENSITY")
           )
       ) %>% 
       as.data.table()
-    
-    lst_all[[i]] <- 
-      df_mer
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fnm_write <- 
-      fnm_read %>% 
-      str_split(pattern = "_") %>% 
-      vec_unchop() %>% 
-      vec_slice(c(1, 2, 3)) %>% 
-      paste0(collapse = "_") %>% 
-      paste(., fld_merge, sep = "_") %>% 
+      fpa_read_1 |> 
+      fs::path_file() |> 
+      stri_split(regex = "_") |> 
+      vec_unchop() |> 
+      vec_slice(c(1, 2, 3)) |> 
+      stri_c(collapse = "_") |> 
+      stri_c(fld_merge, sep = "_") |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = fld_merge),
-          fnm_write
-        )
-      arrow::write_feather(
-        df_mer,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dir_ls(fdr_write,
-               type = "directory",
-               regexp = fld_merge),
-        fnm_write
-      )
-    data.table::fwrite(
-      df_mer,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
+    complete_wrangle(
+      df_write     = df_mer,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = fld_merge,
+      file_type    = "both",
+      project_only = project_only
     )
-    arrow::write_feather(
-      df_mer,
-      sink = fs::path_ext_set(path = fpa_write,
-                              ext = "feather")
-    )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = fld_merge),
-          fnm_write
-        )
-      arrow::write_feather(
-        df_mer,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-    }
-    
+    lst_all[[i]] <- 
+      df_mer
     cnt <- 
       cnt + 1
     
   }
-  
+
   cli_progress_done()
   df_all <- 
-    bind_rows(lst_all)
+    rbindlist(lst_all)
   fnm_all <- 
-    paste(
-      info_study,
+    stri_c(
+      vct_fpa_read_1 |>
+        fs::path_file() |>
+        str_split(pattern = "_") |>
+        chuck(1, 1),
       "ALL",
       fld_merge,
       sep = "_"
-    ) %>% 
+    ) |> 
     fs::path_ext_set(ext = "csv")
-  
-  if (project_only) {
-    fpa_project <- 
-      fs::path(
-        dir_ls(fdr_project,
-               type = "directory",
-               regexp = fld_merge),
-        fnm_all
-      )
-    arrow::write_feather(
-      df_all,
-      sink = fs::path_ext_set(path = fpa_project,
-                              ext = "feather")
-    )
-    return()
-  }
-  
-  fpa_write <- 
-    fs::path(
-      dir_ls(fdr_write,
-             type = "directory",
-             regexp = fld_merge),
-      fnm_all
-    )
-  data.table::fwrite(
-    df_all,
-    file = fpa_write,
-    sep = ",",
-    showProgress = FALSE
+  complete_wrangle(
+    df_write     = df_all,
+    fdr_write    = fdr_write,
+    fdr_project  = fdr_project,
+    fnm_write    = fnm_all,
+    folder       = fld_merge,
+    file_type    = "both",
+    project_only = project_only
   )
-  arrow::write_feather(
-    df_all,
-    sink = fs::path_ext_set(path = fpa_write,
-                            ext = "feather")
-  )
-  
-  if (!is_empty(fdr_project)) {
-    fpa_project <- 
-      fs::path(
-        dir_ls(fdr_project,
-               type = "directory",
-               regexp = fld_merge),
-        fnm_all
-      )
-    arrow::write_feather(
-      df_all,
-      sink = fs::path_ext_set(path = fpa_project,
-                              ext = "feather")
-    )
-  }
-  
   cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
   
 }
 merge_noldus_chamber_rmr <- function(fdr_read,
                                      fdr_write,
-                                     fdr_project = NULL,
-                                     fld_nld = "NOLDUS_ACTIVITY_POSTURE",
-                                     fld_chm = "CHAMBER_RMR",
-                                     fld_merge = "NOLDUS_CHAMBER_RMR",
-                                     filter_sub = NULL,
+                                     fdr_project  = NULL,
+                                     fld_src_1    = "NOLDUS_ACTIVITY_POSTURE",
+                                     fld_src_2    = "CHAMBER_RMR",
+                                     fld_merge    = "NOLDUS_CHAMBER_RMR",
+                                     filter_sub   = NULL,
+                                     filter_loc   = NULL,
                                      project_only = FALSE) {
   
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   Go back to naming function merge_noldus instead of merge_data.
-  # -   Incorporate filter_sub code.
-  # -   Incorporate project code.
-  # -   Incorporate initiate_wrangle as it is the same across all wrangle functions.
-  # -   Have project specific stuff happen in a separate function.
+  # - Add filter_loc argument if user wants to filter files by location.
+  # - Change to R's native pipe operator when possible.
+  # - Add in complete_wrangle function
+  # - Add in factorize_flac for intensity from chamber.
+  # - Change from stringr to stringi functions.
+  # - Since chamber_rmr files are minute-by-minute, fill UP.
+  # - Remove rows that have NA in chamber columns as this would be the chamber
+  #   turning off before the video finishes.
+  # - Make "inactive" variable that is a take on intensity but will classify
+  #   "light" intensity activity if they are still doing certain behaviors.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # -   initiate_wrangle
-  # -   get_fpa_read_noldus
+  # - initiate_wrangle
+  # - get_fpa_read
+  # - complete_wrangle
+  # - factorize_flac
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # ARG: fdr_read
-  #      File directory of shaped noldus files.
+  #   File directory of merged noldus_activity_posture files & chamber_rmr files.
   # ARG: fdr_write
-  #      File directory of merged noldus files.
-  # ARG: fld_act
-  #      Folder name of shaped noldus activity files.
-  # ARG: fld_pos
-  #      Folder name of shaped noldus posture files.
-  # ARG: fld_merge
-  #      Folder name to save merged activity/posture files to.
+  #   File directory of merged files.
   # ARG: fdr_project
-  #      File directory to where all the merged data resides in the project. If
-  #      this is supplied then files are written to both fdr_write and fdr_project.
+  #   File directory to where all the data resides in a project. (If
+  #   this is supplied then files are written to both fdr_write and
+  #   fdr_project.)
+  # ARG: fld_src_1
+  #   Folder name of noldus_activity_posture files. Should be in the name of the
+  #   final merge folder.
+  # ARG: fld_src_2
+  #   Folder name of chamber_rmr files. Should be in the name of the final 
+  #   merge folder.
+  # ARG: fld_merge
+  #   Folder name to save merged noldus_chamber_rmr files to.
   # ARG: filter_sub
-  #      Vector of subjects to filter the vct_fpa_read base.
+  #   Vector of subjects to filter the fdr_read files.
+  # ARG: filter_loc
+  #   Vector of numbers to filter fdr_read files.
   # ARG: project_only
-  #      Should merged files only be written to fdr_project?
+  #   Should shaped files only be written to fdr_project?
+  ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "4_AIM1_MERGED_DATA")
-  # fdr_write <-
-  #   fs::path("FLAC_AIM1_DATA",
-  #            "4_AIM1_MERGED_DATA")
-  # fdr_project <-
-  #   NULL
-  # fld_nld <- 
-  #   "NOLDUS_ACTIVITY_POSTURE"
-  # fld_chm <- 
-  #   "CHAMBER_RMR"
-  # fld_merge <- 
-  #   "NOLDUS_CHAMBER_RMR"
-  # filter_sub <-
-  #   NULL
-  # project_only <- FALSE
+  # fdr_read     = fdr_merge
+  # fdr_write    = fdr_merge
+  # fdr_project  = fdr_doint_merge
+  # fld_src_1    = "NOLDUS_ACTIVITY_POSTURE"
+  # fld_src_2    = "CHAMBER_RMR"
+  # fld_merge    = "NOLDUS_CHAMBER_RMR"
+  # filter_sub   = NULL
+  # filter_loc   = NULL
+  # project_only = FALSE
   
-  initiate_wrangle(fdr_read     = fdr_read,
-                   fdr_project  = fdr_project,
-                   filter_sub   = filter_sub,
-                   project_only = project_only,
-                   type         = "Merg",
-                   file_source  = "NOLDUS_ACTIVITY_POSTURE")
-  lst_all <- 
-    list()
-  vct_fpa_read <- 
-    get_fpa_read_noldus(
+  c(fnm_read,
+    fdr_project,
+    filter_sub,
+    filter_loc,
+    info_flac_aim,
+    info_function,
+    info_source,
+    cnt,
+    progress_format) %<-%
+    initiate_wrangle(
+      fdr_read     = fdr_read,
+      fdr_project  = fdr_project,
+      filter_sub   = filter_sub,
+      filter_loc   = filter_loc,
+      project_only = project_only,
+      type         = "Merg",
+      file_source  = fld_merge
+    )
+  c(vct_fpa_read_1,
+    vct_fpa_read_2) %<-%
+    get_fpa_read(
       fdr_read      = fdr_read,
       fdr_write     = fdr_write,
-      name_activity = fld_nld,
-      name_posture  = fld_chm,
+      fdr_project   = fdr_project,
+      name_source_1 = fld_src_1,
+      name_source_2 = fld_src_2,
       name_merged   = fld_merge,
-      filter_sub    = filter_sub
+      filter_sub    = filter_sub,
+      filter_loc    = filter_loc
     )
-  vct_fpa_nld <- 
-    vct_fpa_read %>% 
-    fs::path_filter(glob = paste0("*/*", fld_nld, "/*")) %>% 
-    fs::path_filter(regexp = "ALL",
-                    invert = TRUE)
-  vct_fpa_chm <- 
-    vct_fpa_read %>% 
-    fs::path_filter(glob = paste0("*/*", fld_chm, "/*")) %>% 
-    fs::path_filter(regexp = "ALL",
-                    invert = TRUE)
-  info_study <- 
-    vct_fpa_read %>% 
-    fs::path_file() %>% 
-    str_split(pattern = "_") %>% 
-    pluck(1, 1)
+  lst_all <- 
+    list()
   
-  for (i in cli_progress_along(vct_fpa_nld,
+  for (i in cli_progress_along(vct_fpa_read_1,
                                format = progress_format,
                                clear = FALSE)) {
     
-    fpa_read <- 
-      vct_fpa_nld[i]
-    fnm_read <- 
-      fs::path_file(fpa_read)
-    fpa_chm <- 
-      fnm_read %>% 
-      fs::path_ext_remove() %>% 
-      str_replace(pattern = fld_nld,
-                  replacement = fld_chm) %>% 
-      str_subset(vct_fpa_chm,
-                 pattern = .)
+    fpa_read_1 <- 
+      vct_fpa_read_1[i]
+    fpa_read_2 <- 
+      vct_fpa_read_2[i]
     
-    if(is_empty(fpa_chm)) {
+    if (fpa_read_1 |> 
+        fs::path_file() |> 
+        stri_replace(regex = stri_c(fld_src_1, ".*"),
+                     replacement = "") !=
+        fpa_read_2 |> 
+        fs::path_file() |> 
+        stri_replace(regex = stri_c(fld_src_2, ".*"),
+                     replacement = "")) {
+      
       cli_warn(c(
         "File #{i}: {fnm_read}",
-        "!" = "No accompanying {fld_chm} file found.",
-        "i" = 'No merge file for {fnm_read %>% 
-                                  str_split(pattern = "_") %>% 
-                                  vec_unchop() %>% 
-                                  vec_slice(c(1, 2, 3)) %>% 
-                                  paste0(collapse = "_")}'
+        "!" = "No accompanying file from source 2 found.",
+        "i" = 'No merge file written for {fpa_read_1 |> 
+                                         path_file() |> 
+                                         path_ext_remove() |> 
+                                         stri_replace(regex = fld_src_1,
+                                                      replacement = "")}'
       ))
+      
       next()
+      
     }
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            MERGE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+    vct_pos_inactive <- 
+      c("sitting", "lying", "crouching/kneeling/squatting")
     df_mer <- 
       left_join(
-        arrow::read_feather(fpa_read),
-        arrow::read_feather(fpa_chm),
+        arrow::read_feather(fpa_read_1),
+        arrow::read_feather(fpa_read_2),
         by = c("study", "subject", "visit", "datetime", "date", "time")
-      ) %>% 
-      mutate(
+      ) |> 
+      # Since chamber_rmr files are minute-by-minute, fill UP.
+      fill(chamber_vo2_ml_kg_min:mets_standard,
+           .direction = "up") |> 
+      # Remove rows that have NA in chamber columns as this would be the chamber
+      # turning off before the video finishes.
+      filter(!is.na(chamber_vo2_ml_kg_min)) |> 
+    mutate(
         intensity_rmr = 
           fcase(
-            mets_rmr < 1.5 & posture_noldus %in% c("sitting", "lying"), "sedentary",
-            mets_rmr >= 1.5 & mets_rmr < 3.0, "light",
+            mets_rmr < 1.5 & posture_noldus %in% vct_pos_inactive, "sedentary",
+            mets_rmr < 3.0, "light",
             mets_rmr >= 3.0, "mvpa"
-          ),
+          ) |> 
+          factorize_flac(.source   = "RMR",
+                         .variable = "INTENSITY"),
         intensity_standard =
           fcase(
-            mets_standard < 1.5 & posture_noldus %in% c("sitting", "lying"), "sedentary",
-            mets_standard >= 1.5 & mets_standard < 3.0, "light",
+            mets_standard < 1.5 & posture_noldus %in% vct_pos_inactive, "sedentary",
+            mets_standard < 3.0, "light",
             mets_standard >= 3.0, "mvpa"
-          ),
+          ) |> 
+          factorize_flac(.source   = "CHAMBER",
+                         .variable = "INTENSITY"),
         .after = intensity_noldus
-      ) %>% 
+      ) |> 
+      mutate(
+        inactive_noldus   =
+          intensity_noldus |> 
+          fct_recode(inactive = "sedentary"),
+        inactive_rmr      =
+          fcase(
+            mets_rmr < 2.0 & posture_noldus %in% vct_pos_inactive, "inactive",
+            mets_rmr < 3.0, "light",
+            mets_rmr >= 3.0, "mvpa"
+          ) |> 
+          factorize_flac(.source   = "RMR",
+                         .variable = "INACTIVE"),
+        inactive_standard = 
+          fcase(
+            mets_standard < 2.0 & posture_noldus %in% vct_pos_inactive, "inactive",
+            mets_standard < 3.0, "light",
+            mets_standard >= 3.0, "mvpa"
+          ) |> 
+          factorize_flac(.source   = "CHAMBER",
+                         .variable = "INACTIVE"),
+        .after = intensity_standard
+      ) |> 
       as.data.table()
-    
-    lst_all[[i]] <- 
-      df_mer
     
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     ##                            WRITE                          ----
     ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     fnm_write <- 
-      fnm_read %>% 
-      str_split(pattern = "_") %>% 
-      vec_unchop() %>% 
-      vec_slice(c(1, 2, 3)) %>% 
-      paste0(collapse = "_") %>% 
-      paste(., fld_merge, sep = "_") %>% 
+      fpa_read_1 |> 
+      fs::path_file() |> 
+      stri_split(regex = "_") |> 
+      vec_unchop() |> 
+      vec_slice(c(1, 2, 3)) |> 
+      stri_c(collapse = "_") |> 
+      stri_c(fld_merge, sep = "_") |> 
       fs::path_ext_set(ext = "csv")
-    
-    if (project_only) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = fld_merge),
-          fnm_write
-        )
-      arrow::write_feather(
-        df_mer,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-      next()
-    }
-    
-    fpa_write <- 
-      fs::path(
-        dir_ls(fdr_write,
-               type = "directory",
-               regexp = fld_merge),
-        fnm_write
-      )
-    data.table::fwrite(
-      df_mer,
-      file = fpa_write,
-      sep = ",",
-      showProgress = FALSE
+    complete_wrangle(
+      df_write     = df_mer,
+      fdr_write    = fdr_write,
+      fdr_project  = fdr_project,
+      fnm_write    = fnm_write,
+      folder       = fld_merge,
+      file_type    = "both",
+      project_only = project_only
     )
-    arrow::write_feather(
-      df_mer,
-      sink = fs::path_ext_set(path = fpa_write,
-                              ext = "feather")
-    )
-    
-    if(!is_empty(fdr_project)) {
-      fpa_project <- 
-        fs::path(
-          dir_ls(fdr_project,
-                 type = "directory",
-                 regexp = fld_merge),
-          fnm_write
-        )
-      arrow::write_feather(
-        df_mer,
-        sink = fs::path_ext_set(path = fpa_project,
-                                ext = "feather")
-      )
-    }
-    
+    lst_all[[i]] <- 
+      df_mer
     cnt <- 
       cnt + 1
     
@@ -6664,66 +7265,27 @@ merge_noldus_chamber_rmr <- function(fdr_read,
   
   cli_progress_done()
   df_all <- 
-    bind_rows(lst_all)
+    rbindlist(lst_all)
   fnm_all <- 
-    paste(
-      info_study,
+    stri_c(
+      vct_fpa_read_1 |>
+        fs::path_file() |>
+        str_split(pattern = "_") |>
+        chuck(1, 1),
       "ALL",
       fld_merge,
       sep = "_"
-    ) %>% 
+    ) |> 
     fs::path_ext_set(ext = "csv")
-  
-  if (project_only) {
-    fpa_project <- 
-      fs::path(
-        dir_ls(fdr_project,
-               type = "directory",
-               regexp = fld_merge),
-        fnm_all
-      )
-    arrow::write_feather(
-      df_all,
-      sink = fs::path_ext_set(path = fpa_project,
-                              ext = "feather")
-    )
-    return()
-  }
-  
-  fpa_write <- 
-    fs::path(
-      dir_ls(fdr_write,
-             type = "directory",
-             regexp = fld_merge),
-      fnm_all
-    )
-  data.table::fwrite(
-    df_all,
-    file = fpa_write,
-    sep = ",",
-    showProgress = FALSE
+  complete_wrangle(
+    df_write     = df_all,
+    fdr_write    = fdr_write,
+    fdr_project  = fdr_project,
+    fnm_write    = fnm_all,
+    folder       = fld_merge,
+    file_type    = "both",
+    project_only = project_only
   )
-  arrow::write_feather(
-    df_all,
-    sink = fs::path_ext_set(path = fpa_write,
-                            ext = "feather")
-  )
-  
-  if (!is_empty(fdr_project)) {
-    fpa_project <- 
-      fs::path(
-        dir_ls(fdr_project,
-               type = "directory",
-               regexp = fld_merge),
-        fnm_all
-      )
-    arrow::write_feather(
-      df_all,
-      sink = fs::path_ext_set(path = fpa_project,
-                              ext = "feather")
-    )
-  }
-  
   cli_alert_success("SUCCESS. {cnt} File{?/s} {info_function}ed")
   
 }
@@ -6823,81 +7385,89 @@ process_duration_files <- function(vct_variable,
                                    vct_source,
                                    fdr_read,
                                    fdr_write,
-                                   fld_mer,
-                                   fnm_mer,
-                                   ge_than = NULL) {
+                                   fld_merge      = NULL,
+                                   fnm_merge,
+                                   ge_than      = NULL) {
   
-  ###  VERSION 6  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 7  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - Make sure it works if the merged file is not in a sub-directory.
+  # - Remove TODO code
   # - If ge_than is not null, export ge_than merged file for analysis.
+  # - Since process functions are project specific, they should not
+  #   require a fdr_project. Instad fdr_write should be to the project folder.
+  # - Rename "mer" arguments
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # FUNCTION: seq_duration
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # vct_variable
-  #   Self-explanatory
-  # vct_source
-  #   Self-explanatory
   # fdr_read
-  #   File directory of merged file.
+  #   File directory of merged "ALL" file.
   # fdr_write
   #   File directory of processed file.
-  # fld_mer
-  #   Folder name of containing fnm_mer.
-  # fnm_mer
+  # fld_merge
+  #   Folder name of containing fnm_merge.
+  # fnm_merge
   #   File name of merged file with all subject, visit entries in feather
   #   format.
+  # vct_variable
+  #   Character vector of variables to make duration files for.
+  # vct_source
+  #   Character vector of file sources where the variables are coming from.
   # ge_than
   #   A list with the first element containing a variable, the second element
   #   containing the source for the variable and the third element containing
   #   the value the variable_source has to be >= than.
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - Remove code after shape_noldus is updated.
+  # - Add worning or message if getting the duration for a variable from two or
+  #   more sources that have different levels in factorize_flac.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # vct_variable = c("intensity")
-  # vct_source   = c("rmr", "standard", "sojourn3x", "montoye", "rowland",
-  #                  "hildebrand", "freedson", "staudenmayer", "marcotte")
-  # fdr_read     = fdr_merge
-  # fdr_write    = fdr_chaac
-  # fld_mer      = NULL
-  # fnm_mer      = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
-  # ge_than      = list("intensity", "standard", 60 * 5)
-  # ge_than      = NULL
+  # fdr_read     = fdr_doint_merge
+  # fdr_write    = fdr_doint_process
+  # vct_variable = c("posture",
+  #                  "behavior",
+  #                  "intensity")
+  # vct_source   = c("noldus",
+  #                  "rmr",
+  #                  "standard")
+  # fld_merge    = "NOLDUS_CHAMBER_RMR"
+  # fnm_merge    = "CO_ALL_NOLDUS_CHAMBER_RMR.feather"
+  # ge_than      = list("behavior", "noldus", 60)
   
-  if (is_null(fld_mer)) {
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                             READ                           ----
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  if (stri_detect(fnm_merge,
+                  regex = "\\.feather",
+                  negate = TRUE)) {
+
+    cli_abort(c(
+      "X" = "File name of merged file is not in feather format."
+    ))
+    
+  }
+  
+  if (is_null(fld_merge)) {
     
     fpa_mer <- 
       path(fdr_read,
-           fnm_mer)
+           fnm_merge)
     
   } else {
     
     fpa_mer <- 
       path(fdr_read,
            list.files(path    = fdr_read,
-                      pattern = fld_mer),
-           fnm_mer)
+                      pattern = fld_merge),
+           fnm_merge)
     
   }
   
   df_mer <- 
     fpa_mer |> 
-    arrow::read_feather() |>
-    # TODO: Whenver dark/obscured/oof is coded for posture, intensity is ""
-    #       Explicitly state that it is dark/obscured/oof.
-    #       Also when looking at noldus_chamber_rmr merged files, the chamber
-    #       data is not filled up.
-    mutate(across(.cols = starts_with("intensity"),
-                  .fns = 
-                    ~factor(.x,
-                            levels = c("sedentary",
-                                       "light",
-                                       "mvpa")) |> 
-                    fct_explicit_na(na_level = "dark/obscured/oof")
-    )) |> 
-    # TODO: END
-    as.data.table()
+    arrow::read_feather()
   
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                     GE THAN MERGED FILE                   ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   if (!is_null(ge_than)) {
     
     chk_variable <- 
@@ -6948,6 +7518,10 @@ process_duration_files <- function(vct_variable,
       )
       
     }
+
+    cli_inform(c(
+      "i" = "Creating merged_ge_than file..."
+    ))
     
     variable_source <- 
       stri_c(ge_than[[1]], "_", ge_than[[2]])
@@ -6955,15 +7529,11 @@ process_duration_files <- function(vct_variable,
       df_mer |> 
       as_tibble() |> 
       group_by(study, subject, visit) |> 
-      # TODO: Remove duration_noldus columns from shape_noldus
-      mutate(duration_behavior_noldus = NULL,
-             duration_posture_noldus = NULL) |> 
-      # TODO: END
       mutate(
         "duration_{variable_source}" :=
           seq_duration(vct_datetime = datetime,
-                       vct_value = .data[[variable_source]]),
-        "less_than_{ge_than[[3]]}" := 
+                       vct_value    = .data[[variable_source]]),
+        "less_than_{ge_than[[3]]}"   := 
           .data[[glue::glue("duration_{variable_source}")]] < ge_than[[3]],
         .after = time
       ) |> 
@@ -6989,17 +7559,18 @@ process_duration_files <- function(vct_variable,
     # Write for confusion matrix and agreement functions.
     fnm_ge_than <- 
       stri_c(
-        path_ext_remove(fnm_mer),
+        path_ext_remove(fnm_merge),
         "DUR",
         ge_than[[1]] |> stri_sub(to = 3) |> stri_trans_toupper(),
         ge_than[[2]] |> stri_sub(to = 3) |> stri_trans_toupper(),
         "GE",
         ge_than[[3]],
         sep = "_"
-      )
+      ) |> 
+      path_ext_set(ext = "csv")
     
-    if (is_null(fld_mer)) {
-      
+    if (is_null(fld_merge)) {
+
       arrow::write_feather(
         df_mer,
         sink = path(fdr_read,
@@ -7013,14 +7584,14 @@ process_duration_files <- function(vct_variable,
                                  ext = "csv")),
         sep = ","
       )
-      
+
     } else {
-      
+
       arrow::write_feather(
         df_mer,
         sink = path(fdr_read,
                     list.files(path    = fdr_read,
-                               pattern = fld_mer),
+                               pattern = fld_merge),
                     path_ext_set(fnm_ge_than,
                                  ext = "feather"))
       )
@@ -7028,15 +7599,17 @@ process_duration_files <- function(vct_variable,
         df_mer,
         file = path(fdr_read,
                     list.files(path    = fdr_read,
-                               pattern = fld_mer),
+                               pattern = fld_merge),
                     path_ext_set(fnm_ge_than,
                                  ext = "csv")),
         sep = ","
       )
-      
+
     }
     
-    
+    cli_inform(c(
+      "v" = "SUCCESS"
+    ))
     # testt <- 
     # df_mer |>
     #   count(study, subject, visit, intensity_rmr) |>
@@ -7053,14 +7626,14 @@ process_duration_files <- function(vct_variable,
   vct_var_src <- 
     # Get all combinations between variables and sources.
     expand_grid(variable = vct_variable,
-                source = vct_source) %>% 
+                source   = vct_source) %>% 
     unite(col = "unite",
           variable, source,
           sep = "_") |> 
     pull() |> 
     # Only keep the combinations that are in the data.frame.
-    stri_subset_regex(pattern = stri_c(names(df_mer), collapse = "|"))
-  
+    stri_subset(regex = stri_c(names(df_mer),
+                               collapse = "|"))
   lst_duration <- 
     list()
   variable_source <- 
@@ -7073,25 +7646,23 @@ process_duration_files <- function(vct_variable,
       "{cli::pb_current}/{cli::pb_total} ({cli::pb_percent}) | ",
       "[{cli::pb_elapsed}] | {cli::pb_eta_str}"
     )
-  
-  cli_alert_info("Processing duration file from {fnm_mer} for variable_sources:")
-  cli_alert_info(stri_c(vct_var_src, collapse = " "))
+  cli_inform(c(
+    "i" = "Processing duration file from {fnm_merge} for variable_sources:",
+    " " = vct_var_src
+  ))
   
   if (!is_null(ge_than)) {
     
-    cli_alert_info(
-      stri_c(
-        "Merged data filtered by {ge_than[[1]]}_{ge_than[[2]]} values",
-        ">= {ge_than[[3]]} seconds",
-        sep = " "
-      )
-    )
+    cli_inform(c(
+      "i" = "Merged data filtered by {ge_than[[1]]}_{ge_than[[2]]} values
+             >= {ge_than[[3]]} seconds"
+    ))
     
   } else {
     
-    cli_alert_info(
-        "Merged data not filtered by any variable_source."
-    )
+    cli_inform(c(
+      "i" = "Merged data not filtered by any variable_source."
+    ))
     
   }
   
@@ -7110,7 +7681,7 @@ process_duration_files <- function(vct_variable,
     
     df_dur_var_source <- 
       df_mer |> 
-      select(1:datetime, 
+      select(study:datetime, 
              all_of(variable_source)) %>% 
       group_by(study, subject, visit) |> 
       transmute(
@@ -7134,7 +7705,7 @@ process_duration_files <- function(vct_variable,
         start_dttm = min(datetime) - 1,
         stop_dttm  = max(datetime),
         duration   = duration[1],
-        .groups = "drop"
+        .groups    = "drop"
       ) |> 
       relocate(event,
                .after = last_col()) |> 
@@ -7144,8 +7715,6 @@ process_duration_files <- function(vct_variable,
     
     lst_duration[[i]] <-
       df_dur_var_source
-    
-    cli_progress_update()
     cnt <- 
       cnt + 1
     
@@ -7156,13 +7725,13 @@ process_duration_files <- function(vct_variable,
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                            WRITE                          ----
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  if(is_null(fld_mer)) {
+  if(is_null(fld_merge)) {
     
-    fld_mer <- 
-      fnm_mer |> 
+    fld_merge <- 
+      fnm_merge |> 
       path_ext_remove() |> 
-      stri_replace_all_regex(pattern = ".*ALL_",
-                             replacement = "")
+      stri_replace(regex = ".*ALL_",
+                   replacement = "")
     
   }
   
@@ -7183,18 +7752,20 @@ process_duration_files <- function(vct_variable,
       } else {
         "DURATION"
       },
-      fld_mer,
+      fld_merge,
       sep = "_"
     )
   arrow::write_feather(
     df_duration,
     sink = path(fdr_write,
-                path_ext_set(fnm_write, "feather"))
+                path_ext_set(fnm_write,
+                             "feather"))
   )
   fwrite(
     df_duration,
     file = path(fdr_write,
-                path_ext_set(fnm_write, "csv")),
+                path_ext_set(fnm_write,
+                             "csv")),
     sep = ","
   )
   
@@ -7207,14 +7778,14 @@ process_visit_numbers <- function(fdr_read,
                                   summary_function = "sum",
                                   time_unit) {
   
-  ###  VERSION 3  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 4  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - OLD NAME IS Summarise_per_visit
-  # - Update naming scheme.
-  # - Have it write a csv/feather instead of just using it in the bias pipeline.
-  # - Remove lvls_{.variable} and have it be a switch function FOR NOW.
+  # - Remove lvls_var switch function and replace with factorize_flac.
+  # - In order to implement factorize_flac function, do a for loop for every
+  #   variable_source combination present and left_join them before putting them
+  #   in lst_summary_visit.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
-  # - NA
+  # - factorize_flac
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # fdr_read 
   #   File directory of ALL_DUR feather file.
@@ -7227,23 +7798,13 @@ process_visit_numbers <- function(fdr_read,
   # time_units 
   #   Unit of time to have each {value}_{source} be in.
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - Shaped functions for included data should have all character values be 
-  #   factors before this function.
+  # - NA
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <- 
-  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
-  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #        "3_data", "4_processed")
-  # fdr_write <- 
-  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
-  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #        "3_data", "4_processed")
-  # fnm_dur <- 
-  #   "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather"
-  # summary_function <- 
-  #   "sum"
-  # time_unit <- 
-  #   "mins" # secs, mins, hours
+  # fdr_read         = fdr_doint_process
+  # fdr_write        = fdr_doint_process
+  # fnm_dur          = "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather"
+  # summary_function = "sum"
+  # time_unit        = "mins" # secs, mins, hours
   
   df_duration <- 
     path(fdr_read,
@@ -7253,6 +7814,13 @@ process_visit_numbers <- function(fdr_read,
   vct_variable <- 
     df_duration$variable |> 
     unique()
+  vct_var_src <- 
+    df_duration |> 
+    unite(col = "var_src",
+          variable, source,
+          sep = "_") |> 
+    pull(var_src) |> 
+    unique()
   lst_summary_visit <- 
     list()
   
@@ -7261,118 +7829,93 @@ process_visit_numbers <- function(fdr_read,
     .variable <- 
       vct_variable[i]
     
-    cli_alert_info(text = stri_trans_totitle(.variable))
+    cli_inform(c(
+      "i" = stri_trans_totitle(.variable)
+    ))
     
-    # TODO: Shaped should have all character values befactors before this 
-    #       function.
-    lvl_var <- 
-      switch(
-        EXPR = .variable,
-        "posture" = c(
-          "lying",
-          "sitting",
-          "crouching/kneeling/squatting",
-          "standing",
-          "other - posture",
-          "walking",
-          "stepping",
-          "running",
-          "ascending stairs",
-          "descending stairs",
-          "crouching/squatting",
-          "cycling",
-          "other - movement",
-          "intermittent movement",
-          "dark/obscured/oof"
-        ),
-        "behavior" = c(
-          "sports/exercise",
-          "eating/drinking",
-          "transportation",
-          "electronics",
-          "other - manipulating objects",
-          "other - carrying load w/ ue",
-          "other - pushing cart",
-          "talking - person",
-          "talking - phone",
-          "caring/grooming - adult",
-          "caring/grooming - animal/pet",
-          "caring/grooming - child",
-          "caring/grooming - self",
-          "cleaning",
-          "c/f/r/m",
-          "cooking/meal preparation",
-          "laundry" ,
-          "lawn&garden",
-          "leisure based",
-          "only [p/m] code",
-          "talking - researchers",
-          "intermittent activity",
-          "dark/obscured/oof"
-        ),
-        "intensity" = c(
-          "sedentary",
-          "light",
-          "mvpa",
-          "dark/obscured/oof"
-        )
-      )
-    # TODO: END
+    vct_source <- 
+      vct_var_src |> 
+      stri_subset(regex = .variable) |> 
+      stri_replace(regex       = stri_c(.variable, "_"),
+                   replacement = "")
     
-    df_dur_var <- 
-      df_duration |>
-      # Cant filter a column with an object with the same name using dtplyr.
-      as_tibble() |>
-      filter(variable == .variable) |>
-      # If the duration file supplied includes GE in the fnm.
-      filter(!is.na(value)) |> 
-      mutate(
-        value =
-          value |>
-          fct_drop() |>
-          # TODO
-          lvls_expand(lvl_var)
-          # TODO: END
+    for (ii in seq_along(vct_source)) {
+      
+      .source <- 
+        vct_source[ii]
+
+      df_duration_var_src <- 
+        df_duration |>
+        # Cant filter a column with an object with the same name using dtplyr.
+        as_tibble() |>
+        filter(variable == .variable,
+               source == .source) |>
+        # If the duration file supplied includes GE in the fnm.
+        filter(!is.na(value)) |> 
+        mutate(
+          value =
+            value |>
+            as.character() |> 
+            factorize_flac(.source   = .source,
+                           .variable = .variable)
         ) |>
-      group_by(study, subject, visit,
-               source, value) |>
-      summarise(across(.cols = duration,
-                       .fns = rlang::as_function(summary_function)),
-                .groups = "drop") |>
-      # If a value from a source did not appear for a visit, make sure it is
-      # present then give it a value of 0 seconds.
-      complete(study, subject, visit, source, value) |>
-      mutate(duration =
-               duration |>
-               replace_na(replace = as.difftime(0, units = "secs"))) |> 
-      # In seconds now but is made into hours later.
-      add_count(study, subject, visit, source,
-                wt = duration,
-                name = "total") |> 
-      arrange(study, subject, visit, value)
-    
-    units(df_dur_var$duration) <- 
-      time_unit
-    units(df_dur_var$total) <- 
-      time_unit
-    
-    df_summary_variable <- 
-      df_dur_var |> 
-      pivot_wider(names_from = c(value, source),
-                  names_glue = "{value}_{source}",
-                  values_from = duration) |> 
-      mutate(variable          = .variable,
-             summary_statistic = summary_function,
-             time_unit         = recode(time_unit,
-                                        "secs"  = "second",
-                                        "mins"  = "minute",
-                                        "hours" = "hour"),
-             .after            = visit) |> 
-      as.data.table()
-    
+        group_by(study, subject, visit,
+                 source, value) |>
+        summarise(across(.cols = duration,
+                         .fns  = rlang::as_function(summary_function)),
+                  .groups = "drop") |>
+        # If a value from a source did not appear for a visit, make sure it is
+        # present then give it a value of 0 seconds.
+        complete(study, subject, visit, source, value) |>
+        mutate(duration =
+                 duration |>
+                 replace_na(replace = as.difftime(0, units = "secs"))) |> 
+        # In seconds now but is made into hours later.
+        add_count(study, subject, visit, source,
+                  wt = duration,
+                  name = "total") |> 
+        arrange(study, subject, visit, value)
+      
+      units(df_duration_var_src$duration) <- 
+        time_unit
+      units(df_duration_var_src$total) <- 
+        time_unit
+      
+      df_summary_var_src <- 
+        df_duration_var_src |> 
+        pivot_wider(names_from = c(value, source),
+                    names_glue = "{value}_{source}",
+                    values_from = duration) |> 
+        mutate(variable          = .variable,
+               summary_statistic = summary_function,
+               time_unit         = recode(time_unit,
+                                          "secs"  = "second",
+                                          "mins"  = "minute",
+                                          "hours" = "hour"),
+               .after            = visit) |> 
+        as.data.table()
+      
+      if (ii == 1) {
+        
+        df_summary_variable <- 
+          df_summary_var_src
+        
+      } else {
+        
+        df_summary_variable <- 
+          left_join(
+            df_summary_variable,
+            df_summary_var_src,
+            by = c("study", "subject", "visit", "variable",
+                   "summary_statistic", "time_unit", "total")
+          )
+        
+      }
+    }
+
     lst_summary_visit[[.variable]] <- 
-      df_summary_variable
-    
+      df_summary_variable |> 
+      as.data.table()
     
   }
   
@@ -7384,7 +7927,6 @@ process_visit_numbers <- function(fdr_read,
   duration_type <- 
     fnm_dur |> 
     stri_extract(regex = "DUR_\\w{3}_\\w{3}_GE_\\d*|DURATION")
-    # stri_extract(regex = "(?<=ALL_).*(?=_NOLDUS)")
   
   purrr::walk(.x = seq_along(lst_summary_visit),
               function(.x) {
@@ -9063,7 +9605,8 @@ compute_bias <- function(fdr_read,
       
       cli_inform(c(
         " " = 
-          "Getting {.emph {.estimate}} - criterion {.emph {.criterion}} for 
+          # "Interpreted literals must not start with a dot in cli >= 3.4.0."
+          "Getting {.emph {(.estimate)}} - criterion {.emph {(.criterion)}} for 
         value {.val {value}}"
       ))
       
@@ -9092,7 +9635,7 @@ compute_bias <- function(fdr_read,
       
       cli_inform(c(
         "i" = "Computing bias & 95% Confidence Intervals of estimate 
-        {.emph {.estimate}} to criterion {.emph {.criterion}}"
+        {.emph {(.estimate)}} to criterion {.emph {(.criterion)}}"
       ))
       
       vct_val_cri <- 
@@ -9101,7 +9644,8 @@ compute_bias <- function(fdr_read,
       
       df_bias_var <-
         df_visit %>% 
-        select(c(matches(all_of(vct_val_cri)),
+        select(c(matches(vct_val_cri),
+        # select(c(matches(all_of(vct_val_cri)),
                  matches(paste0("?",
                                 .estimate,
                                 "_diff_",
@@ -9733,8 +10277,12 @@ compute_confusion_matrix <- function(fdr_read,
                                      fld_mer,
                                      fnm_mer,
                                      variable,
-                                     vct_criterion,
+                                     criterion,
                                      vct_estimate,
+                                     lst_recode       = list(criterion = NULL,
+                                                             estimate  = NULL,
+                                                             variable  = NULL,
+                                                             value     = NULL),
                                      output = c("minute",
                                                 "percent",
                                                 "both")) {
@@ -9746,6 +10294,8 @@ compute_confusion_matrix <- function(fdr_read,
   # - Update object naming scheme.
   # - Write csv file in own sub folder and also have one file containing
   #   all matrixes in one.
+  # - Implement `list_recode` argument.
+  # - Only allow one criterion source for now
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # - NA
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
@@ -9760,10 +10310,15 @@ compute_confusion_matrix <- function(fdr_read,
   #   format.
   # variable 
   #   String for variable that is present in fnm_mer.
-  # vct_criterion 
-  #   Vector of names for which source(s) is/are the criterion(s).
+  # criterion 
+  #   Name for which source is the criterion.
   # vct_estimate 
   #   Vector of names for which source(s) is/are the estimate(s).
+  # lst_recode 
+  #   List of `criteiron`, `estimate`, `variable` & `value` where each entry 
+  #   is a named character vector. The name represents what to change in the 
+  #   respective entry IN TITLE CASE & the element represents what to change
+  #   the name to.
   # output 
   #   Either "minute", "percent" or "both" to determine how confusion matrix
   #   will be outputted.
@@ -9773,21 +10328,39 @@ compute_confusion_matrix <- function(fdr_read,
   # fdr_read      = fdr_merge
   # fdr_write     = fdr_result
   # fld_mer       = NULL
-  # fnm_mer       = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-05-08.feather"
+  # fnm_mer       = "CO_ALL_CHAMBER_RMR_AG_MODEL_2022-06-15.feather"
   # variable      = "intensity"
-  # vct_criterion = c("standard",
-  #                   "rmr")
-  # vct_estimate  = c("sojourn3x", "montoye", "rowland", "hildebrand",
-  #                   "freedson", "staudenmayer", "marcotte")
-  # output        = "percent" # minute, percent, both
+  # criterion     = "standard"
+  # vct_estimate  = ord_estimate
+  # lst_recode    = list(criterion = c("Standard" = "Chamber"),
+  #                      estimate  = NULL,
+  #                      variable  = NULL,
+  #                      value     = c("Mvpa" = "MVPA"))
+  # output        = "both" # minute, percent, both
   
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                            SETUP                          ----
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  # If any entry in lst_recode is NULL, give it a dummy named vector.
+  for (i in seq_along(lst_recode)) {
+    
+    if (is_null(lst_recode[[i]])) {
+      
+      lst_recode[[i]] <- 
+        c("BLEU"        = "BOI",
+          "DANGEROUS"   = "DOODOO",
+          "MENTOS"      = "MOMMY",
+          "MAGNIFICENT" = "MONTIPORA")
+    }
+    
+  }
+  
   dur_type <- 
     fnm_mer |> 
     stri_extract_all_regex(pattern = "DUR.*(?=\\.feather)") |> 
-    vec_unchop()
+    vec_unchop() |> 
+    stri_replace_all(regex = "_",
+                     replacement = "-")
   
   if (is.na(dur_type)) {
     
@@ -9828,19 +10401,27 @@ compute_confusion_matrix <- function(fdr_read,
   
   df_variable <- 
     df_mer |> 
-    select(starts_with(all_of(variable))) |> 
+    select(starts_with(variable)) |> 
     rename_with(.cols = everything(),
                 .fn   = ~stri_replace_all_regex(.x,
                                                 pattern = stri_c(variable, "_"),
                                                 replacement = "")) |> 
     tidyr::drop_na() |>
+    mutate(across(
+      .cols = everything(),
+      function(.x) {
+        .x |> 
+          fct_relabel(.fun = stri_trans_totitle) |> 
+          # fct_recode is opposite of recode.
+          fct_recode(!!!setNames(names(lst_recode$value), lst_recode$value))
+      }
+    )) |> 
     as.data.table()
-  
   # Remove any "dark/obscured/oof" if it is present.
   chk_dark_obscured_oof <- 
     purrr::map_lgl(.x = names(df_variable),
                    .f = function(.x) 
-                     "dark/obscured/oof" %in% unique(df_variable[[.x]]))
+                     "Dark/Obscured/Oof" %in% unique(df_variable[[.x]]))
   
   if (any(chk_dark_obscured_oof)) {
     
@@ -9853,33 +10434,51 @@ compute_confusion_matrix <- function(fdr_read,
       
       df_variable <- 
         df_variable |> 
-        filter(.data[[column]] != "dark/obscured/oof") |> 
+        filter(.data[[column]] != "Dark/Obscured/Oof") |> 
         as.data.table()
       
     }
     
+    df_variable <- 
+      df_variable |> 
+      mutate(across(
+        .cols = everything(),
+        .fns = ~fct_drop(.x,
+                         only = "Dark/Obscured/Oof")
+      ))
   }
   
-  lst_cri_est <- 
-    expand_grid(criterion  = vct_criterion,
-                estimate   = vct_estimate) |> 
-    data.table::transpose() |> 
-    as.list() |> 
-    set_names(nm = NULL)
-  
+  nm_criterion <- 
+    ifelse(
+      test = stri_trans_totitle(criterion) %in% names(lst_recode$criterion),
+      yes  = lst_recode$criterion[names(lst_recode$criterion) == stri_trans_totitle(criterion)],
+      no   = stri_trans_totitle(criterion)
+    )
+  # lst_cri_est <- 
+  #   expand_grid(criterion  = vct_criterion,
+  #               estimate   = vct_estimate) |> 
+  #   data.table::transpose() |> 
+  #   as.list() |> 
+  #   set_names(nm = NULL)
   lst_confusion <- 
     list()
   
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                           COMPUTE                         ----
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  for (i in seq_along(lst_cri_est)) {
+  for (i in seq_along(vct_estimate)) {
     
-    c(criterion, estimate) %<-%
-      lst_cri_est[[i]]
+    estimate <- 
+      vct_estimate[i]
+    nm_estimate <- 
+      ifelse(
+        test = stri_trans_totitle(estimate) %in% names(lst_recode$estimate),
+        yes  = lst_recode$estimate[names(lst_recode$estimate) == stri_trans_totitle(estimate)],
+        no   = stri_trans_totitle(estimate)
+      )
     
     cli_inform(c(
-      "i" = "{.emph {stri_c(criterion, '_', estimate)}}"
+      "i" = "{.emph {stri_c(nm_criterion, ' to ', nm_estimate)}}"
     ))
     
     df_confusion <- 
@@ -9901,8 +10500,9 @@ compute_confusion_matrix <- function(fdr_read,
         df_confusion <- 
           df_confusion |> 
           adorn_title(placement = "combined",
-                      row_name = criterion,
-                      col_name = estimate)
+                      row_name = nm_criterion,
+                      col_name = nm_estimate) |> 
+          rename(Total = `Total (minutes)`)
       },
       "percent" = {
         df_confusion <- 
@@ -9910,8 +10510,8 @@ compute_confusion_matrix <- function(fdr_read,
           adorn_percentages(denominator = "row") |> 
           adorn_pct_formatting(digits = 2) |> 
           adorn_title(placement = "combined",
-                      row_name = criterion,
-                      col_name = estimate) |> 
+                      row_name = nm_criterion,
+                      col_name = nm_estimate) |> 
           # Keep Total in minutes.
           select(-`Total (minutes)`) |> 
           bind_cols(select(df_confusion,
@@ -9924,15 +10524,15 @@ compute_confusion_matrix <- function(fdr_read,
           adorn_pct_formatting(digits = 2) |> 
           adorn_ns(position = "front") |> 
           adorn_title(placement = "combined",
-                      row_name = criterion,
-                      col_name = estimate)
+                      row_name = nm_criterion,
+                      col_name = nm_estimate)
       }
     )
     
     type <- 
       names(df_confusion)[1] |> 
       stri_replace_all_regex(pattern = "/",
-                             replacement = "_to_") |> 
+                             replacement = "-to-") |> 
       stri_trans_toupper()
     
     lst_confusion[[type]] <- 
@@ -9963,7 +10563,7 @@ compute_confusion_matrix <- function(fdr_read,
           "CONFUSION",
           stri_trans_toupper(variable),
           .x,
-          if (output == "both") "MINUTE_PERCENT" else stri_trans_toupper(output),
+          if (output == "both") "MINUTE-PERCENT" else stri_trans_toupper(output),
           dur_type,
           sep = "_"
         )
@@ -9990,8 +10590,8 @@ compute_confusion_matrix <- function(fdr_read,
       df_mer$study[1],
       "CONFUSION",
       stri_trans_toupper(variable),
-      "ALL",
-      if (output == "both") "MINUTE_PERCENT" else stri_trans_toupper(output),
+      stri_c(stri_trans_toupper(nm_criterion), "-TO-ALL"),
+      if (output == "both") "MINUTE-PERCENT" else stri_trans_toupper(output),
       dur_type,
       sep = "_"
     )
@@ -10002,16 +10602,34 @@ compute_confusion_matrix <- function(fdr_read,
              regexp = "csv"),
       fnm_write
     )
+  # Create common column names in order to bind them.
   purrr::map(
     .x = lst_confusion,
     function(.x) {
       col_names <- 
         names(.x)
+      col_names[1] <- 
+        col_names[1] |> 
+        stri_replace(
+          regex       = stri_c(nm_criterion, "\\\\"),
+          replacement = 
+            stri_replace(
+              col_names[1],
+              regex = ".*\\\\",
+              replacement = ""
+            ) |> 
+            stri_detect(
+              stri_trans_totitle(vct_estimate),
+              regex = _
+            ) |> 
+            which() |> 
+            vec_slice(LETTERS, i = _) |> 
+            stri_c(... = _, ") ")
+        )
       col_names_generic <- 
-        c("criterion\\estimate",
+        c(stri_c(nm_criterion, "(row)\\Estimate (column)"),
           stri_c("Value",
-                 col_names[-(1:2)] |> 
-                   seq_along()),
+                 seq_along(col_names[-(1:2)])),
           col_names[length(col_names)])
       .x <- 
         .x |> 
@@ -10029,7 +10647,6 @@ compute_confusion_matrix <- function(fdr_read,
     }
   ) |> 
     bind_rows() |> 
-    add_row(.before = 1) |> 
     fwrite(
       file = path_ext_set(fpa_write,
                           ext = "csv"),
@@ -10388,10 +11005,10 @@ compute_summary_subject_characteristics <- function(fdr_read,
                                                     fnm_teleform,
                                                     filter_sub) {
   
-  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - First Version
-  # - Calculates average age & BMI as well as frequency & percent.
+  # - If there is no entry or NA for a subject, give a warning and add it as
+  #   a category.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # - NA
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
@@ -10412,19 +11029,11 @@ compute_summary_subject_characteristics <- function(fdr_read,
   # fdr_write    = fdr_result
   # fnm_teleform = "COV1MERGED2022-03-09v2.csv"
   # filter_sub   = 
-  #   arrow::read_feather(path(fdr_process,
-  #                            "CO_VISIT_SUM_MINUTES_INTENSITY_FROM_DURATION.feather")) |> 
+  #   path(fdr_process,
+  #        "CO_ALL_DUR_BEH_NOL_GE_60_NOLDUS_CHAMBER_RMR.feather") |> 
+  #   arrow::read_feather() |> 
   #   pull(subject) |> 
   #   unique()
-  # filter_sub   = 
-  #   c(
-  #     1001, 1002, 1003, 1004, 1005,
-  #     1007, 1008, 1009, 1010, #1011,
-  #     1025, 1031, #1036,
-  #     1063, 1067,
-  #     1070 #1072, 1073, 1074, 1075,
-  #     #1076
-  #   )
   
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                            SETUP                          ----
@@ -10464,6 +11073,9 @@ compute_summary_subject_characteristics <- function(fdr_read,
            bmi = bmicalc
     ) |> 
     mutate(
+      functcat =
+        functcat |> 
+        na_if(""),
       race = 
         race |> 
         factor(levels = 1:7,
@@ -10488,6 +11100,62 @@ compute_summary_subject_characteristics <- function(fdr_read,
     ) |> 
     as_tibble()
   
+  ##::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+  ##                            CHECKS                          ----
+  ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: 
+  # See if there are any missing entries...
+  # For Race
+  
+  if (any(!complete.cases(df_tele))) {
+    
+    ind_incomplete <- 
+      which(
+        !complete.cases(df_tele)
+      )
+    
+    lst_missing <- 
+      list()
+    
+    for (i in seq_along(ind_incomplete)) {
+      
+      df_subject <- 
+        df_tele |> 
+        slice(ind_incomplete[i])
+      sbj <- 
+        df_subject$subjectid
+      vct_missing <- 
+        colnames(df_subject)[is.na(df_subject)]
+      
+      cli_warn(c(
+        "!" = "{sbj} has the following missing entries:",
+        stri_trans_toupper(vct_missing)
+      ))
+      
+      lst_missing[[i]] <- 
+        vct_missing
+      
+    }
+    
+    cli_inform(c(
+      "i" = "Excluding numeric variables from summary and giving character
+               variables a MISSING value."
+    ))
+    
+    df_tele <- 
+      df_tele |> 
+      mutate(across(
+        .cols = where(is.character),
+        .fns  = ~replace_na(.x,
+                            replace = "(MISSING)")
+      )) |> 
+      mutate(across(
+        .cols = where(is.factor),
+        .fns  = ~fct_explicit_na(.x,
+                                 na_level = "(MISSING)")
+      ))
+    
+  }
+    
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                           COMPUTE                         ----
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -10500,21 +11168,21 @@ compute_summary_subject_characteristics <- function(fdr_read,
           `Age (years)` = 
             stri_c(
               age |> 
-                mean() |> 
+                mean(na.rm = TRUE) |> 
                 round(digits = 1),
               " \u00B1 ",
               age |> 
-                sd() |> 
+                sd(na.rm = TRUE) |> 
                 round(digits = 1)
             ),
           `BMI (kg/m2)` = 
             stri_c(
               bmi |> 
-                mean() |> 
+                mean(na.rm = TRUE) |> 
                 round(digits = 1),
               " \u00B1 ",
               bmi |> 
-                sd() |> 
+                sd(na.rm = TRUE) |> 
                 round(digits = 1)
             ),
           Subjects = n()
@@ -10582,11 +11250,12 @@ compute_summary_visit <- function(fdr_read,
                                   fdr_write,
                                   time_units) {
   
-  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - First Version
-  # - Calculates total visit length & average plus/minus SD for 
-  #   each duration file present in processed folder.
+  # - Have duration files in order.
+  # - Calculate total/mean/sd times from the first row of every
+  #   visit instead of just getting it from unique values as
+  #   multiple visits may have the same exact length.
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # - NA
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
@@ -10597,18 +11266,11 @@ compute_summary_visit <- function(fdr_read,
   # time_units 
   #   Unit of time to have all summary results in.
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - NA
+  # - Values come out wrong for duration files different than normal.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_read <- 
-  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access", "0_Students",
-  #        "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #        "3_data", "4_processed")
-  # fdr_write <- 
-  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
-  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #        "4_results")
-  # time_units <- 
-  #   "hours" # secs, mins, hours
+  # fdr_read   = fdr_process
+  # fdr_write  = fdr_result
+  # time_units = "hours" # secs, mins, hours
   
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   ##                            SETUP                          ----
@@ -10622,14 +11284,31 @@ compute_summary_visit <- function(fdr_read,
       type = "file",
       regexp = "ALL_DUR.*feather$"
     )
+  ord_duration <- 
+    vct_fpa_dur |> 
+    path_file() |> 
+    # Remove dates from filenames in case they are included.
+    stri_replace_all(regex = "\\d{4}-\\d{2}-\\d{2}",
+                     replacement = "") |> 
+    # Extract the "greater than" seconds.
+    stri_extract_all_regex(pattern = "\\d*") |> 
+    vec_unchop() |> 
+    stri_remove_empty() |> 
+    as.integer() |> 
+    order()
+  vct_fpa_dur[-1] <- 
+    vct_fpa_dur[-1][ord_duration]
   names(vct_fpa_dur) <- 
     vct_fpa_dur |> 
     path_file() |> 
     stri_extract(regex = "DUR_\\w{3}_\\w{3}_GE_\\d*|DURATION")
+  
   lst_duration <- 
     purrr::map(.x = vct_fpa_dur,
                .f = ~arrow::read_feather(.x))
-  lst_summary <- 
+  lst_summary_tot <- 
+    list()
+  lst_summary_avg <- 
     list()
   study <- 
     chuck(lst_duration, 1, 1, 1)
@@ -10740,38 +11419,42 @@ compute_summary_visit <- function(fdr_read,
     units(df_vis_len_var_src$visit_length) <- 
       time_units
     
-    lst_summary[[i]] <- 
-      bind_rows(
-        df_vis_len_var_src |> 
-          summarise(
-            Variable = 
-              glue::glue("Total Visit {stri_trans_totitle(time_units)}{tot_txt}"),
-            Value = 
-              visit_length |> 
-              unique() |> 
-              sum() |> 
-              round(digits = 2) |> 
-              as.character()
-          ),
-        df_vis_len_var_src |> 
-          summarise(
-            Variable = 
-              glue::glue("Visit Length{avg_txt} ({time_units})"),
-            mean = 
-              visit_length |> 
-              unique() |> 
-              mean() |> 
-              round(digits = 2),
-            sd   = 
-              visit_length |> 
-              unique() |> 
-              sd() |> 
-              round(digits = 2)
-          ) |> 
-          unite(col = "Value",
-                mean, sd,
-                sep = " \u00B1 ")
+    lst_summary_tot[[i]] <- 
+      # Get the first row from each visit and then add all them up.
+      df_vis_len_var_src |> 
+      group_by(study, subject, visit) |> 
+      slice(1) |> 
+      ungroup() |> 
+      summarise(
+        Variable = 
+          glue::glue("Total Visit {stri_trans_totitle(time_units)}{tot_txt}"),
+        Value = 
+          visit_length |> 
+          sum() |> 
+          round(digits = 2) |> 
+          as.character()
       )
+    lst_summary_avg[[i]] <- 
+      # Get the first row from each visit and then get mean/std deviation.
+      df_vis_len_var_src |> 
+      group_by(study, subject, visit) |> 
+      slice(1) |> 
+      ungroup() |> 
+      summarise(
+        Variable = 
+          glue::glue("Average Visit Length{avg_txt} ({time_units})"),
+        mean = 
+          visit_length |> 
+          mean() |> 
+          round(digits = 2),
+        sd   = 
+          visit_length |> 
+          sd() |> 
+          round(digits = 2)
+      ) |> 
+      unite(col = "Value",
+            mean, sd,
+            sep = " \u00B1 ")
     
   }
   
@@ -10779,10 +11462,10 @@ compute_summary_visit <- function(fdr_read,
   ##                            WRITE                          ----
   ##:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
   df_summary <- 
-    lst_summary |> 
-    rbindlist() |> 
-    arrange(Variable) |> 
-    as.data.table()
+    bind_rows(
+      rbindlist(lst_summary_tot),
+      rbindlist(lst_summary_avg)
+    )
   
   fnm_write <- 
     stri_c(
@@ -10827,19 +11510,10 @@ plot_bias <- function(fdr_result,
                       duration_type    = "normal",
                       type) {
   
-  ###  VERSION 1  :::::::::::::::::::::::::::::::::::::::::::::::::
+  ###  VERSION 2  :::::::::::::::::::::::::::::::::::::::::::::::::
   ###  CHANGES  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # - First Version.
-  # - Outputs three types of graphs:
-  #   - "Default" which shows all of the variable values on one 
-  #     axis and facets by 1) combinations of vct_criterion & vct_estimate
-  #     & by 2) vct_variable.
-  #   - "Collapsed" which shows all combinations between vct_criterion
-  #     and vct_estimate for each variable in one graph then facets
-  #     by vct_variable.
-  #   - "Separate Values" which has all the values from each estimate
-  #     in one graph (faceted by values within vct_variable). CAN ONLY
-  #     ACCEPT ONE VARIABLE.
+  # - Add check if compute_bias with output = "time" not ran yet.
+  # - Changed how duration_type should be inputed if not "normal".
   ###  FUNCTIONS  :::::::::::::::::::::::::::::::::::::::::::::::::
   # - NA
   ###  ARGUMENTS  :::::::::::::::::::::::::::::::::::::::::::::::::
@@ -10866,43 +11540,28 @@ plot_bias <- function(fdr_result,
   #   Logical on whether to have Bias appear in the x-axis or in the y-axis.
   # duration_type
   #   "normal"  = "DURATION" files or
-  #   "ge_than" = "DUR_{Variable}_{Source}_{ge_than_value}" files.
+  #   a string that is in the format "{Variable}_{Source}_{ge_than_value}"
+  #   (i.e. "BEH_NOL_GE_60") to filter the correct files.
   # type 
   #   "minute" or "percent"
   ###  TODO  ::::::::::::::::::::::::::::::::::::::::::::::::::::::
   # - Make "default" graph.
-  # - duration_type argument can't just be "ge_than". It has to be "ge_[NUMBER]"
-  #   in order to filter out the correct bias file.
+  # - Figure out why facet_grid is ran if flip_axes is FALSE.
   ###  TESTING  :::::::::::::::::::::::::::::::::::::::::::::::::::
-  # fdr_result <- 
-  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
-  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #        "4_results")
-  # fdr_result <- 
-  #   path("S:", "_R_CHS_Research", "PAHRL", "Student Access",
-  #        "0_Students", "MARTINEZ", "2_Conferences", "2022_ICAMPAM",
-  #        "4_results")
-  # vct_criterion <- 
-  #   c("standard", "rmr")
-  # vct_estimate <- 
-  #   c("noldus")
-  # vct_variable <- 
-  #   c("intensity")
-  # # c("intensity",
-  # #   "posture")
-  # lst_recode <- 
-  #   list(criterion = c("Rmr" = "RMR"),
-  #        estimate  = c("Noldus" = "Video"),
-  #        variable  = NULL,
-  #        value     = c("Mvpa" = "MVPA"))
-  # collapse <- 
-  #   TRUE
-  # separate_values <- 
-  #   FALSE
-  # flip_axes <- 
-  #   FALSE
-  # type <- 
-  #   "minute" # minutes, percent
+  # fdr_result       = fdr_result
+  # vct_criterion    = c("standard", "rmr")
+  # vct_estimate     = c("noldus")
+  # vct_variable     = c("intensity")
+  # lst_recode       = list(criterion = c("Rmr" = "RMR"),
+  #                         estimate  = c("Noldus" = "Video"),
+  #                         variable  = NULL,
+  #                         value     = c("Mvpa" = "MVPA"))
+  # collapse         = TRUE
+  # separate_values  = FALSE
+  # flip_axes        = FALSE
+  # duration_type    = "BEH_NOL_GE_60"
+  # type             = "minute"
+  # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
   # fdr_result       = fdr_result
   # vct_criterion    = c("standard")
   # vct_estimate     = c("sojourn3x", "montoye", "rowland", "hildebrand",
@@ -10958,26 +11617,39 @@ plot_bias <- function(fdr_result,
   # Filter by vct_variable then by type, then by duration_type.
   vct_fpa_bias <- 
     dir_ls(
-      path = fdr_result,
-      type = "file",
+      path    = fdr_result,
+      type    = "file",
       recurse = 1,
-      regexp = 
+      regexp  = 
         vct_variable |> 
         stri_trans_toupper() %>% 
         stri_c("BIAS_", ., "_", stri_trans_toupper(type), ".*\\.feather$") |> 
         stri_c(collapse = "|")
     )
+  
+  if (is_empty(vct_fpa_bias)) {
+    
+    cli_abort(c(
+      "x" = "No files with BIAS_{{vct_variable}}_{stri_trans_toupper(type)} found.",
+      "i" = "Was function {.emph compute_bias} ran for {vct_variable} with
+             {.arg output} = {ifelse(type == 'minute',
+                                     yes = 'time',
+                                     no = type)}?"
+    ))
+    
+  }
+  
   if (duration_type == "normal") {
     
     vct_fpa_bias <- 
       vct_fpa_bias |> 
       path_filter(regexp = "DURATION")
     
-  } else if (duration_type == "ge_than"){
+  } else {
     
     vct_fpa_bias <- 
       vct_fpa_bias |> 
-      path_filter(regexp = "DUR_")
+      path_filter(regexp = duration_type)
     
   }
   
@@ -11131,9 +11803,9 @@ plot_bias <- function(fdr_result,
         # position = position_jitter()
         # nudge_y = 0.2
       ) +
-      # The reverse factor order is presented, change it to how it appears in 
-      # table.
-      scale_y_discrete(limits = rev) +
+      # # The reverse factor order is presented, change it to how it appears in 
+      # # table.
+      # scale_y_discrete(limits = rev) +
       scale_x_continuous(breaks = scales::breaks_extended(n = 7)) +
       # `collapse` specific.
       coord_capped_cart(
@@ -11206,9 +11878,9 @@ plot_bias <- function(fdr_result,
         # position = position_jitter()
         # nudge_y = 0.2
       ) +
-      # The reverse factor order is presented, change it to how it appears in 
-      # table.
-      scale_y_discrete(limits = rev) +
+      # # The reverse factor order is presented, change it to how it appears in 
+      # # table.
+      # scale_y_discrete(limits = rev) +
       scale_x_continuous(breaks = scales::breaks_extended(n = 7)) +
       # `separate_values` specific.
       labs(y = "Estimates")
@@ -11294,16 +11966,18 @@ plot_bias <- function(fdr_result,
         panel.grid.minor.x         = element_line(
           color = "grey85"
         )
-      ) +
-      facet_wrap(
-        facets = vars(Value),
-        ncol = uniqueN(df_plot$Value),
-        nrow = 1,
-        scales = "free_x",
-        drop = TRUE
-        # dir = "h"
-        # labeller = label_parsed
-      )      
+      )
+    #  TODO: WHY IS THIS HERE???  ::::::::::::::::::::::::::::::::::::::::::::::
+      # facet_wrap(
+      #   facets = vars(Value),
+      #   ncol = uniqueN(df_plot$Value),
+      #   nrow = 1,
+      #   scales = "free_x",
+      #   drop = TRUE
+      #   # dir = "h"
+      #   # labeller = label_parsed
+      # )      
+    #  TODO: END  ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
     
   }
   
